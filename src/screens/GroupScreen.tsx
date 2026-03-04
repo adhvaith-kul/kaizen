@@ -13,6 +13,7 @@ export default function GroupScreen({ navigation }: any) {
     try {
       await backend.createGroup(groupName, user.id);
       await refreshGroup();
+      navigation.goBack();
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
     }
@@ -23,6 +24,7 @@ export default function GroupScreen({ navigation }: any) {
     try {
       await backend.joinGroup(groupCode, user.id);
       await refreshGroup();
+      navigation.goBack();
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
     }
@@ -68,9 +70,13 @@ export default function GroupScreen({ navigation }: any) {
         <TouchableOpacity
           style={styles.logoutBtn}
           onPress={() => {
-            logout().then(() => navigation.navigate('Login'));
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
           }}>
-          <Text style={styles.logoutBtnText}>i'm out (logout) ✌️</Text>
+          <Text style={styles.logoutBtnText}>nvm, back ✌️</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

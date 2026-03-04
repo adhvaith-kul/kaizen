@@ -60,6 +60,18 @@ class Backend {
     return { id: group.id, name: group.name, code: group.code, createdBy: group.created_by };
   }
 
+  async getUserGroups(userId: string): Promise<Group[]> {
+    const { data: members } = await supabase.from('members').select('group_id').eq('user_id', userId);
+    if (!members || members.length === 0) return [];
+
+    const groupIds = members.map(m => m.group_id);
+    const { data: groups } = await supabase.from('groups').select('*').in('id', groupIds);
+    if (!groups) return [];
+
+    return groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by }));
+  }
+
+  // Keeping this for backward compatibility or simple single-group logic if needed
   async getUserGroup(userId: string): Promise<Group | null> {
     const { data: member } = await supabase.from('members').select('group_id').eq('user_id', userId).maybeSingle();
     if (!member) return null;
@@ -87,7 +99,10 @@ class Backend {
   }
 
   async getTodayLog(userId: string): Promise<DailyLog> {
-    const date = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
+    const istDateObj = new Date(d.getTime() + istOffset);
+    const date = istDateObj.toISOString().split('T')[0];
     const { data, error } = await supabase
       .from('logs')
       .select('*')
@@ -193,6 +208,17 @@ class Backend {
       username: item.username,
       totalPoints: item.totalPoints,
     }));
+  }
+
+  async getProfileStats(userId: string): Promise<{ totalPoints: number; totalDaysLogged: number }> {
+    const { data: logs } = await supabase.from('logs').select('total_points').eq('user_id', userId);
+    if (!logs) return { totalPoints: 0, totalDaysLogged: 0 };
+
+    let totalPoints = 0;
+    for (const log of logs) {
+      totalPoints += log.total_points;
+    }
+    return { totalPoints, totalDaysLogged: logs.length };
   }
 }
 

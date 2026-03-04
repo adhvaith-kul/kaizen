@@ -42,7 +42,7 @@ export default function LeaderboardScreen({ navigation }: any) {
           data={board}
           keyExtractor={item => item.username}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} tintColor="#FF3366" />}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: 140 }}
           renderItem={({ item }) => {
             const isMe = item.username === user?.username;
             return (
@@ -60,9 +60,12 @@ export default function LeaderboardScreen({ navigation }: any) {
             );
           }}
         />
+      </View>
 
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('Dashboard')}>
-          <Text style={styles.backBtnText}>BACK TO GRIND 🏃‍♂️</Text>
+      {/* Floating Track Habits Button */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.trackBtn} onPress={() => navigation.navigate('Dashboard')}>
+          <Text style={styles.trackBtnText}>TRACK HABITS 📝</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -109,12 +112,27 @@ const styles = StyleSheet.create({
   username: { fontSize: 18, fontWeight: '700', color: '#FFF' },
   myUsername: { color: '#FF3366', fontWeight: '900' },
   points: { fontSize: 16, fontWeight: '800', color: '#C2FF05' },
-  backBtn: {
-    backgroundColor: '#333',
+  bottomBar: {
+    position: 'absolute',
+    bottom: 85, // Height of the Tab Navigation
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingBottom: 20, // Reset since it's no longer the absolute bottom of SafeArea
+    backgroundColor: 'rgba(14, 14, 17, 0.95)',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#2A2A35',
+  },
+  trackBtn: {
+    backgroundColor: '#C2FF05',
     padding: 18,
     borderRadius: 16,
     alignItems: 'center',
-    marginTop: 10,
+    shadowColor: '#C2FF05',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
-  backBtnText: { color: '#FFF', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
+  trackBtnText: { color: '#000', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
 });
