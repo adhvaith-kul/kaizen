@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { mockBackend } from '../services/MockBackend';
+import { backend } from '../services/backend';
 import { Category } from '../types';
 
 const CATEGORIES: Category[] = ['Health', 'Finance', 'Work', 'Upskill', 'Social'];
@@ -37,7 +37,7 @@ export default function HabitSetupScreen({ navigation }: any) {
 
   useEffect(() => {
     if (user) {
-      mockBackend.getHabits(user.id).then(userHabits => {
+      backend.getHabits(user.id).then(userHabits => {
         const hRec = { ...habits };
         userHabits.forEach(h => {
           hRec[h.category] = h.name;
@@ -56,7 +56,7 @@ export default function HabitSetupScreen({ navigation }: any) {
     }
 
     try {
-      await mockBackend.saveHabits(user.id, payload);
+      await backend.saveHabits(user.id, payload);
       Alert.alert('W', 'habits locked in 🔒');
       navigation.navigate('Dashboard');
     } catch (e: any) {

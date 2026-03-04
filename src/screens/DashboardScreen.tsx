@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, SafeAreaView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { mockBackend } from '../services/MockBackend';
+import { backend } from '../services/backend';
 import { Habit, DailyLog } from '../types';
 
 export default function DashboardScreen({ navigation }: any) {
@@ -15,14 +15,14 @@ export default function DashboardScreen({ navigation }: any) {
     if (!user) return;
     setLoading(true);
     try {
-      const uHabits = await mockBackend.getHabits(user.id);
+      const uHabits = await backend.getHabits(user.id);
       setHabits(uHabits);
 
-      const uLog = await mockBackend.getTodayLog(user.id);
+      const uLog = await backend.getTodayLog(user.id);
       setLog(uLog);
 
       if (group) {
-        const board = await mockBackend.getLeaderboard(group.id);
+        const board = await backend.getLeaderboard(group.id);
         const myRank = board.find(b => b.username === user.username)?.rank || '-';
         setRank(myRank);
       }
@@ -36,11 +36,11 @@ export default function DashboardScreen({ navigation }: any) {
 
   const toggle = async (habitId: string) => {
     if (!user) return;
-    const newLog = await mockBackend.toggleHabitCompletion(user.id, habitId);
+    const newLog = await backend.toggleHabitCompletion(user.id, habitId);
     setLog(newLog);
     // Refresh rank silently
     if (group) {
-      mockBackend.getLeaderboard(group.id).then(board => {
+      backend.getLeaderboard(group.id).then(board => {
         const myRank = board.find(b => b.username === user?.username)?.rank || '-';
         setRank(myRank);
       });
