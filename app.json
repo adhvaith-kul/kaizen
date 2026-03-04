@@ -25,6 +25,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9ddc35b0-b680-4c20-8ab5-6f95fa39651c"
+      }
+    },
+    "owner": "adhvaithkul"
   }
 }
