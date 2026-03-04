@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
 export default function SignupScreen({ navigation }: any) {
@@ -12,30 +12,88 @@ export default function SignupScreen({ navigation }: any) {
     try {
       await signup(username, email, password);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      Alert.alert('💀 Bruh', e.message);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Join Kaizen</Text>
-      <TextInput style={styles.input} placeholder="Username" onChangeText={setUsername} autoCapitalize="none" />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput style={styles.input} placeholder="Password" onChangeText={setPassword} secureTextEntry />
-      <Button title="Sign up" onPress={handleSignup} />
-      <Button title="Already have an account? Login" onPress={() => navigation.navigate('Login')} />
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.logo}>
+            join the <Text style={styles.logoAccent}>cult</Text> 👽
+          </Text>
+          <Text style={styles.subtitle}>main character energy only.</Text>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="username (make it fire)"
+            placeholderTextColor="#888"
+            onChangeText={setUsername}
+            autoCapitalize="none"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="email address (@)"
+            placeholderTextColor="#888"
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="password (shh...)"
+            placeholderTextColor="#888"
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+        </View>
+
+        <TouchableOpacity style={styles.primaryBtn} onPress={handleSignup}>
+          <Text style={styles.primaryBtnText}>VIBE CHECK PASSED 💅</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.secondaryBtnText}>already a member? log in 🤝</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 15, borderRadius: 5 },
+  container: { flex: 1, backgroundColor: '#0E0E11' },
+  content: { flex: 1, padding: 24, justifyContent: 'center' },
+  header: { marginBottom: 40, alignItems: 'center' },
+  logo: { fontSize: 40, fontWeight: '900', color: '#FFF', letterSpacing: -1.5, textAlign: 'center' },
+  logoAccent: { color: '#B388FF' },
+  subtitle: { fontSize: 16, color: '#A0A0B0', marginTop: 8, fontWeight: '600' },
+  inputContainer: { marginBottom: 30 },
+  input: {
+    backgroundColor: '#1A1A24',
+    color: '#FFF',
+    fontSize: 16,
+    padding: 18,
+    marginBottom: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A35',
+    fontWeight: '500',
+  },
+  primaryBtn: {
+    backgroundColor: '#B388FF',
+    padding: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#B388FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  primaryBtnText: { color: '#000', fontSize: 16, fontWeight: '800', letterSpacing: 1 },
+  secondaryBtn: { padding: 18, alignItems: 'center' },
+  secondaryBtnText: { color: '#C2FF05', fontSize: 14, fontWeight: '700' },
 });

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, SafeAreaView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { mockBackend } from '../services/MockBackend';
 import { Habit, DailyLog } from '../types';
@@ -11,7 +11,7 @@ export default function DashboardScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [rank, setRank] = useState<number | string>('-');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
@@ -28,11 +28,11 @@ export default function DashboardScreen({ navigation }: any) {
       }
     } catch (e) {}
     setLoading(false);
-  };
+  }, [user, group]);
 
   useEffect(() => {
     fetchData();
-  }, [user, group]);
+  }, [fetchData]);
 
   const toggle = async (habitId: string) => {
     if (!user) return;
@@ -48,86 +48,159 @@ export default function DashboardScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} />}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Dashboard</Text>
-        <Text>Welcome, {user?.username}!</Text>
-      </View>
-
-      <View style={styles.scoreBoard}>
-        <View style={styles.scoreBox}>
-          <Text style={styles.scoreValue}>{log?.totalPoints || 0}</Text>
-          <Text style={styles.scoreLabel}>Today's Points</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} tintColor="#C2FF05" />}
+        contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>sup, {user?.username} 👋</Text>
+            <Text style={styles.title}>
+              your <Text style={{ color: '#C2FF05' }}>grind</Text>
+            </Text>
+          </View>
+          {group && (
+            <View style={styles.groupBadge}>
+              <Text style={styles.groupCodeLabel}>SQUAD CODE</Text>
+              <Text style={styles.groupCode}>{group.code}</Text>
+            </View>
+          )}
         </View>
-        <View style={styles.scoreBox}>
-          <Text style={styles.scoreValue}>#{rank}</Text>
-          <Text style={styles.scoreLabel}>Current Rank</Text>
+
+        <View style={styles.statsContainer}>
+          <View style={[styles.statBox, { backgroundColor: '#B388FF' }]}>
+            <Text style={styles.statLabel}>VIBE SCORE</Text>
+            <Text style={styles.statValue}>{log?.totalPoints || 0}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.statBox, { backgroundColor: '#1A1A24', borderWidth: 1, borderColor: '#333' }]}
+            onPress={() => navigation.navigate('Leaderboard')}>
+            <Text style={[styles.statLabel, { color: '#888' }]}>SQUAD RANK</Text>
+            <Text style={[styles.statValue, { color: '#FFF' }]}>#{rank}</Text>
+          </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={styles.habitsSection}>
-        <Text style={styles.sectionTitle}>Today's Habits</Text>
-        {habits.length === 0 ? (
-          <Text style={{ color: '#888' }}>No habits set up yet.</Text>
-        ) : (
-          habits.map(h => {
-            const isCompleted = log?.completedHabitIds.includes(h.id);
-            return (
-              <TouchableOpacity key={h.id} style={styles.habitRow} onPress={() => toggle(h.id)}>
-                <View style={[styles.checkbox, isCompleted && styles.checkedBox]}>
-                  {isCompleted && <Text style={{ color: 'white' }}>✓</Text>}
-                </View>
-                <View>
-                  <Text style={[styles.habitName, isCompleted && styles.checkedText]}>{h.name}</Text>
-                  <Text style={styles.habitCategory}>{h.category}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })
-        )}
-        <Button title="Edit Habits" onPress={() => navigation.navigate('HabitSetup')} />
-      </View>
+        <View style={styles.habitsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>TODAY'S MISSION</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('HabitSetup')}>
+              <Text style={styles.editLink}>edit ⚙️</Text>
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.actionsSection}>
-        {group && <Text style={{ marginBottom: 10, textAlign: 'center' }}>Group Code: {group.code}</Text>}
-        <Button title="Leaderboard" onPress={() => navigation.navigate('Leaderboard')} />
-        <Button title="Logout" color="red" onPress={logout} />
-      </View>
-    </ScrollView>
+          {habits.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>crickets... 🦗</Text>
+              <Text style={styles.emptySubtext}>set up your habits to start winning.</Text>
+            </View>
+          ) : (
+            habits.map(h => {
+              const isCompleted = log?.completedHabitIds.includes(h.id);
+              return (
+                <TouchableOpacity
+                  key={h.id}
+                  style={[styles.habitCard, isCompleted && styles.habitCardDone]}
+                  onPress={() => toggle(h.id)}
+                  activeOpacity={0.8}>
+                  <View style={styles.habitInfo}>
+                    <Text style={styles.habitCategory}>{h.category.toUpperCase()}</Text>
+                    <Text style={[styles.habitName, isCompleted && styles.habitNameDone]}>{h.name}</Text>
+                  </View>
+                  <View style={[styles.checkbox, isCompleted && styles.checkboxDone]}>
+                    <Text style={styles.checkIcon}>{isCompleted ? '🔥' : ''}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </View>
+
+        <View style={styles.actionSection}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('Leaderboard')}>
+            <Text style={styles.primaryBtnText}>VIEW LEADERBOARD 🏆</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.ghostBtn} onPress={logout}>
+            <Text style={styles.ghostBtnText}>GHOST OUT (LOGOUT) 👻</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#0E0E11' },
   container: { flex: 1, padding: 20 },
-  header: { marginBottom: 20, alignItems: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold' },
-  scoreBoard: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20 },
-  scoreBox: { alignItems: 'center', backgroundColor: '#eef', padding: 20, borderRadius: 10, width: '45%' },
-  scoreValue: { fontSize: 28, fontWeight: 'bold' },
-  scoreLabel: { fontSize: 14, color: '#555' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 30,
+    marginTop: 10,
+  },
+  greeting: { fontSize: 16, color: '#A0A0B0', fontWeight: '600', marginBottom: 4 },
+  title: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: -1 },
+  groupBadge: {
+    backgroundColor: '#1A1A24',
+    padding: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2A2A35',
+  },
+  groupCodeLabel: { fontSize: 10, color: '#888', fontWeight: '800', marginBottom: 2 },
+  groupCode: { fontSize: 16, color: '#FF3366', fontWeight: '900', letterSpacing: 2 },
+  statsContainer: { flexDirection: 'row', gap: 15, marginBottom: 35 },
+  statBox: { flex: 1, padding: 20, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
+  statLabel: { fontSize: 12, fontWeight: '800', color: '#000', marginBottom: 8, letterSpacing: 1 },
+  statValue: { fontSize: 40, fontWeight: '900', color: '#000', letterSpacing: -2 },
   habitsSection: { marginBottom: 30 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 10 },
-  habitRow: {
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#666', letterSpacing: 1.5 },
+  editLink: { color: '#C2FF05', fontWeight: '700', fontSize: 14 },
+  emptyState: {
+    backgroundColor: '#1A1A24',
+    padding: 40,
+    borderRadius: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+    borderStyle: 'dashed',
+  },
+  emptyText: { fontSize: 24, fontWeight: '800', color: '#FFF', marginBottom: 8 },
+  emptySubtext: { fontSize: 14, color: '#888', fontWeight: '500' },
+  habitCard: {
+    backgroundColor: '#1A1A24',
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 15,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    backgroundColor: '#f9f9f9',
-    marginBottom: 10,
-    borderRadius: 8,
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#2A2A35',
   },
+  habitCardDone: { borderColor: '#C2FF05', backgroundColor: '#121A0F' },
+  habitInfo: { flex: 1 },
+  habitCategory: { fontSize: 10, color: '#A0A0B0', fontWeight: '800', marginBottom: 4, letterSpacing: 1 },
+  habitName: { fontSize: 18, color: '#FFF', fontWeight: '700' },
+  habitNameDone: { textDecorationLine: 'line-through', color: '#666' },
   checkbox: {
-    width: 24,
-    height: 24,
+    width: 36,
+    height: 36,
     borderRadius: 12,
+    backgroundColor: '#0E0E11',
     borderWidth: 2,
-    borderColor: '#ccc',
-    marginRight: 15,
+    borderColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkedBox: { backgroundColor: '#4caf50', borderColor: '#4caf50' },
-  habitName: { fontSize: 16, fontWeight: '500' },
-  checkedText: { textDecorationLine: 'line-through', color: '#999' },
-  habitCategory: { fontSize: 12, color: '#777' },
-  actionsSection: { marginBottom: 40 },
+  checkboxDone: { backgroundColor: '#C2FF05', borderColor: '#C2FF05' },
+  checkIcon: { fontSize: 16 },
+  actionSection: { marginTop: 10 },
+  primaryBtn: { backgroundColor: '#333', padding: 18, borderRadius: 16, alignItems: 'center', marginBottom: 15 },
+  primaryBtnText: { color: '#FFF', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
+  ghostBtn: { padding: 15, alignItems: 'center' },
+  ghostBtnText: { color: '#FF3366', fontSize: 14, fontWeight: '700' },
 });
