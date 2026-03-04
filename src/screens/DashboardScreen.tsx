@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, SafeAreaView } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { Habit, DailyLog } from '../types';
@@ -30,9 +31,11 @@ export default function DashboardScreen({ navigation }: any) {
     setLoading(false);
   }, [user, group]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const toggle = async (habitId: string) => {
     if (!user) return;
@@ -83,7 +86,12 @@ export default function DashboardScreen({ navigation }: any) {
 
         <View style={styles.habitsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>TODAY'S MISSION</Text>
+            <Text style={styles.sectionTitle}>
+              TODAY'S MISSION{' '}
+              {log?.date
+                ? `(${new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })})`
+                : ''}
+            </Text>
             <TouchableOpacity onPress={() => navigation.navigate('HabitSetup')}>
               <Text style={styles.editLink}>edit ⚙️</Text>
             </TouchableOpacity>
@@ -119,9 +127,6 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.actionSection}>
           <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('Leaderboard')}>
             <Text style={styles.primaryBtnText}>VIEW LEADERBOARD 🏆</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.ghostBtn} onPress={logout}>
-            <Text style={styles.ghostBtnText}>GHOST OUT (LOGOUT) 👻</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -198,9 +203,17 @@ const styles = StyleSheet.create({
   },
   checkboxDone: { backgroundColor: '#C2FF05', borderColor: '#C2FF05' },
   checkIcon: { fontSize: 16 },
-  actionSection: { marginTop: 10 },
-  primaryBtn: { backgroundColor: '#333', padding: 18, borderRadius: 16, alignItems: 'center', marginBottom: 15 },
-  primaryBtnText: { color: '#FFF', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
-  ghostBtn: { padding: 15, alignItems: 'center' },
-  ghostBtnText: { color: '#FF3366', fontSize: 14, fontWeight: '700' },
+  actionSection: { marginTop: 10, paddingBottom: 85 },
+  primaryBtn: {
+    backgroundColor: '#C2FF05',
+    padding: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: '#C2FF05',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  primaryBtnText: { color: '#000', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
 });
