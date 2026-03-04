@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { mockBackend } from '../services/MockBackend';
+import { backend } from '../services/backend';
 
 export default function LeaderboardScreen({ navigation }: any) {
   const { group, user } = useAuth();
@@ -11,7 +11,7 @@ export default function LeaderboardScreen({ navigation }: any) {
   const fetchData = async () => {
     if (group) {
       setLoading(true);
-      const b = await mockBackend.getLeaderboard(group.id);
+      const b = await backend.getLeaderboard(group.id);
       setBoard(b);
       setLoading(false);
     }

@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { mockBackend } from '../services/MockBackend';
+import { backend } from '../services/backend';
 
 export default function GroupScreen({ navigation }: any) {
   const [groupName, setGroupName] = useState('');
   const [groupCode, setGroupCode] = useState('');
-  const { user, refreshGroup } = useAuth();
+  const { user, refreshGroup, logout } = useAuth();
 
   const handleCreate = async () => {
     if (!user) return;
     try {
-      await mockBackend.createGroup(groupName, user.id);
+      await backend.createGroup(groupName, user.id);
       await refreshGroup();
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
@@ -21,7 +21,7 @@ export default function GroupScreen({ navigation }: any) {
   const handleJoin = async () => {
     if (!user) return;
     try {
-      await mockBackend.joinGroup(groupCode, user.id);
+      await backend.joinGroup(groupCode, user.id);
       await refreshGroup();
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
@@ -67,7 +67,9 @@ export default function GroupScreen({ navigation }: any) {
 
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={() => mockBackend.save('currentUser', null).then(() => navigation.navigate('Login'))}>
+          onPress={() => {
+            logout().then(() => navigation.navigate('Login'));
+          }}>
           <Text style={styles.logoutBtnText}>i'm out (logout) ✌️</Text>
         </TouchableOpacity>
       </View>

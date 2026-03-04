@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { User, Group } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { mockBackend } from '../services/MockBackend';
+import { backend } from '../services/backend';
 
 interface AuthContextType {
   user: User | null;
@@ -21,11 +21,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     AsyncStorage.getItem('currentUser').then(id => {
       if (id) {
-        mockBackend.get<User>('users').then(users => {
-          const u = users.find(x => x.id === id);
+        backend.getUser(id).then(u => {
           if (u) {
             setUser(u);
-            mockBackend.getUserGroup(u.id).then(g => setGroup(g));
+            backend.getUserGroup(u.id).then(g => setGroup(g));
           }
         });
       }
@@ -33,18 +32,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async (email: string, pass: string) => {
-    const u = await mockBackend.login(email, pass);
+    const u = await backend.login(email, pass);
     setUser(u);
     await AsyncStorage.setItem('currentUser', u.id);
-    const g = await mockBackend.getUserGroup(u.id);
+    const g = await backend.getUserGroup(u.id);
     setGroup(g);
   };
 
   const signup = async (username: string, email: string, pass: string) => {
-    const u = await mockBackend.signup(username, email, pass);
+    const u = await backend.signup(username, email, pass);
     setUser(u);
     await AsyncStorage.setItem('currentUser', u.id);
-    const g = await mockBackend.getUserGroup(u.id);
+    const g = await backend.getUserGroup(u.id);
     setGroup(g);
   };
 
@@ -56,7 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const refreshGroup = async () => {
     if (user) {
-      const g = await mockBackend.getUserGroup(user.id);
+      const g = await backend.getUserGroup(user.id);
       setGroup(g);
     }
   };
