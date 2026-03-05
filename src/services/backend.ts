@@ -81,17 +81,26 @@ class Backend {
   }
 
   async getHabits(userId: string): Promise<Habit[]> {
+    // Only return currently active habits
+    const { data, error } = await supabase.from('habits').select('*').eq('user_id', userId).neq('active', false);
+    if (error) throw new Error(error.message);
+    return data.map(h => ({ id: h.id, userId: h.user_id, category: h.category, name: h.name }));
+  }
+
+  async getAllHabits(userId: string): Promise<Habit[]> {
+    // Returns both active and inactive habits
     const { data, error } = await supabase.from('habits').select('*').eq('user_id', userId);
     if (error) throw new Error(error.message);
     return data.map(h => ({ id: h.id, userId: h.user_id, category: h.category, name: h.name }));
   }
 
   async saveHabits(userId: string, habitsPayload: { category: Category; name: string }[]): Promise<Habit[]> {
-    await supabase.from('habits').delete().eq('user_id', userId);
+    // Soft delete existing habits instead of hard deletion to preserve history on User Detail Screen
+    await supabase.from('habits').update({ active: false }).eq('user_id', userId).neq('active', false);
 
     const { data, error } = await supabase
       .from('habits')
-      .insert(habitsPayload.map(h => ({ user_id: userId, category: h.category, name: h.name })))
+      .insert(habitsPayload.map(h => ({ user_id: userId, category: h.category, name: h.name, active: true })))
       .select();
 
     if (error) throw new Error(error.message);
@@ -176,7 +185,9 @@ class Backend {
     };
   }
 
-  async getLeaderboard(groupId: string): Promise<{ rank: number; username: string; totalPoints: number }[]> {
+  async getLeaderboard(
+    groupId: string
+  ): Promise<{ rank: number; userId: string; username: string; totalPoints: number }[]> {
     const { data: members } = await supabase.from('members').select('user_id').eq('group_id', groupId);
     if (!members || members.length === 0) return [];
 
@@ -205,8 +216,26 @@ class Backend {
 
     return board.map((item, index) => ({
       rank: index + 1,
+      userId: item.userId,
       username: item.username,
       totalPoints: item.totalPoints,
+    }));
+  }
+
+  async getUserLogs(userId: string): Promise<DailyLog[]> {
+    const { data: logs, error } = await supabase
+      .from('logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return logs.map((log: any) => ({
+      id: log.id,
+      userId: log.user_id,
+      date: log.date,
+      completedHabitIds: log.completed_habit_ids,
+      totalPoints: log.total_points,
     }));
   }
 

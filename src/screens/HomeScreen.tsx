@@ -35,10 +35,10 @@ export default function HomeScreen({ navigation }: any) {
         contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>good to see you,</Text>
+            <Text style={styles.greeting}>Good to see you,</Text>
             <Text style={styles.title}>{user?.username}</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <TouchableOpacity onPress={() => navigation.navigate('ProfileTab')}>
             <Image
               source={{
                 uri: `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
@@ -52,14 +52,14 @@ export default function HomeScreen({ navigation }: any) {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>YOUR SQUADS</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Group')}>
-              <Text style={styles.addLink}>+ join/create</Text>
+              <Text style={styles.addLink}>+ Join/Create</Text>
             </TouchableOpacity>
           </View>
 
           {groups.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>lonely out here... 🏜️</Text>
-              <Text style={styles.emptySubtext}>join a squad or create your own.</Text>
+              <Text style={styles.emptyText}>Lonely out here... 🏜️</Text>
+              <Text style={styles.emptySubtext}>Join a squad or create your own.</Text>
             </View>
           ) : (
             groups.map(g => (

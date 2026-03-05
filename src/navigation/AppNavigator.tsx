@@ -18,6 +18,8 @@ const Stack = createNativeStackNavigator();
 const HomeStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+import UserDetailScreen from '../screens/UserDetailScreen';
+
 function HomeStackScreen() {
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
@@ -26,6 +28,7 @@ function HomeStackScreen() {
       <HomeStack.Screen name="Dashboard" component={DashboardScreen} />
       <HomeStack.Screen name="HabitSetup" component={HabitSetupScreen} />
       <HomeStack.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <HomeStack.Screen name="UserDetail" component={UserDetailScreen} />
     </HomeStack.Navigator>
   );
 }

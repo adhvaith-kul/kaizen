@@ -22,13 +22,13 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={styles.logo}>
             kai<Text style={styles.logoAccent}>zen</Text> ⚡️
           </Text>
-          <Text style={styles.subtitle}>lock in. level up.</Text>
+          <Text style={styles.subtitle}>Lock in. Level up.</Text>
         </View>
 
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="email address (@)"
+            placeholder="Email address (@)"
             placeholderTextColor="#888"
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -36,7 +36,7 @@ export default function LoginScreen({ navigation }: any) {
           />
           <TextInput
             style={styles.input}
-            placeholder="password (shh...)"
+            placeholder="Password (shh...)"
             placeholderTextColor="#888"
             onChangeText={setPassword}
             secureTextEntry
@@ -48,7 +48,7 @@ export default function LoginScreen({ navigation }: any) {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Signup')}>
-          <Text style={styles.secondaryBtnText}>new here? sign up ✨</Text>
+          <Text style={styles.secondaryBtnText}>New here? Sign up ✨</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

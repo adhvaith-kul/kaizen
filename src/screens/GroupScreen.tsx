@@ -33,14 +33,14 @@ export default function GroupScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>squad goals 🤝</Text>
-        <Text style={styles.desc}>either start a new wave or ride one.</Text>
+        <Text style={styles.title}>Squad Goals 🤝</Text>
+        <Text style={styles.desc}>Either start a new wave or ride one.</Text>
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>START A SQUAD</Text>
           <TextInput
             style={styles.input}
-            placeholder="squad name. be creative."
+            placeholder="Squad name. Be creative."
             placeholderTextColor="#888"
             onChangeText={setGroupName}
           />
@@ -55,7 +55,7 @@ export default function GroupScreen({ navigation }: any) {
           <Text style={styles.cardTitle}>JOIN THE BOYS / GIRLS</Text>
           <TextInput
             style={styles.input}
-            placeholder="secret code here👀"
+            placeholder="Secret code here 👀"
             placeholderTextColor="#888"
             onChangeText={setGroupCode}
             autoCapitalize="characters"
@@ -76,7 +76,7 @@ export default function GroupScreen({ navigation }: any) {
               navigation.navigate('Home');
             }
           }}>
-          <Text style={styles.logoutBtnText}>nvm, back ✌️</Text>
+          <Text style={styles.logoutBtnText}>Nevermind, go back ✌️</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
