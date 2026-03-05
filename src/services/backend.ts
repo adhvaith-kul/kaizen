@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { User, Group, Habit, DailyLog, Category } from '../types';
+import { User, Group, Habit, DailyLog, Category, GroupSettings } from '../types';
 
 const generateCode = () => Math.random().toString(36).substr(2, 6).toUpperCase();
 
@@ -30,13 +30,14 @@ class Backend {
     return data;
   }
 
-  async createGroup(name: string, userId: string): Promise<Group> {
+  async createGroup(name: string, userId: string, settings?: GroupSettings): Promise<Group> {
     const { data: group, error } = await supabase
       .from('groups')
       .insert({
         name,
         code: generateCode(),
         created_by: userId,
+        settings,
       })
       .select()
       .single();
@@ -44,7 +45,7 @@ class Backend {
     if (error) throw new Error(error.message);
 
     await this.joinGroup(group.code, userId);
-    return { id: group.id, name: group.name, code: group.code, createdBy: group.created_by };
+    return { id: group.id, name: group.name, code: group.code, createdBy: group.created_by, settings: group.settings };
   }
 
   async joinGroup(code: string, userId: string): Promise<Group> {
@@ -57,7 +58,7 @@ class Backend {
       .upsert({ user_id: userId, group_id: group.id }, { onConflict: 'user_id, group_id' });
     if (memberErr) throw new Error(memberErr.message);
 
-    return { id: group.id, name: group.name, code: group.code, createdBy: group.created_by };
+    return { id: group.id, name: group.name, code: group.code, createdBy: group.created_by, settings: group.settings };
   }
 
   async getUserGroups(userId: string): Promise<Group[]> {
@@ -68,7 +69,7 @@ class Backend {
     const { data: groups } = await supabase.from('groups').select('*').in('id', groupIds);
     if (!groups) return [];
 
-    return groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by }));
+    return groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, settings: g.settings }));
   }
 
   // Keeping this for backward compatibility or simple single-group logic if needed
@@ -77,7 +78,9 @@ class Backend {
     if (!member) return null;
 
     const { data: group } = await supabase.from('groups').select('*').eq('id', member.group_id).maybeSingle();
-    return group ? { id: group.id, name: group.name, code: group.code, createdBy: group.created_by } : null;
+    return group
+      ? { id: group.id, name: group.name, code: group.code, createdBy: group.created_by, settings: group.settings }
+      : null;
   }
 
   async getHabits(userId: string): Promise<Habit[]> {

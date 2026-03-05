@@ -11,7 +11,8 @@ create table public.groups (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   code text unique not null,
-  created_by uuid references public.users(id)
+  created_by uuid references public.users(id),
+  settings jsonb
 );
 
 create table public.members (
