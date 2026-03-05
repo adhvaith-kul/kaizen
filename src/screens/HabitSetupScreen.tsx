@@ -58,7 +58,11 @@ export default function HabitSetupScreen({ navigation }: any) {
     try {
       await backend.saveHabits(user.id, payload);
       Alert.alert('W', 'habits locked in 🔒');
-      navigation.navigate('Dashboard');
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('Dashboard');
+      }
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
     }
