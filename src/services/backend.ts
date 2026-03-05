@@ -128,6 +128,7 @@ class Backend {
         userId: data.user_id,
         date: data.date,
         completedHabitIds: data.completed_habit_ids,
+        habitImageUrls: data.habit_image_urls || {},
         totalPoints: data.total_points,
       };
     }
@@ -149,22 +150,51 @@ class Backend {
       userId: newLog.user_id,
       date: newLog.date,
       completedHabitIds: newLog.completed_habit_ids,
+      habitImageUrls: newLog.habit_image_urls || {},
       totalPoints: newLog.total_points,
     };
   }
 
-  async toggleHabitCompletion(userId: string, habitId: string): Promise<DailyLog> {
+  async uploadHabitImage(uri: string, userId: string, habitId: string, date: string): Promise<string> {
+    const ext = uri.substring(uri.lastIndexOf('.') + 1) || 'jpg';
+    const filename = `${userId}/${date}/${habitId}.${ext}`;
+
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const arrayBuffer = await new Response(blob).arrayBuffer();
+
+    const { data, error } = await supabase.storage
+      .from('habit-images')
+      .upload(filename, arrayBuffer, { upsert: true, contentType: blob.type || 'image/jpeg' });
+
+    if (error) throw new Error(error.message);
+
+    const { data: publicUrlData } = supabase.storage.from('habit-images').getPublicUrl(filename);
+    return publicUrlData.publicUrl;
+  }
+
+  async toggleHabitCompletion(userId: string, habitId: string, imageUri?: string): Promise<DailyLog> {
     const log = await this.getTodayLog(userId);
     const isCompleted = log.completedHabitIds.includes(habitId);
 
     let nextCompleted = log.completedHabitIds;
+    let nextImageUrls = { ...(log.habitImageUrls || {}) };
     let nextPoints = log.totalPoints;
 
     if (isCompleted) {
       nextCompleted = nextCompleted.filter(id => id !== habitId);
+      delete nextImageUrls[habitId];
       nextPoints -= 10;
     } else {
       nextCompleted = [...nextCompleted, habitId];
+      if (imageUri) {
+        try {
+          const publicUrl = await this.uploadHabitImage(imageUri, userId, habitId, log.date);
+          nextImageUrls[habitId] = publicUrl;
+        } catch (e) {
+          console.error('Failed to upload image:', e);
+        }
+      }
       nextPoints += 10;
     }
 
@@ -172,6 +202,7 @@ class Backend {
       .from('logs')
       .update({
         completed_habit_ids: nextCompleted,
+        habit_image_urls: nextImageUrls,
         total_points: nextPoints,
       })
       .eq('id', log.id)
@@ -184,6 +215,7 @@ class Backend {
       userId: data.user_id,
       date: data.date,
       completedHabitIds: data.completed_habit_ids,
+      habitImageUrls: data.habit_image_urls || {},
       totalPoints: data.total_points,
     };
   }
@@ -238,6 +270,7 @@ class Backend {
       userId: log.user_id,
       date: log.date,
       completedHabitIds: log.completed_habit_ids,
+      habitImageUrls: log.habit_image_urls || {},
       totalPoints: log.total_points,
     }));
   }

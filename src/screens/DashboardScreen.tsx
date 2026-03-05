@@ -1,5 +1,17 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, SafeAreaView } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  SafeAreaView,
+  Alert,
+  Image,
+  Modal,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
@@ -11,6 +23,7 @@ export default function DashboardScreen({ navigation }: any) {
   const [log, setLog] = useState<DailyLog | null>(null);
   const [loading, setLoading] = useState(false);
   const [rank, setRank] = useState<number | string>('-');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -39,19 +52,67 @@ export default function DashboardScreen({ navigation }: any) {
 
   const toggle = async (habitId: string) => {
     if (!user) return;
-    const newLog = await backend.toggleHabitCompletion(user.id, habitId);
-    setLog(newLog);
-    // Refresh rank silently
-    if (group) {
-      backend.getLeaderboard(group.id).then(board => {
-        const myRank = board.find(b => b.username === user?.username)?.rank || '-';
-        setRank(myRank);
+    const isCompleted = log?.completedHabitIds.includes(habitId);
+
+    if (!isCompleted) {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission needed', 'You need camera permissions to upload proof of your habit.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.5,
       });
+
+      if (result.canceled) return;
+
+      setLoading(true);
+      const newLog = await backend.toggleHabitCompletion(user.id, habitId, result.assets[0].uri);
+      setLog(newLog);
+
+      if (group) {
+        backend.getLeaderboard(group.id).then(board => {
+          const myRank = board.find(b => b.username === user?.username)?.rank || '-';
+          setRank(myRank);
+        });
+      }
+      setLoading(false);
+    } else {
+      Alert.alert(
+        'Undo Completion?',
+        'Are you sure? This will delete your photo proof and subtract 10 points from your vibe score.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Undo',
+            style: 'destructive',
+            onPress: async () => {
+              setLoading(true);
+              const newLog = await backend.toggleHabitCompletion(user.id, habitId);
+              setLog(newLog);
+              if (group) {
+                backend.getLeaderboard(group.id).then(board => {
+                  const myRank = board.find(b => b.username === user?.username)?.rank || '-';
+                  setRank(myRank);
+                });
+              }
+              setLoading(false);
+            },
+          },
+        ]
+      );
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>← BACK</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView
         style={styles.container}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} tintColor="#C2FF05" />}
@@ -105,20 +166,24 @@ export default function DashboardScreen({ navigation }: any) {
           ) : (
             habits.map(h => {
               const isCompleted = log?.completedHabitIds.includes(h.id);
+              const imageUrl = log?.habitImageUrls?.[h.id];
               return (
-                <TouchableOpacity
-                  key={h.id}
-                  style={[styles.habitCard, isCompleted && styles.habitCardDone]}
-                  onPress={() => toggle(h.id)}
-                  activeOpacity={0.8}>
+                <View key={h.id} style={[styles.habitCard, isCompleted && styles.habitCardDone]}>
                   <View style={styles.habitInfo}>
                     <Text style={styles.habitCategory}>{h.category.toUpperCase()}</Text>
                     <Text style={[styles.habitName, isCompleted && styles.habitNameDone]}>{h.name}</Text>
                   </View>
-                  <View style={[styles.checkbox, isCompleted && styles.checkboxDone]}>
-                    <Text style={styles.checkIcon}>{isCompleted ? '🔥' : ''}</Text>
-                  </View>
-                </TouchableOpacity>
+                  {isCompleted && imageUrl && (
+                    <TouchableOpacity onPress={() => setSelectedImage(imageUrl)} activeOpacity={0.8}>
+                      <Image source={{ uri: imageUrl }} style={styles.habitThumbnail} />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={() => toggle(h.id)} activeOpacity={0.8}>
+                    <View style={[styles.checkbox, isCompleted && styles.checkboxDone]}>
+                      <Text style={styles.checkIcon}>{isCompleted ? '🔥' : ''}</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
               );
             })
           )}
@@ -130,19 +195,33 @@ export default function DashboardScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}>
+        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setSelectedImage(null)}>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
+          )}
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0E0E11' },
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1, paddingHorizontal: 20 },
+  topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
+  backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
+  backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 30,
-    marginTop: 10,
   },
   greeting: { fontSize: 16, color: '#A0A0B0', fontWeight: '600', marginBottom: 4 },
   title: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: -1 },
@@ -191,6 +270,15 @@ const styles = StyleSheet.create({
   habitCategory: { fontSize: 10, color: '#A0A0B0', fontWeight: '800', marginBottom: 4, letterSpacing: 1 },
   habitName: { fontSize: 18, color: '#FFF', fontWeight: '700' },
   habitNameDone: { textDecorationLine: 'line-through', color: '#666' },
+  habitThumbnail: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    marginRight: 10,
+    backgroundColor: '#0E0E11',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
   checkbox: {
     width: 36,
     height: 36,
@@ -216,4 +304,14 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   primaryBtnText: { color: '#000', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+  },
 });
