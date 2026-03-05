@@ -58,9 +58,9 @@ export default function DashboardScreen({ navigation }: any) {
         contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>sup, {user?.username} 👋</Text>
+            <Text style={styles.greeting}>Sup, {user?.username} 👋</Text>
             <Text style={styles.title}>
-              your <Text style={{ color: '#C2FF05' }}>grind</Text>
+              Your <Text style={{ color: '#C2FF05' }}>Grind</Text>
             </Text>
           </View>
           {group && (
@@ -93,14 +93,14 @@ export default function DashboardScreen({ navigation }: any) {
                 : ''}
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('HabitSetup')}>
-              <Text style={styles.editLink}>edit ⚙️</Text>
+              <Text style={styles.editLink}>Edit ⚙️</Text>
             </TouchableOpacity>
           </View>
 
           {habits.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>crickets... 🦗</Text>
-              <Text style={styles.emptySubtext}>set up your habits to start winning.</Text>
+              <Text style={styles.emptyText}>Crickets... 🦗</Text>
+              <Text style={styles.emptySubtext}>Set up your habits to start winning.</Text>
             </View>
           ) : (
             habits.map(h => {

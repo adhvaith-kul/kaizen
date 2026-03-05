@@ -24,7 +24,8 @@ create table public.habits (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.users(id),
   category text not null,
-  name text not null
+  name text not null,
+  active boolean default true
 );
 
 create table public.logs (

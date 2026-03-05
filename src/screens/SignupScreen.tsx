@@ -21,22 +21,22 @@ export default function SignupScreen({ navigation }: any) {
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.logo}>
-            join the <Text style={styles.logoAccent}>cult</Text> 👽
+            Join the <Text style={styles.logoAccent}>cult</Text> 👽
           </Text>
-          <Text style={styles.subtitle}>main character energy only.</Text>
+          <Text style={styles.subtitle}>Main character energy only.</Text>
         </View>
 
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="username (make it fire)"
+            placeholder="Username (make it fire)"
             placeholderTextColor="#888"
             onChangeText={setUsername}
             autoCapitalize="none"
           />
           <TextInput
             style={styles.input}
-            placeholder="email address (@)"
+            placeholder="Email address (@)"
             placeholderTextColor="#888"
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -44,7 +44,7 @@ export default function SignupScreen({ navigation }: any) {
           />
           <TextInput
             style={styles.input}
-            placeholder="password (shh...)"
+            placeholder="Password (shh...)"
             placeholderTextColor="#888"
             onChangeText={setPassword}
             secureTextEntry
@@ -56,7 +56,7 @@ export default function SignupScreen({ navigation }: any) {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.secondaryBtnText}>already a member? log in 🤝</Text>
+          <Text style={styles.secondaryBtnText}>Already a member? Log in 🤝</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

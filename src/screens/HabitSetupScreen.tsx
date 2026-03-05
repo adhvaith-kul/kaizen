@@ -51,13 +51,13 @@ export default function HabitSetupScreen({ navigation }: any) {
     if (!user) return;
     const payload = CATEGORIES.map(c => ({ category: c, name: habits[c] })).filter(h => h.name.trim() !== '');
     if (payload.length === 0) {
-      Alert.alert('💀 Bruh', 'you gotta enter at least one habit.');
+      Alert.alert('💀 Bruh', 'You gotta enter at least one habit.');
       return;
     }
 
     try {
       await backend.saveHabits(user.id, payload);
-      Alert.alert('W', 'habits locked in 🔒');
+      Alert.alert('W', 'Habits locked in 🔒');
       if (navigation.canGoBack()) {
         navigation.goBack();
       } else {
@@ -73,9 +73,9 @@ export default function HabitSetupScreen({ navigation }: any) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }}>
           <Text style={styles.title}>
-            choose your <Text style={{ color: '#B388FF' }}>weapons</Text>
+            Choose your <Text style={{ color: '#B388FF' }}>weapons</Text>
           </Text>
-          <Text style={styles.desc}>lock in one daily habit per category. keep it realistic, no cap.</Text>
+          <Text style={styles.desc}>Lock in one daily habit per category. Keep it realistic, no cap.</Text>
 
           {CATEGORIES.map(cat => (
             <View key={cat} style={styles.field}>
@@ -85,7 +85,7 @@ export default function HabitSetupScreen({ navigation }: any) {
               </View>
               <TextInput
                 style={styles.input}
-                placeholder={`e.g. what's your ${cat.toLowerCase()} move?`}
+                placeholder={`e.g., what's your ${cat.toLowerCase()} move?`}
                 placeholderTextColor="#666"
                 value={habits[cat]}
                 onChangeText={val => setHabits({ ...habits, [cat]: val })}

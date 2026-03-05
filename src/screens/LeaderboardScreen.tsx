@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, SafeAreaView, TouchableOpacity, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 
 export default function LeaderboardScreen({ navigation }: any) {
   const { group, user } = useAuth();
-  const [board, setBoard] = useState<{ rank: number; username: string; totalPoints: number }[]>([]);
+  const [board, setBoard] = useState<{ rank: number; userId: string; username: string; totalPoints: number }[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {
@@ -22,10 +22,17 @@ export default function LeaderboardScreen({ navigation }: any) {
   }, [group]);
 
   const getRankEmoji = (rank: number) => {
-    if (rank === 1) return '👑';
+    if (rank === 1) return '🥇';
     if (rank === 2) return '🥈';
     if (rank === 3) return '🥉';
     return `#${rank}`;
+  };
+
+  const getRankColor = (rank: number) => {
+    if (rank === 1) return '#FFD700';
+    if (rank === 2) return '#C0C0C0';
+    if (rank === 3) return '#CD7F32';
+    return 'transparent';
   };
 
   return (
@@ -33,7 +40,7 @@ export default function LeaderboardScreen({ navigation }: any) {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>
-            hall of <Text style={{ color: '#FF3366' }}>fame</Text>
+            Hall of <Text style={{ color: '#FF3366' }}>Fame</Text>
           </Text>
           <Text style={styles.subtitle}>{group?.name} SQUAD</Text>
         </View>
@@ -45,18 +52,35 @@ export default function LeaderboardScreen({ navigation }: any) {
           contentContainerStyle={{ paddingBottom: 140 }}
           renderItem={({ item }) => {
             const isMe = item.username === user?.username;
+            const isTop3 = item.rank <= 3;
+            const rankColor = getRankColor(item.rank);
             return (
-              <View style={[styles.row, isMe && styles.myRow]}>
-                <View style={[styles.rankBadge, isMe && styles.myRankBadge]}>
+              <TouchableOpacity
+                style={[
+                  styles.row,
+                  isMe && styles.myRow,
+                  isTop3 && { borderColor: rankColor, borderWidth: 1.5, backgroundColor: isMe ? '#1D1324' : '#1A1A24' },
+                ]}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('UserDetail', { userId: item.userId, username: item.username })}>
+                <View style={styles.rankContainer}>
                   <Text style={styles.rankText}>{getRankEmoji(item.rank)}</Text>
                 </View>
+
+                <Image
+                  source={{
+                    uri: `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=C2FF05&radius=50`,
+                  }}
+                  style={[styles.avatar, isTop3 && { borderColor: rankColor, borderWidth: 2 }]}
+                />
+
                 <View style={styles.userInfo}>
                   <Text style={[styles.username, isMe && styles.myUsername]}>
-                    {item.username} {isMe ? '(you)' : ''}
+                    {item.username} {isMe ? '(You)' : ''}
                   </Text>
                   <Text style={styles.points}>{item.totalPoints} pts</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           }}
         />
@@ -65,7 +89,7 @@ export default function LeaderboardScreen({ navigation }: any) {
       {/* Floating Track Habits Button */}
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.trackBtn} onPress={() => navigation.navigate('Dashboard')}>
-          <Text style={styles.trackBtnText}>TRACK HABITS 📝</Text>
+          <Text style={styles.trackBtnText}>Track Habits 📝</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -92,20 +116,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#1D1324',
     borderColor: '#FF3366',
   },
-  rankBadge: {
+  rankContainer: {
+    width: 30,
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#0E0E11',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#1A1A24',
     marginRight: 16,
     borderWidth: 1,
     borderColor: '#333',
-  },
-  myRankBadge: {
-    backgroundColor: '#FF3366',
-    borderColor: '#FF3366',
   },
   rankText: { fontSize: 18, fontWeight: '800', color: '#FFF' },
   userInfo: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
