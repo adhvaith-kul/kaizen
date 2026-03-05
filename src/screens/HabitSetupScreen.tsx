@@ -26,30 +26,33 @@ const CATEGORY_EMOJIS: Record<Category, string> = {
 };
 
 export default function HabitSetupScreen({ navigation }: any) {
-  const { user } = useAuth();
-  const [habits, setHabits] = useState<Record<Category, string>>({
-    Health: '',
-    Finance: '',
-    Work: '',
-    Upskill: '',
-    Social: '',
-  });
+  const { user, group } = useAuth();
+  const activeCategories = group?.settings?.allowedCategories?.length ? group.settings.allowedCategories : CATEGORIES;
+
+  const [habits, setHabits] = useState<Record<Category, string>>({});
 
   useEffect(() => {
     if (user) {
       backend.getHabits(user.id).then(userHabits => {
-        const hRec = { ...habits };
+        const hRec: Record<Category, string> = {};
+        activeCategories.forEach((c: string) => {
+          hRec[c] = '';
+        });
         userHabits.forEach(h => {
-          hRec[h.category] = h.name;
+          if (activeCategories.includes(h.category)) {
+            hRec[h.category] = h.name;
+          }
         });
         setHabits(hRec);
       });
     }
-  }, [user]);
+  }, [user, group]);
 
   const handleSave = async () => {
     if (!user) return;
-    const payload = CATEGORIES.map(c => ({ category: c, name: habits[c] })).filter(h => h.name.trim() !== '');
+    const payload = activeCategories
+      .map((c: string) => ({ category: c, name: habits[c] || '' }))
+      .filter(h => h.name.trim() !== '');
     if (payload.length === 0) {
       Alert.alert('💀 Bruh', 'You gotta enter at least one habit.');
       return;
@@ -82,10 +85,10 @@ export default function HabitSetupScreen({ navigation }: any) {
           </Text>
           <Text style={styles.desc}>Lock in one daily habit per category. Keep it realistic, no cap.</Text>
 
-          {CATEGORIES.map(cat => (
+          {activeCategories.map((cat: string) => (
             <View key={cat} style={styles.field}>
               <View style={styles.labelContainer}>
-                <Text style={styles.labelEmoji}>{CATEGORY_EMOJIS[cat]}</Text>
+                <Text style={styles.labelEmoji}>{CATEGORY_EMOJIS[cat] || '✨'}</Text>
                 <Text style={styles.label}>{cat.toUpperCase()}</Text>
               </View>
               <TextInput

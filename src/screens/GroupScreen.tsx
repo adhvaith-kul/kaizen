@@ -21,6 +21,8 @@ export default function GroupScreen({ navigation }: any) {
   const [groupName, setGroupName] = useState('');
   const [groupCode, setGroupCode] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [allCategories, setAllCategories] = useState<Category[]>(ALL_CATEGORIES);
+  const [newCategory, setNewCategory] = useState('');
   const [categories, setCategories] = useState<Category[]>(ALL_CATEGORIES);
   const [habitsPerCat, setHabitsPerCat] = useState<Partial<Record<Category, string>>>({
     Health: '1',
@@ -28,6 +30,13 @@ export default function GroupScreen({ navigation }: any) {
     Work: '1',
     Upskill: '1',
     Social: '1',
+  });
+  const [pointsPerCat, setPointsPerCat] = useState<Partial<Record<Category, string>>>({
+    Health: '10',
+    Finance: '10',
+    Work: '10',
+    Upskill: '10',
+    Social: '10',
   });
   const { user, refreshGroup, logout } = useAuth();
 
@@ -38,15 +47,22 @@ export default function GroupScreen({ navigation }: any) {
       if (categories.length === 0) throw new Error('You must select at least one category');
 
       const hpcMap: Partial<Record<Category, number>> = {};
+      const ppcMap: Partial<Record<Category, number>> = {};
+
       for (const cat of categories) {
         const val = parseInt(habitsPerCat[cat] || '1', 10);
         if (isNaN(val) || val < 1) throw new Error(`Habits for ${cat} must be at least 1`);
         hpcMap[cat] = val;
+
+        const pts = parseInt(pointsPerCat[cat] || '10', 10);
+        if (isNaN(pts) || pts < 1) throw new Error(`Points for ${cat} must be at least 1`);
+        ppcMap[cat] = pts;
       }
 
       await backend.createGroup(groupName, user.id, {
         allowedCategories: categories,
         habitsPerCategory: hpcMap,
+        pointsPerCategory: ppcMap,
       });
       await refreshGroup();
       navigation.goBack();
@@ -106,7 +122,7 @@ export default function GroupScreen({ navigation }: any) {
               <View style={styles.settingsContainer}>
                 <Text style={styles.settingsLabel}>ALLOWED CATEGORIES</Text>
                 <View style={styles.badgesWrapper}>
-                  {ALL_CATEGORIES.map(cat => {
+                  {allCategories.map(cat => {
                     const isActive = categories.includes(cat);
                     return (
                       <TouchableOpacity
@@ -123,20 +139,61 @@ export default function GroupScreen({ navigation }: any) {
                   })}
                 </View>
 
-                <Text style={styles.settingsLabel}>HABITS PER CATEGORY</Text>
+                <View style={styles.newCatRow}>
+                  <TextInput
+                    style={styles.newCatInput}
+                    placeholder="Add custom category..."
+                    placeholderTextColor="#666"
+                    value={newCategory}
+                    onChangeText={setNewCategory}
+                  />
+                  <TouchableOpacity
+                    style={styles.newCatBtn}
+                    onPress={() => {
+                      const trimmed = newCategory.trim();
+                      if (trimmed && !allCategories.includes(trimmed)) {
+                        setAllCategories([...allCategories, trimmed]);
+                        setCategories([...categories, trimmed]);
+                        setHabitsPerCat({ ...habitsPerCat, [trimmed]: '1' });
+                        setPointsPerCat({ ...pointsPerCat, [trimmed]: '10' });
+                        setNewCategory('');
+                      }
+                    }}>
+                    <Text style={styles.newCatBtnText}>ADD +</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.settingsLabel}>HABITS & POINTS LIMITS</Text>
                 {categories.length === 0 ? (
                   <Text style={{ color: '#666', fontSize: 12, fontStyle: 'italic' }}>Select a category first</Text>
                 ) : (
                   categories.map(cat => (
                     <View key={`hpc-${cat}`} style={styles.hpcRow}>
-                      <Text style={styles.hpcLabel}>{cat}</Text>
-                      <TextInput
-                        style={styles.hpcInput}
-                        value={habitsPerCat[cat]}
-                        onChangeText={val => setHabitsPerCat({ ...habitsPerCat, [cat]: val })}
-                        keyboardType="numeric"
-                        maxLength={2}
-                      />
+                      <Text style={styles.hpcLabel} numberOfLines={1}>
+                        {cat}
+                      </Text>
+                      <View style={styles.hpcInputs}>
+                        <View style={styles.smallInputGroup}>
+                          <Text style={styles.smallInputLabel}>Qty</Text>
+                          <TextInput
+                            style={styles.hpcInput}
+                            value={habitsPerCat[cat]}
+                            onChangeText={val => setHabitsPerCat({ ...habitsPerCat, [cat]: val })}
+                            keyboardType="numeric"
+                            maxLength={2}
+                          />
+                        </View>
+                        <View style={styles.smallInputGroup}>
+                          <Text style={styles.smallInputLabel}>Pts</Text>
+                          <TextInput
+                            style={styles.hpcInput}
+                            value={pointsPerCat[cat]}
+                            onChangeText={val => setPointsPerCat({ ...pointsPerCat, [cat]: val })}
+                            keyboardType="numeric"
+                            maxLength={3}
+                          />
+                        </View>
+                      </View>
                     </View>
                   ))
                 )}
@@ -234,8 +291,30 @@ const styles = StyleSheet.create({
   badgeActive: { backgroundColor: '#C2FF05', borderColor: '#C2FF05' },
   badgeText: { color: '#A0A0B0', fontSize: 12, fontWeight: '700' },
   badgeTextActive: { color: '#000', fontWeight: '800' },
-  hpcRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  hpcLabel: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  newCatRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
+  newCatInput: {
+    flex: 1,
+    backgroundColor: '#1A1A24',
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 12,
+    color: '#FFF',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  newCatBtn: {
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    paddingHorizontal: 15,
+    borderRadius: 12,
+  },
+  newCatBtnText: { color: '#FFF', fontWeight: '800', fontSize: 12 },
+  hpcRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  hpcLabel: { color: '#FFF', fontSize: 14, fontWeight: '700', flex: 1, paddingRight: 10 },
+  hpcInputs: { flexDirection: 'row', gap: 10 },
+  smallInputGroup: { alignItems: 'center' },
+  smallInputLabel: { color: '#666', fontSize: 10, fontWeight: '800', marginBottom: 4 },
   hpcInput: {
     backgroundColor: '#0E0E11',
     color: '#FFF',
