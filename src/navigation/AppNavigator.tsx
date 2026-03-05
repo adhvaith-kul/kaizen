@@ -24,7 +24,7 @@ function HomeStackScreen() {
       <HomeStack.Screen name="Home" component={HomeScreen} />
       <HomeStack.Screen name="Group" component={GroupScreen} />
       <HomeStack.Screen name="Dashboard" component={DashboardScreen} />
-      <HomeStack.Screen name="HabitSetup" component={HabitSetupScreen} options={{ presentation: 'modal' }} />
+      <HomeStack.Screen name="HabitSetup" component={HabitSetupScreen} />
       <HomeStack.Screen name="Leaderboard" component={LeaderboardScreen} />
     </HomeStack.Navigator>
   );
