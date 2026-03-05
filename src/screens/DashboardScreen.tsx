@@ -53,6 +53,11 @@ export default function DashboardScreen({ navigation }: any) {
   const toggle = async (habitId: string) => {
     if (!user) return;
     const isCompleted = log?.completedHabitIds.includes(habitId);
+    const habit = habits.find(h => h.id === habitId);
+    const points =
+      habit && group?.settings?.pointsPerCategory?.[habit.category]
+        ? group.settings.pointsPerCategory[habit.category]
+        : 10;
 
     if (!isCompleted) {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -69,7 +74,7 @@ export default function DashboardScreen({ navigation }: any) {
       if (result.canceled) return;
 
       setLoading(true);
-      const newLog = await backend.toggleHabitCompletion(user.id, habitId, result.assets[0].uri);
+      const newLog = await backend.toggleHabitCompletion(user.id, habitId, result.assets[0].uri, points);
       setLog(newLog);
 
       if (group) {
@@ -82,7 +87,7 @@ export default function DashboardScreen({ navigation }: any) {
     } else {
       Alert.alert(
         'Undo Completion?',
-        'Are you sure? This will delete your photo proof and subtract 10 points from your vibe score.',
+        `Are you sure? This will delete your photo proof and subtract ${points} points from your vibe score.`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -90,7 +95,7 @@ export default function DashboardScreen({ navigation }: any) {
             style: 'destructive',
             onPress: async () => {
               setLoading(true);
-              const newLog = await backend.toggleHabitCompletion(user.id, habitId);
+              const newLog = await backend.toggleHabitCompletion(user.id, habitId, undefined, points);
               setLog(newLog);
               if (group) {
                 backend.getLeaderboard(group.id).then(board => {

@@ -1,4 +1,4 @@
-export type Category = 'Health' | 'Finance' | 'Work' | 'Upskill' | 'Social';
+export type Category = string;
 
 export interface User {
   id: string;
@@ -10,6 +10,7 @@ export interface User {
 export interface GroupSettings {
   allowedCategories: Category[];
   habitsPerCategory: Partial<Record<Category, number>>;
+  pointsPerCategory: Partial<Record<Category, number>>;
 }
 
 export interface Group {

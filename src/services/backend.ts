@@ -173,7 +173,12 @@ class Backend {
     return publicUrlData.publicUrl;
   }
 
-  async toggleHabitCompletion(userId: string, habitId: string, imageUri?: string): Promise<DailyLog> {
+  async toggleHabitCompletion(
+    userId: string,
+    habitId: string,
+    imageUri?: string,
+    points: number = 10
+  ): Promise<DailyLog> {
     const log = await this.getTodayLog(userId);
     const isCompleted = log.completedHabitIds.includes(habitId);
 
@@ -184,7 +189,7 @@ class Backend {
     if (isCompleted) {
       nextCompleted = nextCompleted.filter(id => id !== habitId);
       delete nextImageUrls[habitId];
-      nextPoints -= 10;
+      nextPoints -= points;
     } else {
       nextCompleted = [...nextCompleted, habitId];
       if (imageUri) {
@@ -195,7 +200,7 @@ class Backend {
           console.error('Failed to upload image:', e);
         }
       }
-      nextPoints += 10;
+      nextPoints += points;
     }
 
     const { data, error } = await supabase
