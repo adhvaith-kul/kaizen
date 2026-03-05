@@ -70,6 +70,11 @@ export default function HabitSetupScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>← BACK</Text>
+        </TouchableOpacity>
+      </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }}>
           <Text style={styles.title}>
@@ -104,7 +109,10 @@ export default function HabitSetupScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0E0E11' },
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1, paddingHorizontal: 20 },
+  topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
+  backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
+  backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
   title: { fontSize: 32, fontWeight: '900', color: '#FFF', letterSpacing: -1, marginBottom: 8, marginTop: 10 },
   desc: { fontSize: 16, color: '#A0A0B0', marginBottom: 30, fontWeight: '500' },
   field: { marginBottom: 20 },

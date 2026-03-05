@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  SafeAreaView,
+  ActivityIndicator,
+  TouchableOpacity,
+  Image,
+  Modal,
+} from 'react-native';
 import { backend } from '../services/backend';
 import { DailyLog, Habit } from '../types';
 
@@ -9,6 +19,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([backend.getUserLogs(userId), backend.getAllHabits(userId)])
@@ -48,12 +59,21 @@ export default function UserDetailScreen({ route, navigation }: any) {
             {item.completedHabitIds.length > 0 ? (
               item.completedHabitIds.map(id => {
                 const h = habits.find(habit => habit.id === id);
+                const imageUrl = item.habitImageUrls ? item.habitImageUrls[id] : null;
+
                 return (
                   <View key={id} style={styles.completedHabitRow}>
-                    <Text style={styles.habitCategory}>{h ? h.category.toUpperCase() : '?'}</Text>
-                    <Text style={[styles.habitName, !h && { color: '#666', fontStyle: 'italic' }]}>
-                      {h ? h.name : '(Habit changed or deleted)'}
-                    </Text>
+                    {imageUrl && (
+                      <TouchableOpacity onPress={() => setSelectedImage(imageUrl)}>
+                        <Image source={{ uri: imageUrl }} style={styles.habitImage} />
+                      </TouchableOpacity>
+                    )}
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                      <Text style={styles.habitCategory}>{h ? h.category.toUpperCase() : '?'}</Text>
+                      <Text style={[styles.habitName, !h && { color: '#666', fontStyle: 'italic' }]}>
+                        {h ? h.name : '(Habit changed or deleted)'}
+                      </Text>
+                    </View>
                   </View>
                 );
               })
@@ -68,11 +88,13 @@ export default function UserDetailScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>← BACK</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>← BACK</Text>
-          </TouchableOpacity>
           <Text style={styles.title}>
             <Text style={{ color: '#C2FF05' }}>{username}</Text>'s Log
           </Text>
@@ -93,16 +115,29 @@ export default function UserDetailScreen({ route, navigation }: any) {
           />
         )}
       </View>
+
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}>
+        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setSelectedImage(null)}>
+          {selectedImage && (
+            <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
+          )}
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0E0E11' },
-  container: { flex: 1, padding: 20 },
-  header: { marginBottom: 30, marginTop: 10 },
-  backBtn: { alignSelf: 'flex-start', marginBottom: 15, padding: 5 },
+  container: { flex: 1, paddingHorizontal: 20 },
+  topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
+  backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
   backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
+  header: { marginBottom: 30, marginTop: 10 },
   title: { fontSize: 32, fontWeight: '900', color: '#FFF', letterSpacing: -1 },
   emptyState: { alignItems: 'center', marginTop: 50 },
   emptyText: { color: '#666', fontSize: 18, fontWeight: '700' },
@@ -128,7 +163,16 @@ const styles = StyleSheet.create({
   completedHabitRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  habitImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: '#0A0A0F',
+    borderWidth: 1,
+    borderColor: '#333',
   },
   habitCategory: {
     fontSize: 10,
@@ -147,5 +191,15 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     fontSize: 14,
+  },
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
   },
 });

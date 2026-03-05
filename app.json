@@ -31,6 +31,14 @@
         "projectId": "9ddc35b0-b680-4c20-8ab5-6f95fa39651c"
       }
     },
-    "owner": "adhvaithkul"
+    "owner": "adhvaithkul",
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Kaizen to use the camera because you need a photo to prove your habit completion."
+        }
+      ]
+    ]
   }
 }

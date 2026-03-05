@@ -68,6 +68,19 @@ export default function GroupScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
+          style={styles.backBtn}>
+          <Text style={styles.backBtnText}>← BACK</Text>
+        </TouchableOpacity>
+      </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView
           style={styles.content}
@@ -152,18 +165,6 @@ export default function GroupScreen({ navigation }: any) {
               <Text style={styles.primaryBtnText}>JOIN 🚀</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.logoutBtn}
-            onPress={() => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('Home');
-              }
-            }}>
-            <Text style={styles.logoutBtnText}>Nevermind, go back ✌️</Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -172,8 +173,11 @@ export default function GroupScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0E0E11' },
-  content: { flex: 1, padding: 24 },
-  title: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: -1, textAlign: 'center' },
+  topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
+  backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
+  backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
+  content: { flex: 1, paddingHorizontal: 24 },
+  title: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: -1, textAlign: 'center', marginTop: 10 },
   desc: { fontSize: 16, color: '#A0A0B0', textAlign: 'center', marginBottom: 40, fontWeight: '500' },
   card: {
     backgroundColor: '#1A1A24',
@@ -207,8 +211,6 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: { color: '#000', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
   orText: { textAlign: 'center', marginVertical: 20, fontWeight: '800', color: '#666', fontSize: 12, letterSpacing: 2 },
-  logoutBtn: { marginTop: 30, padding: 18, alignItems: 'center' },
-  logoutBtnText: { color: '#FF3366', fontSize: 14, fontWeight: '700' },
   settingsToggle: { marginBottom: 15 },
   settingsToggleText: { color: '#B388FF', fontSize: 14, fontWeight: '800' },
   settingsContainer: {

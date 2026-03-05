@@ -37,5 +37,6 @@ export interface DailyLog {
   userId: string;
   date: string; // YYYY-MM-DD
   completedHabitIds: string[];
+  habitImageUrls: Record<string, string>;
   totalPoints: number;
 }
