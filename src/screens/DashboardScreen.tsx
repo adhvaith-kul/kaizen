@@ -149,11 +149,21 @@ export default function DashboardScreen({ navigation }: any) {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} tintColor="#C2FF05" />}
         contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Sup, {user?.username} 👋</Text>
-            <Text style={styles.title}>
-              Your <Text style={{ color: '#C2FF05' }}>Grind</Text>
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Image
+              source={{
+                uri:
+                  user?.avatarUrl ||
+                  `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
+              }}
+              style={styles.headerAvatar}
+            />
+            <View>
+              <Text style={styles.greeting}>Sup, {user?.username} 👋</Text>
+              <Text style={styles.title}>
+                Your <Text style={{ color: '#C2FF05' }}>Grind</Text>
+              </Text>
+            </View>
           </View>
           {group && (
             <View style={styles.groupBadge}>
@@ -254,8 +264,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 30,
   },
-  greeting: { fontSize: 16, color: '#A0A0B0', fontWeight: '600', marginBottom: 4 },
-  title: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: -1 },
+  greeting: { fontSize: 16, color: '#A0A0B0', fontWeight: '600', marginBottom: 2 },
+  headerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#C2FF05',
+    marginRight: 12,
+  },
+  title: { fontSize: 32, fontWeight: '900', color: '#FFF', letterSpacing: -1 },
   groupBadge: {
     backgroundColor: '#1A1A24',
     padding: 10,

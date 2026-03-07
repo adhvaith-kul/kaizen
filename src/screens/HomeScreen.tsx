@@ -38,10 +38,12 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.greeting}>Good to see you,</Text>
             <Text style={styles.title}>{user?.username}</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('ProfileTab')}>
+          <TouchableOpacity onPress={() => navigation.setParams({ openProfile: Date.now() })}>
             <Image
               source={{
-                uri: `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
+                uri:
+                  user?.avatarUrl ||
+                  `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
               }}
               style={styles.avatar}
             />

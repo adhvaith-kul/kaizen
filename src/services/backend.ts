@@ -24,7 +24,7 @@ class Backend {
 
     const { data, error } = await supabase.from('users').insert({ username, email, password }).select().single();
     if (error) throw new Error(error.message);
-    return data;
+    return { ...data, avatarUrl: data.avatar_url ?? undefined };
   }
 
   async login(email: string, password?: string): Promise<User> {
@@ -36,12 +36,36 @@ class Backend {
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) throw new Error('Invalid credentials');
-    return data;
+    return { ...data, avatarUrl: data.avatar_url ?? undefined };
   }
 
   async getUser(id: string): Promise<User | null> {
     const { data } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
-    return data;
+    if (!data) return null;
+    return { ...data, avatarUrl: data.avatar_url ?? undefined };
+  }
+
+  async uploadProfilePicture(uri: string, userId: string): Promise<string> {
+    const ext = uri.substring(uri.lastIndexOf('.') + 1).split('?')[0] || 'jpg';
+    const filename = `${userId}/avatar.${ext}`;
+
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const arrayBuffer = await new Response(blob).arrayBuffer();
+
+    const { error } = await supabase.storage
+      .from('profile-images')
+      .upload(filename, arrayBuffer, { upsert: true, contentType: blob.type || 'image/jpeg' });
+
+    if (error) throw new Error(error.message);
+
+    const { data: publicUrlData } = supabase.storage.from('profile-images').getPublicUrl(filename);
+    return publicUrlData.publicUrl;
+  }
+
+  async updateUserAvatar(userId: string, avatarUrl: string): Promise<void> {
+    const { error } = await supabase.from('users').update({ avatar_url: avatarUrl }).eq('id', userId);
+    if (error) throw new Error(error.message);
   }
 
   async createGroup(name: string, userId: string, settings?: GroupSettings): Promise<Group> {
@@ -290,16 +314,17 @@ class Backend {
 
   async getLeaderboard(
     groupId: string
-  ): Promise<{ rank: number; userId: string; username: string; totalPoints: number }[]> {
+  ): Promise<{ rank: number; userId: string; username: string; avatarUrl?: string; totalPoints: number }[]> {
     const { data: members } = await supabase.from('members').select('user_id, total_points').eq('group_id', groupId);
     if (!members || members.length === 0) return [];
 
     const userIds = members.map(m => m.user_id);
-    const { data: users } = await supabase.from('users').select('id, username').in('id', userIds);
+    const { data: users } = await supabase.from('users').select('id, username, avatar_url').in('id', userIds);
 
     const board = members.map(m => ({
       userId: m.user_id,
       username: users?.find(u => u.id === m.user_id)?.username || 'Unknown',
+      avatarUrl: users?.find(u => u.id === m.user_id)?.avatar_url ?? undefined,
       totalPoints: m.total_points || 0,
     }));
 
@@ -309,6 +334,7 @@ class Backend {
       rank: index + 1,
       userId: item.userId,
       username: item.username,
+      avatarUrl: item.avatarUrl,
       totalPoints: item.totalPoints,
     }));
   }

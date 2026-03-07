@@ -11,6 +11,7 @@ interface AuthContextType {
   signup: (username: string, email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshGroup: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   setActiveGroup: (group: Group | null) => void;
 }
 
@@ -71,12 +72,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const refreshUser = async () => {
+    if (user) {
+      const u = await backend.getUser(user.id);
+      if (u) setUser(u);
+    }
+  };
+
   const setActiveGroup = (g: Group | null) => {
     setGroup(g);
   };
 
   return (
-    <AuthContext.Provider value={{ user, group, groups, login, signup, logout, refreshGroup, setActiveGroup }}>
+    <AuthContext.Provider
+      value={{ user, group, groups, login, signup, logout, refreshGroup, refreshUser, setActiveGroup }}>
       {children}
     </AuthContext.Provider>
   );

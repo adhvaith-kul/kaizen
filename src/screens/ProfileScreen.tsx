@@ -1,5 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  Image,
+  ScrollView,
+  ActivityIndicator,
+  Modal,
+  Platform,
+  Alert,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { DailyLog } from '../types';
@@ -7,12 +20,18 @@ import Loader from '../components/Loader';
 
 const SQUAD_COLORS = ['#C2FF05', '#FF3366', '#00E5FF', '#B388FF', '#FF9100'];
 
+const dicebearUri = (seed: string) =>
+  `https://api.dicebear.com/9.x/micah/png?seed=${seed}&backgroundColor=C2FF05&radius=50`;
+
 export default function ProfileScreen({ navigation, visible }: any) {
-  const { user, logout, groups } = useAuth();
+  const { user, groups, refreshUser, logout } = useAuth();
   const [stats, setStats] = useState({ totalHabits: 0, totalDaysLogged: 0 });
   const [graphData, setGraphData] = useState<any[]>([]);
   const [maxTotal, setMaxTotal] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [viewVisible, setViewVisible] = useState(false);
 
   const generateLast7Days = () => {
     const dates = [];
@@ -27,7 +46,6 @@ export default function ProfileScreen({ navigation, visible }: any) {
     return dates;
   };
 
-  // Re-fetch every time the Profile tab becomes visible
   useEffect(() => {
     if (!visible || !user) return;
     let isActive = true;
@@ -60,18 +78,86 @@ export default function ProfileScreen({ navigation, visible }: any) {
     };
   }, [visible, user]);
 
+  // ── Avatar picking ────────────────────────────────────────────────────────────
+
+  const handlePickImage = async (fromCamera: boolean) => {
+    let result: ImagePicker.ImagePickerResult;
+
+    if (fromCamera) {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Camera access is required to take a photo.');
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Photo library access is required to choose a photo.');
+        return;
+      }
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+    }
+
+    if (result.canceled || !result.assets?.[0]?.uri || !user) {
+      setPickerVisible(false);
+      return;
+    }
+
+    const uri = result.assets[0].uri;
+    setUploading(true);
+    setPickerVisible(false); // Close modal before uploading starts
+    try {
+      const publicUrl = await backend.uploadProfilePicture(uri, user.id);
+      await backend.updateUserAvatar(user.id, publicUrl);
+      await refreshUser();
+    } catch (e: any) {
+      Alert.alert('Upload failed', e?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const showAvatarOptions = () => {
+    setPickerVisible(true);
+  };
+
+  const avatarUri = user?.avatarUrl || dicebearUri(user?.username || 'user');
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.header} />
 
         <View style={styles.profileSection}>
-          <Image
-            source={{
-              uri: `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
-            }}
-            style={styles.avatar}
-          />
+          {/* Avatar with camera overlay */}
+          <TouchableOpacity onPress={showAvatarOptions} activeOpacity={0.85} style={styles.avatarContainer}>
+            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+
+            {/* Dim overlay while uploading */}
+            {uploading && (
+              <View style={styles.uploadingOverlay}>
+                <ActivityIndicator color="#C2FF05" size="large" />
+              </View>
+            )}
+
+            {/* Camera badge */}
+            {!uploading && (
+              <View style={styles.cameraBadge}>
+                <Text style={styles.cameraIcon}>📷</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
           <Text style={styles.username}>@{user?.username}</Text>
           <Text style={styles.email}>{user?.email}</Text>
         </View>
@@ -158,6 +244,50 @@ export default function ProfileScreen({ navigation, visible }: any) {
           <Text style={styles.logoutBtnText}>LOGOUT ✌️</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* ── CUSTOM IMAGE PICKER MODAL ───────────────────────── */}
+      <Modal visible={pickerVisible} transparent animationType="fade" onRequestClose={() => setPickerVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPickerVisible(false)}>
+          <View style={styles.pickerSheet}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>MANAGE PROFILE PHOTO</Text>
+
+            <TouchableOpacity
+              style={styles.sheetOption}
+              onPress={() => {
+                setPickerVisible(false);
+                setViewVisible(true);
+              }}>
+              <Text style={styles.sheetOptionEmoji}>👁️</Text>
+              <Text style={styles.sheetOptionText}>View Profile Photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.sheetOption} onPress={() => handlePickImage(true)}>
+              <Text style={styles.sheetOptionEmoji}>📸</Text>
+              <Text style={styles.sheetOptionText}>Take a Photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.sheetOption} onPress={() => handlePickImage(false)}>
+              <Text style={styles.sheetOptionEmoji}>🖼️</Text>
+              <Text style={styles.sheetOptionText}>Choose from Library</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.sheetCancel} onPress={() => setPickerVisible(false)}>
+              <Text style={styles.sheetCancelText}>CANCEL</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── FULL SCREEN VIEW MODAL ─────────────────────────── */}
+      <Modal visible={viewVisible} transparent animationType="fade" onRequestClose={() => setViewVisible(false)}>
+        <TouchableOpacity style={styles.viewOverlay} activeOpacity={1} onPress={() => setViewVisible(false)}>
+          <Image source={{ uri: avatarUri }} style={styles.fullImage} resizeMode="contain" />
+          <TouchableOpacity style={styles.closeViewBtn} onPress={() => setViewVisible(false)}>
+            <Text style={styles.closeViewText}>CLOSE</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -173,6 +303,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 30,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   avatar: {
     width: 120,
     height: 120,
@@ -180,7 +314,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1A24',
     borderWidth: 3,
     borderColor: '#C2FF05',
-    marginBottom: 16,
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#1A1A24',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#C2FF05',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+  },
+  cameraIcon: {
+    fontSize: 14,
   },
   username: {
     fontSize: 28,
@@ -265,7 +429,7 @@ const styles = StyleSheet.create({
   },
   barSegment: {
     width: '100%',
-    minHeight: 2, // minimum height so standard bars show
+    minHeight: 2,
   },
   barValue: {
     fontSize: 12,
@@ -324,5 +488,88 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: '#1A1A24',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    padding: 24,
+    paddingBottom: 40,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: '#2A2A35',
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#333',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 24,
+  },
+  sheetTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#666',
+    letterSpacing: 2,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  sheetOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#22222E',
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2A2A35',
+  },
+  sheetOptionEmoji: {
+    fontSize: 20,
+    marginRight: 16,
+  },
+  sheetOptionText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  sheetCancel: {
+    marginTop: 8,
+    padding: 20,
+    alignItems: 'center',
+  },
+  sheetCancelText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FF3366',
+    letterSpacing: 1,
+  },
+  viewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '80%',
+  },
+  closeViewBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 30,
+    padding: 10,
+  },
+  closeViewText: {
+    color: '#FFF',
+    fontWeight: '900',
+    letterSpacing: 2,
+    fontSize: 12,
   },
 });

@@ -14,17 +14,23 @@ export default function UserDetailScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
 
       if (group?.id) {
-        Promise.all([backend.getUserLogs(userId, group.id), backend.getAllHabits(userId, group.id)])
-          .then(([logsData, habitsData]) => {
+        Promise.all([
+          backend.getUserLogs(userId, group.id),
+          backend.getAllHabits(userId, group.id),
+          backend.getUser(userId),
+        ])
+          .then(([logsData, habitsData, userData]) => {
             if (isActive) {
               setLogs(logsData || []);
               setHabits(habitsData || []);
+              setAvatarUrl(userData?.avatarUrl || null);
               setLoading(false);
             }
           })
@@ -116,9 +122,19 @@ export default function UserDetailScreen({ route, navigation }: any) {
       </View>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>
-            <Text style={{ color: '#C2FF05' }}>{username}</Text>'s Log
-          </Text>
+          <Image
+            source={{
+              uri:
+                avatarUrl || `https://api.dicebear.com/9.x/micah/png?seed=${username}&backgroundColor=C2FF05&radius=50`,
+            }}
+            style={styles.headerAvatar}
+          />
+          <View>
+            <Text style={styles.title}>
+              <Text style={{ color: '#C2FF05' }}>{username}</Text>'s Log
+            </Text>
+            <Text style={styles.subtitle}>SQUAD MEMBER</Text>
+          </View>
         </View>
 
         {loading ? (
@@ -158,8 +174,17 @@ const styles = StyleSheet.create({
   topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
   backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
   backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
-  header: { marginBottom: 30, marginTop: 10 },
-  title: { fontSize: 32, fontWeight: '900', color: '#FFF', letterSpacing: -1 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 30, marginTop: 10 },
+  headerAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#C2FF05',
+    marginRight: 15,
+  },
+  title: { fontSize: 24, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
+  subtitle: { fontSize: 10, fontWeight: '800', color: '#888', letterSpacing: 1.5, marginTop: 2 },
   emptyState: { alignItems: 'center', marginTop: 50 },
   emptyText: { color: '#666', fontSize: 18, fontWeight: '700' },
   logCard: {

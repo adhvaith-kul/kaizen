@@ -26,7 +26,9 @@ function getMissingRequirements(habits: Habit[], group: any): string[] {
 
 export default function LeaderboardScreen({ navigation }: any) {
   const { group, user } = useAuth();
-  const [board, setBoard] = useState<{ rank: number; userId: string; username: string; totalPoints: number }[]>([]);
+  const [board, setBoard] = useState<
+    { rank: number; userId: string; username: string; avatarUrl?: string; totalPoints: number }[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [missingHabits, setMissingHabits] = useState<string[]>([]);
@@ -118,7 +120,9 @@ export default function LeaderboardScreen({ navigation }: any) {
 
                     <Image
                       source={{
-                        uri: `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=C2FF05&radius=50`,
+                        uri:
+                          item.avatarUrl ||
+                          `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=C2FF05&radius=50`,
                       }}
                       style={[styles.avatar, isTop3 && { borderColor: rankColor, borderWidth: 2 }]}
                     />

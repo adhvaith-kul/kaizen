@@ -10,7 +10,8 @@ create table public.users (
   id         uuid primary key default gen_random_uuid(),
   username   text not null,
   email      text unique not null,
-  password   text
+  password   text,
+  avatar_url text
 );
 
 -- ─────────────────────────────────────────────────────────────
@@ -97,7 +98,8 @@ create table public.logs (
 -- Run these lines individually if they fail together.
 -- ─────────────────────────────────────────────────────────────
 insert into storage.buckets (id, name, public)
-  values ('habit-images', 'habit-images', true)
+  values ('habit-images', 'habit-images', true),
+         ('profile-images', 'profile-images', true)
   on conflict (id) do nothing;
 
 drop policy if exists "Public Access" on storage.objects;
@@ -105,7 +107,7 @@ drop policy if exists "Public Insert" on storage.objects;
 drop policy if exists "Public Update" on storage.objects;
 drop policy if exists "Public Delete" on storage.objects;
 
-create policy "Public Access" on storage.objects for select using ( bucket_id = 'habit-images' );
-create policy "Public Insert" on storage.objects for insert with check ( bucket_id = 'habit-images' );
-create policy "Public Update" on storage.objects for update using ( bucket_id = 'habit-images' );
-create policy "Public Delete" on storage.objects for delete using ( bucket_id = 'habit-images' );
+create policy "Public Access" on storage.objects for select using ( bucket_id in ('habit-images', 'profile-images') );
+create policy "Public Insert" on storage.objects for insert with check ( bucket_id in ('habit-images', 'profile-images') );
+create policy "Public Update" on storage.objects for update using ( bucket_id in ('habit-images', 'profile-images') );
+create policy "Public Delete" on storage.objects for delete using ( bucket_id in ('habit-images', 'profile-images') );
