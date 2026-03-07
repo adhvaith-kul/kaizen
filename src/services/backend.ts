@@ -486,6 +486,52 @@ class Backend {
     }));
   }
 
+  async getUserFeed(userId: string): Promise<any[]> {
+    const { data: logs, error } = await supabase
+      .from('logs')
+      .select(
+        `
+        *,
+        users(username, avatar_url),
+        groups(name),
+        habits(name, category),
+        likes(user_id, deleted_at),
+        comments(id, text, user_id, created_at, deleted_at, users(username))
+      `
+      )
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error || !logs) return [];
+
+    return logs.map(log => ({
+      id: log.id,
+      userId: log.user_id,
+      username: log.users.username,
+      avatarUrl: log.users.avatar_url,
+      groupName: log.groups.name,
+      groupId: log.group_id,
+      habitName: log.habits.name,
+      category: log.habits.category,
+      imageUrl: log.image_url,
+      caption: log.caption,
+      date: log.date,
+      timestamp: new Date(log.created_at).getTime(),
+      likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
+      commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
+      isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
+      commentsPreview: (log.comments || [])
+        .filter((c: any) => !c.deleted_at)
+        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .slice(-2)
+        .map((c: any) => ({
+          username: c.users.username,
+          text: c.text,
+        })),
+    }));
+  }
+
   async getPostDetail(userId: string, logId: string): Promise<any | null> {
     const { data: log, error } = await supabase
       .from('logs')

@@ -11,13 +11,19 @@ import {
   Modal,
   Platform,
   Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  FlatList,
+  Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
-import { DailyLog } from '../types';
+import { DailyLog, HabitComment as Comment } from '../types';
 import Loader from '../components/Loader';
+import PostCard from '../components/PostCard';
 
 const SQUAD_COLORS = ['#C2FF05', '#FF3366', '#00E5FF', '#B388FF', '#FF9100'];
 
@@ -33,6 +39,22 @@ export default function ProfileScreen({ navigation }: any) {
   const [uploading, setUploading] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [viewVisible, setViewVisible] = useState(false);
+
+  // Feed/Comments State
+  const [feed, setFeed] = useState<any[]>([]);
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [commenting, setCommenting] = useState(false);
+
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  const stickyOpacity = scrollY.interpolate({
+    inputRange: [80, 150],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const generateLast7Days = () => {
     const dates = [];
@@ -53,24 +75,27 @@ export default function ProfileScreen({ navigation }: any) {
       let isActive = true;
       setLoading(true);
 
-      Promise.all([backend.getProfileStats(user.id), backend.getUserLogs(user.id)]).then(([s, logs]) => {
-        if (!isActive) return;
-        setStats(s);
+      Promise.all([backend.getProfileStats(user.id), backend.getUserLogs(user.id), backend.getUserFeed(user.id)]).then(
+        ([s, logs, feedData]) => {
+          if (!isActive) return;
+          setStats(s);
+          setFeed(feedData);
 
-        const dates = generateLast7Days();
-        logs.forEach(log => {
-          const day = dates.find(d => d.date === log.date);
-          if (day) {
-            day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + 1;
-            day.total += 1;
-          }
-        });
+          const dates = generateLast7Days();
+          logs.forEach(log => {
+            const day = dates.find(d => d.date === log.date);
+            if (day) {
+              day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + 1;
+              day.total += 1;
+            }
+          });
 
-        const highestTotal = Math.max(...dates.map(d => d.total), 1);
-        setMaxTotal(highestTotal);
-        setGraphData(dates);
-        setLoading(false);
-      });
+          const highestTotal = Math.max(...dates.map(d => d.total), 1);
+          setMaxTotal(highestTotal);
+          setGraphData(dates);
+          setLoading(false);
+        }
+      );
 
       return () => {
         isActive = false;
@@ -131,119 +156,191 @@ export default function ProfileScreen({ navigation }: any) {
     setPickerVisible(true);
   };
 
+  const handleLike = async (post: any) => {
+    if (!user) return;
+    try {
+      if (post.isLiked) {
+        await backend.unlikeLog(user.id, post.id);
+      } else {
+        await backend.likeLog(user.id, post.id);
+      }
+      setFeed(prev =>
+        prev.map(p =>
+          p.id === post.id
+            ? { ...p, isLiked: !post.isLiked, likesCount: post.isLiked ? p.likesCount - 1 : p.likesCount + 1 }
+            : p
+        )
+      );
+    } catch (e) {
+      console.error('Like failed:', e);
+    }
+  };
+
+  const handleOpenComments = async (postId: string) => {
+    setActivePostId(postId);
+    setCommentsVisible(true);
+    try {
+      const data = await backend.getComments(postId);
+      setComments(data);
+    } catch (e) {
+      console.error('Failed to fetch comments:', e);
+    }
+  };
+
+  const postComment = async () => {
+    if (!user || !activePostId || !newComment.trim()) return;
+    setCommenting(true);
+    try {
+      await backend.addComment(user.id, activePostId, newComment);
+      setNewComment('');
+      const data = await backend.getComments(activePostId);
+      setComments(data);
+      const updatedFeed = await backend.getUserFeed(user.id);
+      setFeed(updatedFeed);
+    } catch (e) {
+      console.error('Failed to post comment:', e);
+    } finally {
+      setCommenting(false);
+    }
+  };
+
   const avatarUri = user?.avatarUrl || dicebearUri(user?.username || 'user');
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
-        <View style={styles.header} />
-
-        <View style={styles.profileSection}>
-          {/* Avatar with camera overlay */}
-          <TouchableOpacity onPress={showAvatarOptions} activeOpacity={0.85} style={styles.avatarContainer}>
-            <Image source={{ uri: avatarUri }} style={styles.avatar} />
-
-            {/* Dim overlay while uploading */}
-            {uploading && (
-              <View style={styles.uploadingOverlay}>
-                <ActivityIndicator color="#C2FF05" size="large" />
-              </View>
-            )}
-
-            {/* Camera badge */}
-            {!uploading && (
-              <View style={styles.cameraBadge}>
-                <Text style={styles.cameraIcon}>📷</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <Text style={styles.username}>@{user?.username}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
-        </View>
-
-        <View style={styles.statsCard}>
-          <Text style={styles.cardTitle}>LIFETIME STATS 🏆</Text>
-
-          {loading ? (
-            <Loader style={{ marginVertical: 20 }} />
-          ) : (
-            <View style={styles.statsGrid}>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{stats.totalHabits}</Text>
-                <Text style={styles.statLabel}>HABITS DONE</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{stats.totalDaysLogged}</Text>
-                <Text style={styles.statLabel}>DAYS LOGGED</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{groups.length}</Text>
-                <Text style={styles.statLabel}>ACTIVE SQUADS</Text>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* --- HABIT GRAPH --- */}
-        <View style={styles.graphCard}>
-          <Text style={styles.cardTitle}>LAST 7 DAYS</Text>
-          {loading ? (
-            <Loader style={{ marginVertical: 40 }} />
-          ) : (
-            <>
-              <View style={styles.chartRow}>
-                {graphData.map((day, idx) => (
-                  <View key={idx} style={styles.barColumn}>
-                    <Text style={styles.barValue}>{day.total > 0 ? day.total : ''}</Text>
-                    <View style={styles.barWrapper}>
-                      {/* Empty state bar */}
-                      {day.total === 0 && (
-                        <View style={[styles.barSegment, { height: '5%', backgroundColor: '#2A2A35' }]} />
-                      )}
-
-                      {/* Stacked bars */}
-                      {Object.entries(day.squadData).map(([groupId, count]: [string, any]) => {
-                        const heightRatio = count / maxTotal;
-                        const groupIndex = groups.findIndex(g => g.id === groupId);
-                        const color = SQUAD_COLORS[groupIndex % SQUAD_COLORS.length] || '#FFF';
-                        return (
-                          <View
-                            key={groupId}
-                            style={[styles.barSegment, { height: `${heightRatio * 100}%`, backgroundColor: color }]}
-                          />
-                        );
-                      })}
-                    </View>
-                    <Text style={[styles.barLabel, idx === 6 && { color: '#C2FF05', fontWeight: '900' }]}>
-                      {day.displayDate}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.legendContainer}>
-                {groups.map((g, idx) => (
-                  <View key={g.id} style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: SQUAD_COLORS[idx % SQUAD_COLORS.length] }]} />
-                    <Text style={styles.legendText}>{g.name}</Text>
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
-        </View>
-
-        <View style={styles.spacer} />
+      {/* ── FIXED STICKY HEADER ── */}
+      <View style={styles.fixedHeader}>
+        <Animated.View style={[styles.stickyProfile, { opacity: stickyOpacity }]}>
+          <Image source={{ uri: avatarUri }} style={styles.stickyAvatar} />
+          <Text style={styles.stickyUsername} numberOfLines={1}>
+            @{user?.username}
+          </Text>
+        </Animated.View>
 
         <TouchableOpacity
-          style={styles.logoutBtn}
+          style={styles.headerLogoutBtn}
           onPress={() => {
             logout().then(() => navigation.navigate('Login'));
           }}>
-          <Text style={styles.logoutBtnText}>LOGOUT ✌️</Text>
+          <Ionicons name="log-out-outline" size={18} color="#FF3366" />
+          <Text style={styles.logoutText}>LOGOUT</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
+
+      <Animated.ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}>
+        <View style={styles.topContent}>
+          <View style={styles.profileSection}>
+            {/* Avatar with camera overlay */}
+            <TouchableOpacity onPress={showAvatarOptions} activeOpacity={0.85} style={styles.avatarContainer}>
+              <Image source={{ uri: avatarUri }} style={styles.avatar} />
+
+              {/* Dim overlay while uploading */}
+              {uploading && (
+                <View style={styles.uploadingOverlay}>
+                  <ActivityIndicator color="#C2FF05" size="large" />
+                </View>
+              )}
+
+              {/* Camera badge */}
+              {!uploading && (
+                <View style={styles.cameraBadge}>
+                  <Text style={styles.cameraIcon}>📷</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.username}>@{user?.username}</Text>
+            <Text style={styles.email}>{user?.email}</Text>
+          </View>
+
+          <View style={styles.statsCard}>
+            <Text style={styles.sectionTitle}>LIFETIME STATS</Text>
+
+            {loading ? (
+              <Loader style={{ marginVertical: 20 }} />
+            ) : (
+              <View style={styles.statsGrid}>
+                <View style={styles.statBox}>
+                  <Text style={styles.statValue}>{stats.totalHabits}</Text>
+                  <Text style={styles.statLabel}>HABITS DONE</Text>
+                </View>
+                <View style={styles.statBox}>
+                  <Text style={styles.statValue}>{stats.totalDaysLogged}</Text>
+                  <Text style={styles.statLabel}>DAYS LOGGED</Text>
+                </View>
+                <View style={styles.statBox}>
+                  <Text style={styles.statValue}>{groups.length}</Text>
+                  <Text style={styles.statLabel}>ACTIVE SQUADS</Text>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* --- HABIT GRAPH --- */}
+          <View style={styles.graphSection}>
+            <Text style={styles.sectionTitle}>LAST 7 DAYS</Text>
+            {loading ? (
+              <Loader style={{ marginVertical: 40 }} />
+            ) : (
+              <>
+                <View style={styles.chartRow}>
+                  {graphData.map((day, idx) => (
+                    <View key={idx} style={styles.barColumn}>
+                      <Text style={styles.barValue}>{day.total > 0 ? day.total : ''}</Text>
+                      <View style={styles.barWrapper}>
+                        {/* Empty state bar */}
+                        {day.total === 0 && (
+                          <View style={[styles.barSegment, { height: '5%', backgroundColor: '#2A2A35' }]} />
+                        )}
+
+                        {/* Stacked bars */}
+                        {Object.entries(day.squadData).map(([groupId, count]: [string, any]) => {
+                          const heightRatio = count / maxTotal;
+                          const groupIndex = groups.findIndex(g => g.id === groupId);
+                          const color = SQUAD_COLORS[groupIndex % SQUAD_COLORS.length] || '#FFF';
+                          return (
+                            <View
+                              key={groupId}
+                              style={[styles.barSegment, { height: `${heightRatio * 100}%`, backgroundColor: color }]}
+                            />
+                          );
+                        })}
+                      </View>
+                      <Text style={[styles.barLabel, idx === 6 && { color: '#C2FF05', fontWeight: '900' }]}>
+                        {day.displayDate}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.legendContainer}>
+                  {groups.map((g, idx) => (
+                    <View key={g.id} style={styles.legendItem}>
+                      <View
+                        style={[styles.legendColor, { backgroundColor: SQUAD_COLORS[idx % SQUAD_COLORS.length] }]}
+                      />
+                      <Text style={styles.legendText}>{g.name}</Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
+        {feed.length > 0 && (
+          <View style={styles.feedSection}>
+            <Text style={[styles.sectionTitle, { paddingHorizontal: 15 }]}>YOUR POSTS</Text>
+            {feed.map(item => (
+              <PostCard key={item.id} post={item} onLike={handleLike} onOpenComments={handleOpenComments} />
+            ))}
+          </View>
+        )}
+      </Animated.ScrollView>
 
       {/* ── CUSTOM IMAGE PICKER MODAL ───────────────────────── */}
       <Modal visible={pickerVisible} transparent animationType="fade" onRequestClose={() => setPickerVisible(false)}>
@@ -288,20 +385,141 @@ export default function ProfileScreen({ navigation }: any) {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* ── COMMENTS MODAL ───────────────────────── */}
+      <Modal
+        visible={commentsVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCommentsVisible(false)}>
+        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setCommentsVisible(false)}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalContentComments}>
+            <View style={styles.modalHeaderComments}>
+              <View style={styles.modalHandleComments} />
+              <Text style={styles.modalTitleComments}>Comments</Text>
+              <TouchableOpacity onPress={() => setCommentsVisible(false)} style={styles.closeBtnComments}>
+                <Ionicons name="close" size={24} color="#C2FF05" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={comments}
+              keyExtractor={c => c.id}
+              contentContainerStyle={{ padding: 20 }}
+              renderItem={({ item }) => (
+                <View style={styles.commentItem}>
+                  <Image
+                    source={{
+                      uri:
+                        item.avatarUrl ||
+                        `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=C2FF05&radius=50`,
+                    }}
+                    style={styles.commentAvatar}
+                  />
+                  <View style={styles.commentInfo}>
+                    <Text style={styles.commentUser}>{item.username}</Text>
+                    <Text style={styles.commentText}>{item.text}</Text>
+                  </View>
+                </View>
+              )}
+              ListEmptyComponent={() => (
+                <Text style={{ color: '#666', textAlign: 'center', marginTop: 50 }}>
+                  No comments yet. Be the first!
+                </Text>
+              )}
+            />
+
+            <View style={styles.commentInputRow}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Add a comment..."
+                placeholderTextColor="#666"
+                value={newComment}
+                onChangeText={setNewComment}
+                multiline
+              />
+              <TouchableOpacity
+                onPress={postComment}
+                disabled={commenting || !newComment.trim()}
+                style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.5 }]}>
+                <Text style={styles.postCommentBtnText}>{commenting ? '...' : 'Post'}</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0E0E11' },
-  container: { flex: 1, padding: 20 },
-  header: {
+  container: { flex: 1 },
+  fixedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: '#0E0E11',
+    zIndex: 10,
+  },
+  stickyProfile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    paddingRight: 10,
+  },
+  stickyAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#C2FF05',
+    backgroundColor: '#1A1A24',
+  },
+  stickyUsername: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  topContent: {
+    paddingHorizontal: 15,
+    paddingTop: 10,
+  },
+  headerLogoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A24',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2A2A35',
+  },
+  logoutText: {
+    color: '#FF3366',
+    fontWeight: '800',
+    fontSize: 12,
+    marginLeft: 6,
+    letterSpacing: 1,
+  },
+  feedSection: {},
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#888',
     marginBottom: 20,
-    marginTop: 10,
+    letterSpacing: 1.5,
   },
   profileSection: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 40,
   },
   avatarContainer: {
     position: 'relative',
@@ -359,29 +577,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   statsCard: {
-    backgroundColor: '#1A1A24',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#2A2A35',
-    marginBottom: 20,
+    marginBottom: 40,
   },
-  graphCard: {
-    backgroundColor: '#1A1A24',
-    borderRadius: 24,
-    padding: 24,
-    paddingBottom: 16,
-    borderWidth: 1,
-    borderColor: '#2A2A35',
-    marginBottom: 20,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#B388FF',
-    marginBottom: 20,
-    letterSpacing: 1.5,
-    textAlign: 'center',
+  graphSection: {
+    marginBottom: 40,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -447,9 +646,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     marginTop: 10,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#2A2A35',
   },
   legendItem: {
     flexDirection: 'row',
@@ -572,4 +768,56 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     fontSize: 12,
   },
+  // Comments Modal Styles
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContentComments: {
+    backgroundColor: '#121217',
+    height: '75%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 20,
+  },
+  modalHeaderComments: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A35',
+  },
+  modalHandleComments: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#333',
+    borderRadius: 2,
+    marginBottom: 8,
+  },
+  modalTitleComments: { color: '#FFF', fontWeight: '800', fontSize: 16 },
+  closeBtnComments: { position: 'absolute', right: 20, top: 15 },
+  commentItem: { flexDirection: 'row', marginBottom: 20 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
+  commentInfo: { flex: 1 },
+  commentUser: { color: '#FFF', fontWeight: '700', fontSize: 13, marginBottom: 2 },
+  commentText: { color: '#CCC', fontSize: 14, lineHeight: 18 },
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A35',
+    backgroundColor: '#1A1A24',
+  },
+  commentInput: {
+    flex: 1,
+    color: '#FFF',
+    fontSize: 14,
+    maxHeight: 100,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  postCommentBtn: { marginLeft: 10, paddingHorizontal: 15 },
+  postCommentBtnText: { color: '#C2FF05', fontWeight: '900', fontSize: 14 },
 });
