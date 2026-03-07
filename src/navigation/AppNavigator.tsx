@@ -15,6 +15,7 @@ import HomeScreen from '../screens/HomeScreen';
 import SquadsScreen from '../screens/SquadsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import UserDetailScreen from '../screens/UserDetailScreen';
+import PostDetailScreen from '../screens/PostDetailScreen';
 
 import { TabNavigationContext } from '../context/TabNavigationContext';
 
@@ -31,6 +32,7 @@ function FeedStackScreen() {
     <FeedStack.Navigator screenOptions={{ headerShown: false }}>
       <FeedStack.Screen name="Home" component={HomeScreen} />
       <FeedStack.Screen name="UserDetail" component={UserDetailScreen} />
+      <FeedStack.Screen name="PostDetail" component={PostDetailScreen} />
     </FeedStack.Navigator>
   );
 }
@@ -44,6 +46,7 @@ function SquadsStackScreen() {
       <SquadsStack.Screen name="HabitSetup" component={HabitSetupScreen} />
       <SquadsStack.Screen name="Group" component={GroupScreen} />
       <SquadsStack.Screen name="UserDetail" component={UserDetailScreen} />
+      <SquadsStack.Screen name="PostDetail" component={PostDetailScreen} />
     </SquadsStack.Navigator>
   );
 }

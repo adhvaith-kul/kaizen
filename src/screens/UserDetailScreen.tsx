@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Image, Modal } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { backend } from '../services/backend';
 import { DailyLog, Habit } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -86,24 +87,28 @@ export default function UserDetailScreen({ route, navigation }: any) {
                 const imageUrl = log.imageUrl;
 
                 return (
-                  <View key={log.id} style={styles.completedHabitRow}>
-                    {imageUrl && (
-                      <TouchableOpacity onPress={() => setSelectedImage(imageUrl)}>
-                        <Image source={{ uri: imageUrl }} style={styles.habitImage} />
-                      </TouchableOpacity>
+                  <TouchableOpacity
+                    key={log.id}
+                    style={styles.completedHabitRow}
+                    onPress={() => navigation.navigate('PostDetail', { logId: log.id })}>
+                    {imageUrl ? (
+                      <Image source={{ uri: imageUrl }} style={styles.habitImage} />
+                    ) : (
+                      <View style={[styles.habitImage, { justifyContent: 'center', alignItems: 'center' }]}>
+                        <Text style={{ fontSize: 20 }}>{getCategoryEmoji(h?.category || '')}</Text>
+                      </View>
                     )}
                     <View style={styles.habitTextContent}>
-                      <View style={styles.habitInfoRow}>
-                        <Text style={styles.habitCategory}>{h ? h.category.toUpperCase() : '?'}</Text>
-                        <Text style={styles.habitPointValue}>
-                          +{h ? group?.settings?.pointsPerCategory?.[h.category] || 10 : 0}
-                        </Text>
-                      </View>
+                      <Text style={styles.habitCategory}>{h ? h.category.toUpperCase() : '?'}</Text>
                       <Text style={[styles.habitName, !h && { color: '#666', fontStyle: 'italic' }]}>
                         {h ? h.name : '(Habit changed or deleted)'}
                       </Text>
                     </View>
-                  </View>
+                    <Text style={styles.habitPointValue}>
+                      +{h ? group?.settings?.pointsPerCategory?.[h.category] || 10 : 0}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color="#444" />
+                  </TouchableOpacity>
                 );
               })
             ) : (
@@ -181,6 +186,19 @@ export default function UserDetailScreen({ route, navigation }: any) {
   );
 }
 
+function getCategoryEmoji(cat: string) {
+  const map: any = {
+    Health: '💪',
+    Productivity: '💼',
+    Sleep: '😴',
+    Diet: '🥗',
+    Finance: '💸',
+    Upskill: '🧠',
+    Chores: '🧹',
+  };
+  return map[cat] || '✨';
+}
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0E0E11' },
   container: { flex: 1, paddingHorizontal: 20 },
@@ -237,29 +255,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  habitInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
   habitCategory: {
     fontSize: 10,
     color: '#888',
     fontWeight: '800',
     letterSpacing: 1,
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 2,
   },
   habitPointValue: {
     fontSize: 10,
     color: '#C2FF05',
     fontWeight: '900',
     backgroundColor: 'rgba(194, 255, 5, 0.1)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     overflow: 'hidden',
+    minWidth: 45,
+    textAlign: 'center',
+    marginRight: 10,
   },
   habitName: {
     fontSize: 16,
