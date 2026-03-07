@@ -369,6 +369,57 @@ class Backend {
     }
     return { totalHabits, totalDaysLogged: logs.length };
   }
+
+  async getFeed(userId: string): Promise<any[]> {
+    // 1. Get the groups the user is in
+    const { data: members } = await supabase.from('members').select('group_id').eq('user_id', userId);
+    if (!members || members.length === 0) return [];
+    const groupIds = members.map(m => m.group_id);
+
+    // 2. Get recent logs for these groups (limit to last 50 for performance)
+    const { data: logs, error: logErr } = await supabase
+      .from('logs')
+      .select('*, users(username, avatar_url), groups(name)')
+      .in('group_id', groupIds)
+      .order('date', { ascending: false })
+      .limit(50);
+
+    if (logErr || !logs) return [];
+
+    // 3. Get all habits for these groups to map the IDs to names
+    const { data: habits } = await supabase.from('habits').select('id, name, category').in('group_id', groupIds);
+
+    const habitMap = Object.fromEntries(habits?.map(h => [h.id, h]) || []);
+
+    // 4. Flatten the logs into individual completion "posts"
+    const feed: any[] = [];
+    logs.forEach(log => {
+      if (!log.completed_habit_ids || log.completed_habit_ids.length === 0) return;
+
+      log.completed_habit_ids.forEach((habitId: string) => {
+        const habit = habitMap[habitId];
+        if (!habit) return;
+
+        feed.push({
+          id: `${log.id}-${habitId}`,
+          userId: log.user_id,
+          username: log.users.username,
+          avatarUrl: log.users.avatar_url,
+          groupName: log.groups.name,
+          groupId: log.group_id,
+          habitName: habit.name,
+          category: habit.category,
+          imageUrl: log.habit_image_urls?.[habitId],
+          date: log.date,
+          // We don't have exact time, so we use log.id as a tie-breaker for deterministic sort
+          timestamp: new Date(log.date).getTime(),
+        });
+      });
+    });
+
+    // Sort by date (already mostly sorted by DB query, but flattening might need a re-sort if we had time)
+    return feed.sort((a, b) => b.timestamp - a.timestamp);
+  }
 }
 
 export const backend = new Backend();

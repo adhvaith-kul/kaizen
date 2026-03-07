@@ -1,9 +1,9 @@
 import React from 'react';
-import { NavigationContainer, DefaultTheme, useNavigation, CommonActions } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
-import { StatusBar, Text, View, StyleSheet } from 'react-native';
+import { StatusBar, Text, View, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
 
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
@@ -12,118 +12,102 @@ import HabitSetupScreen from '../screens/HabitSetupScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
 import HomeScreen from '../screens/HomeScreen';
+import SquadsScreen from '../screens/SquadsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-
-const Stack = createNativeStackNavigator();
-const HomeStack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
-
 import UserDetailScreen from '../screens/UserDetailScreen';
 
-function HomeStackScreen({ onNestedChange }: { onNestedChange?: (nested: boolean) => void }) {
-  return (
-    <HomeStack.Navigator
-      screenOptions={{ headerShown: false }}
-      screenListeners={{
-        state: (e: any) => {
-          const routes = e.data?.state?.routes ?? [];
-          onNestedChange?.(routes.length > 1);
-        },
-      }}>
-      <HomeStack.Screen name="Home" component={HomeScreen} />
-      <HomeStack.Screen name="Group" component={GroupScreen} />
-      <HomeStack.Screen name="Dashboard" component={DashboardScreen} />
-      <HomeStack.Screen name="HabitSetup" component={HabitSetupScreen} />
-      <HomeStack.Screen name="Leaderboard" component={LeaderboardScreen} />
-      <HomeStack.Screen name="UserDetail" component={UserDetailScreen} />
-    </HomeStack.Navigator>
-  );
-}
-
-import { Animated, Dimensions, TouchableOpacity } from 'react-native';
+import { TabNavigationContext } from '../context/TabNavigationContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// ── NAVIGATORS ──────────────────────────────────────────────────
+const Stack = createNativeStackNavigator();
+const FeedStack = createNativeStackNavigator();
+const SquadsStack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function FeedStackScreen() {
+  return (
+    <FeedStack.Navigator screenOptions={{ headerShown: false }}>
+      <FeedStack.Screen name="Home" component={HomeScreen} />
+      <FeedStack.Screen name="UserDetail" component={UserDetailScreen} />
+    </FeedStack.Navigator>
+  );
+}
+
+function SquadsStackScreen() {
+  return (
+    <SquadsStack.Navigator screenOptions={{ headerShown: false }}>
+      <SquadsStack.Screen name="SquadsRoot" component={SquadsScreen} />
+      <SquadsStack.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <SquadsStack.Screen name="Dashboard" component={DashboardScreen} />
+      <SquadsStack.Screen name="HabitSetup" component={HabitSetupScreen} />
+      <SquadsStack.Screen name="Group" component={GroupScreen} />
+      <SquadsStack.Screen name="UserDetail" component={UserDetailScreen} />
+    </SquadsStack.Navigator>
+  );
+}
+
+function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
+  return (
+    <View style={styles.navBar}>
+      <TouchableOpacity style={styles.navItem} activeOpacity={0.8} onPress={() => onTabPress('HomeTab')}>
+        <Text style={{ fontSize: 20 }}>🔥</Text>
+        <Text style={[styles.navLabel, { color: activeTab === 'HomeTab' ? '#C2FF05' : '#888' }]}>HOME</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.navItem} activeOpacity={0.8} onPress={() => onTabPress('SquadsTab')}>
+        <Text style={{ fontSize: 20 }}>🤝</Text>
+        <Text style={[styles.navLabel, { color: activeTab === 'SquadsTab' ? '#C2FF05' : '#888' }]}>SQUADS</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.navItem} activeOpacity={0.8} onPress={() => onTabPress('ProfileTab')}>
+        <Text style={{ fontSize: 20 }}>👤</Text>
+        <Text style={[styles.navLabel, { color: activeTab === 'ProfileTab' ? '#C2FF05' : '#888' }]}>PROFILE</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function MainTabs() {
   const [activeTab, setActiveTab] = React.useState('HomeTab');
-  const [homeKey, setHomeKey] = React.useState(0);
-  const [homeIsNested, setHomeIsNested] = React.useState(false);
+  const [feedKey, setFeedKey] = React.useState(0);
+  const [squadsKey, setSquadsKey] = React.useState(0);
   const profileAnim = React.useRef(new Animated.Value(0)).current;
-  const homeAnim = React.useRef(new Animated.Value(0)).current;
-  const navigation = useNavigation<any>();
+  const tabNavRef = React.useRef<any>(null);
 
   const handleTabPress = (tabName: string) => {
     if (tabName === 'ProfileTab') {
-      if (activeTab === 'ProfileTab') return; // already here
-      setActiveTab(tabName);
-
-      // Slide Profile UP fast
+      setActiveTab('ProfileTab');
       Animated.timing(profileAnim, {
         toValue: 1,
         duration: 200,
         useNativeDriver: true,
       }).start();
-    } else if (tabName === 'HomeTab') {
+    } else {
       if (activeTab === 'ProfileTab') {
-        // We wipe the nested cache in the parent navigator to ensure a flawless reset
-        navigation.dispatch((state: any) => {
-          const routes = state.routes.map((r: any) => (r.name === 'MainTabs' ? { ...r, state: undefined } : r));
-          return CommonActions.reset({ ...state, routes });
-        });
-        setHomeKey(k => k + 1);
-
-        // ...then slide Profile DOWN tracking the fast duration
         setActiveTab(tabName);
         Animated.timing(profileAnim, {
           toValue: 0,
           duration: 200,
           useNativeDriver: true,
         }).start();
+        tabNavRef.current?.navigate(tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab');
+      } else if (activeTab === tabName) {
+        // Reset stack on double tap
+        if (tabName === 'HomeTab') setFeedKey(k => k + 1);
+        else setSquadsKey(k => k + 1);
       } else {
-        // ALREADY on HomeTab — only animate if we're nested inside a group screen
-        if (!homeIsNested) return; // already at root HomeScreen, do nothing
-
-        // Slide the entire stack DOWN to reveal a clone of Home underneath.
-        Animated.timing(homeAnim, {
-          toValue: SCREEN_HEIGHT,
-          duration: 250,
-          useNativeDriver: true,
-        }).start(() => {
-          // Clear nested navigator state cache so React Nav refuses to rehydrate Leaderboard
-          navigation.dispatch((state: any) => {
-            const routes = state.routes.map((r: any) => (r.name === 'MainTabs' ? { ...r, state: undefined } : r));
-            return CommonActions.reset({ ...state, routes });
-          });
-          // Unmount and remount HomeStack cleanly
-          setHomeKey(k => k + 1);
-          setHomeIsNested(false);
-
-          // Wait briefly for React to actually commit the new Home tree, avoiding the visual flash
-          setTimeout(() => {
-            homeAnim.setValue(0);
-          }, 30);
-        });
+        setActiveTab(tabName);
+        tabNavRef.current?.navigate(tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab');
       }
     }
   };
 
-  // ── FIX: Listen for "openProfile" triggers from HomeScreen ──────────────────────
-  React.useEffect(() => {
-    const unsubscribe = navigation.addListener('state', (e: any) => {
-      const state = e.data.state;
-      const mainTabsRoute = state.routes.find((r: any) => r.name === 'MainTabs');
-      if (mainTabsRoute?.state) {
-        const homeStackRoute = mainTabsRoute.state.routes[mainTabsRoute.state.index];
-        if (homeStackRoute?.name === 'Home' && homeStackRoute.params?.openProfile) {
-          // Trigger the switch
-          handleTabPress('ProfileTab');
-          // Important: clean up the param so it doesn't trigger again on every re-render
-          navigation.setParams({ openProfile: undefined });
-        }
-      }
-    });
-    return unsubscribe;
-  }, [navigation, activeTab]);
+  const resetStack = (tabName: string) => {
+    if (tabName === 'HomeTab') setFeedKey(k => k + 1);
+    else if (tabName === 'SquadsTab') setSquadsKey(k => k + 1);
+  };
 
   const profileTranslateY = profileAnim.interpolate({
     inputRange: [0, 1],
@@ -131,81 +115,52 @@ function MainTabs() {
   });
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0E0E11' }}>
-      {/* Background Clone of Home Screen - Only seen when the active stack slides down */}
-      <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 0, backgroundColor: '#0E0E11' }}>
-        <HomeScreen navigation={navigation} />
+    <TabNavigationContext.Provider value={{ activeTab, setActiveTab: handleTabPress, resetStack }}>
+      <View style={{ flex: 1, backgroundColor: '#0E0E11' }}>
+        <Tab.Navigator
+          tabBar={props => {
+            tabNavRef.current = props.navigation;
+            return <CustomTabBar {...props} activeTab={activeTab} onTabPress={handleTabPress} />;
+          }}
+          screenOptions={{ headerShown: false }}>
+          <Tab.Screen name="FeedTab">{() => <FeedStackScreen key={feedKey} />}</Tab.Screen>
+          <Tab.Screen name="SquadsTab">{() => <SquadsStackScreen key={squadsKey} />}</Tab.Screen>
+        </Tab.Navigator>
+
+        {/* PROFILE OVERLAY */}
+        <Animated.View
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            transform: [{ translateY: profileTranslateY }],
+            zIndex: 10,
+            backgroundColor: '#0E0E11',
+          }}>
+          <ProfileScreen visible={activeTab === 'ProfileTab'} />
+        </Animated.View>
       </View>
-
-      {/* Foreground Home Stack - Slides down when escaping a group via tab bar */}
-      <Animated.View style={{ flex: 1, zIndex: 1, transform: [{ translateY: homeAnim }] }}>
-        <HomeStackScreen key={homeKey} onNestedChange={setHomeIsNested} />
-      </Animated.View>
-
-      {/* Profile View - Slides vertically over everything */}
-      <Animated.View
-        style={{
-          ...StyleSheet.absoluteFillObject,
-          transform: [{ translateY: profileTranslateY }],
-          zIndex: 10,
-          backgroundColor: '#0E0E11',
-        }}>
-        <ProfileScreen visible={activeTab === 'ProfileTab'} />
-      </Animated.View>
-
-      {/* Custom Bottom NavBar */}
-      <View
-        style={{
-          backgroundColor: 'rgba(14, 14, 17, 0.95)',
-          borderTopWidth: 1,
-          borderTopColor: '#2A2A35',
-          height: 85,
-          paddingBottom: 30,
-          paddingTop: 10,
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 20,
-          flexDirection: 'row',
-          justifyContent: 'space-around',
-        }}>
-        <TouchableOpacity
-          style={{ flex: 1, alignItems: 'center' }}
-          activeOpacity={0.8}
-          onPress={() => handleTabPress('HomeTab')}>
-          <Text style={{ fontSize: 20 }}>🏠</Text>
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: '900',
-              letterSpacing: 1,
-              marginTop: 4,
-              color: activeTab === 'HomeTab' ? '#C2FF05' : '#888',
-            }}>
-            HOME
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={{ flex: 1, alignItems: 'center' }}
-          activeOpacity={0.8}
-          onPress={() => handleTabPress('ProfileTab')}>
-          <Text style={{ fontSize: 20 }}>👤</Text>
-          <Text
-            style={{
-              fontSize: 10,
-              fontWeight: '900',
-              letterSpacing: 1,
-              marginTop: 4,
-              color: activeTab === 'ProfileTab' ? '#C2FF05' : '#888',
-            }}>
-            PROFILE
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </TabNavigationContext.Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  navBar: {
+    backgroundColor: 'rgba(14, 14, 17, 0.95)',
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A35',
+    height: 85,
+    paddingBottom: 30,
+    paddingTop: 10,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  navItem: { flex: 1, alignItems: 'center' },
+  navLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1, marginTop: 4 },
+});
 
 const VibeTheme = {
   ...DefaultTheme,
@@ -216,10 +171,7 @@ const VibeTheme = {
 };
 
 export default function AppNavigator() {
-  const { user, group } = useAuth();
-  const [loading, setLoading] = React.useState(false); // Can add real loading state later
-
-  if (loading) return null;
+  const { user } = useAuth();
 
   return (
     <>
