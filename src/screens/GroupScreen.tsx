@@ -42,6 +42,7 @@ export default function GroupScreen({ navigation }: any) {
 
   const handleCreate = async () => {
     if (!user) return;
+    setLoading(true);
     try {
       if (!groupName.trim()) throw new Error('Enter a squad name');
       if (categories.length === 0) throw new Error('You must select at least one category');
@@ -59,16 +60,27 @@ export default function GroupScreen({ navigation }: any) {
         ppcMap[cat] = pts;
       }
 
-      navigation.navigate('HabitSetup', {
-        pendingGroupCreate: {
-          name: groupName,
-          categories,
-          habitsPerCategory: hpcMap,
-          pointsPerCategory: ppcMap,
-        },
+      const newGroup = await backend.createGroup(groupName, user.id, {
+        allowedCategories: categories,
+        habitsPerCategory: hpcMap,
+        pointsPerCategory: ppcMap,
       });
+
+      await refreshGroup();
+      setActiveGroup(newGroup);
+
+      Alert.alert('Success', "Squad created! Let's set up your goals first. 🔒", [
+        {
+          text: 'LFG',
+          onPress: () => {
+            navigation.replace('HabitSetup', { fromCreateGroup: true });
+          },
+        },
+      ]);
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
+    } finally {
+      setLoading(false);
     }
   };
 

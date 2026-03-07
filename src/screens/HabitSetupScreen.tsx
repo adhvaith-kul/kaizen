@@ -24,14 +24,11 @@ export default function HabitSetupScreen({ route, navigation }: any) {
   const { user, group, refreshGroup, setActiveGroup } = useAuth();
 
   const pendingGroupJoin = route?.params?.pendingGroupJoin;
-  const pendingGroupCreate = route?.params?.pendingGroupCreate;
-  const isPending = !!(pendingGroupJoin || pendingGroupCreate);
+  const isPending = !!pendingGroupJoin;
 
   let activeCategories = FALLBACK_CATEGORIES;
   if (pendingGroupJoin) {
     activeCategories = pendingGroupJoin.settings?.allowedCategories || FALLBACK_CATEGORIES;
-  } else if (pendingGroupCreate) {
-    activeCategories = pendingGroupCreate.categories || FALLBACK_CATEGORIES;
   } else if (group) {
     activeCategories = group.settings?.allowedCategories || FALLBACK_CATEGORIES;
   }
@@ -92,25 +89,15 @@ export default function HabitSetupScreen({ route, navigation }: any) {
           index: 2,
           routes: [{ name: 'SquadsRoot' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
         });
-      } else if (pendingGroupCreate) {
-        const newGroup = await backend.createGroup(pendingGroupCreate.name, user.id, {
-          allowedCategories: pendingGroupCreate.categories,
-          habitsPerCategory: pendingGroupCreate.habitsPerCategory,
-          pointsPerCategory: pendingGroupCreate.pointsPerCategory,
-        });
-        targetGroupId = newGroup.id;
-        await backend.saveHabits(user.id, targetGroupId, payload);
-        await refreshGroup();
-        setActiveGroup(newGroup);
-        Alert.alert('W', 'Squad created and habits locked in 🔒');
-        navigation.reset({
-          index: 2,
-          routes: [{ name: 'SquadsRoot' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
-        });
       } else if (group) {
         await backend.saveHabits(user.id, group.id, payload);
         Alert.alert('W', 'Habits updated 🔒');
-        if (navigation.canGoBack()) {
+        if (route.params?.fromCreateGroup) {
+          navigation.reset({
+            index: 2,
+            routes: [{ name: 'SquadsRoot' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
+          });
+        } else if (navigation.canGoBack()) {
           navigation.goBack();
         } else {
           navigation.navigate('Dashboard');
@@ -136,7 +123,9 @@ export default function HabitSetupScreen({ route, navigation }: any) {
           <Text style={styles.title}>
             Choose your <Text style={{ color: '#B388FF' }}>weapons</Text>
           </Text>
-          <Text style={styles.desc}>Lock in one daily habit per category. Keep it realistic, no cap.</Text>
+          <Text style={styles.desc}>
+            Lock in one daily habit per category. Keep it realistic. Don't worry, this can be edited later
+          </Text>
 
           {activeCategories.map((cat: string) => (
             <View key={cat} style={styles.field}>
