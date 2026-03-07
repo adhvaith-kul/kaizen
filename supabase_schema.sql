@@ -11,7 +11,8 @@ create table public.users (
   username   text not null,
   email      text unique not null,
   password   text,
-  avatar_url text
+  avatar_url text,
+  deleted_at timestamp with time zone
 );
 
 -- ─────────────────────────────────────────────────────────────
@@ -48,7 +49,8 @@ create table public.groups (
   name       text not null,
   code       text unique not null,
   created_by uuid references public.users(id),
-  settings   jsonb  -- { allowedCategories, habitsPerCategory, pointsPerCategory }
+  settings   jsonb,  -- { allowedCategories, habitsPerCategory, pointsPerCategory }
+  deleted_at timestamp with time zone
 );
 
 -- ─────────────────────────────────────────────────────────────
@@ -57,8 +59,9 @@ create table public.groups (
 -- ─────────────────────────────────────────────────────────────
 create table public.members (
   user_id      uuid references public.users(id),
-  group_id     uuid references public.groups(id),
+  group_id     uuid references public.groups(id) on delete cascade,
   total_points int default 0,
+  deleted_at   timestamp with time zone,
   primary key (user_id, group_id)
 );
 
@@ -72,9 +75,9 @@ create table public.habits (
   id       uuid primary key default gen_random_uuid(),
   user_id  uuid references public.users(id),
   group_id uuid references public.groups(id) on delete cascade,
-  category text not null references public.categories(label) on update cascade on delete restrict,
-  name     text not null,
-  active   boolean default true
+  category   text not null references public.categories(label) on update cascade on delete restrict,
+  name       text not null,
+  deleted_at timestamp with time zone
 );
 
 -- ─────────────────────────────────────────────────────────────
@@ -91,6 +94,7 @@ create table public.logs (
   image_url  text,
   caption    text,
   created_at timestamp with time zone default now(),
+  deleted_at timestamp with time zone,
   unique (user_id, group_id, habit_id, date)
 );
 
@@ -102,6 +106,7 @@ create table public.likes (
   user_id    uuid references public.users(id),
   log_id     uuid references public.logs(id) on delete cascade,
   created_at timestamp with time zone default now(),
+  deleted_at timestamp with time zone,
   unique (user_id, log_id)
 );
 
@@ -113,7 +118,8 @@ create table public.comments (
   user_id    uuid references public.users(id),
   log_id     uuid references public.logs(id) on delete cascade,
   text       text not null,
-  created_at timestamp with time zone default now()
+  created_at timestamp with time zone default now(),
+  deleted_at timestamp with time zone
 );
 
 -- ─────────────────────────────────────────────────────────────
