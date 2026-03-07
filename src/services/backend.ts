@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { User, Group, Habit, DailyLog, Category, GroupSettings, HabitComment as Comment } from '../types';
 import { CategoryMeta, DEFAULT_CATEGORIES } from '../config/categories';
+import bcrypt from 'bcryptjs';
 
 const generateCode = () => Math.random().toString(36).substr(2, 6).toUpperCase();
 
@@ -22,20 +23,33 @@ class Backend {
     const { data: existing } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
     if (existing) throw new Error('User already exists');
 
-    const { data, error } = await supabase.from('users').insert({ username, email, password }).select().single();
+    // Hash the password before storing
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+
+    const { data, error } = await supabase
+      .from('users')
+      .insert({ username, email, password: hashedPassword })
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return { ...data, avatarUrl: data.avatar_url ?? undefined };
   }
 
   async login(email: string, password?: string): Promise<User> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .eq('password', password)
-      .maybeSingle();
+    // Fetch user by email only — we compare the hash in-app
+    const { data, error } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
     if (error) throw new Error(error.message);
     if (!data) throw new Error('Invalid credentials');
+
+    // Verify the password against the stored hash
+    if (data.password) {
+      const isMatch = await bcrypt.compare(password || '', data.password);
+      if (!isMatch) throw new Error('Invalid credentials');
+    } else if (password) {
+      // User has no password set but one was provided
+      throw new Error('Invalid credentials');
+    }
+
     return { ...data, avatarUrl: data.avatar_url ?? undefined };
   }
 
@@ -251,16 +265,14 @@ class Backend {
       if (imageUri) {
         publicUrl = await this.uploadHabitImage(imageUri, userId, habitId, date);
       }
-      const { error } = await supabase
-        .from('logs')
-        .insert({
-          user_id: userId,
-          group_id: groupId,
-          habit_id: habitId,
-          date,
-          image_url: publicUrl,
-          caption: caption || null,
-        });
+      const { error } = await supabase.from('logs').insert({
+        user_id: userId,
+        group_id: groupId,
+        habit_id: habitId,
+        date,
+        image_url: publicUrl,
+        caption: caption || null,
+      });
       if (error) throw new Error(error.message);
     }
 

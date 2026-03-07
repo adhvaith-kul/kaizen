@@ -22,6 +22,10 @@ export default function SignupScreen({ navigation }: any) {
   const { signup } = useAuth();
 
   const handleSignup = async () => {
+    if (password.length < 6) {
+      Alert.alert('💀 Bruh', 'Password needs to be at least 6 characters.');
+      return;
+    }
     setLoading(true);
     try {
       await signup(username, email, password);
