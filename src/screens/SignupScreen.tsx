@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import Loader from '../components/Loader';
 
@@ -24,54 +35,56 @@ export default function SignupScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       {loading && <Loader fullScreen />}
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.logo}>
-            Join the <Text style={styles.logoAccent}>cult</Text> 👽
-          </Text>
-          <Text style={styles.subtitle}>Main character energy only.</Text>
-        </View>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bounces={false}>
+          <View style={styles.header}>
+            <Text style={styles.logo}>
+              Join the <Text style={styles.logoAccent}>cult</Text> 👽
+            </Text>
+            <Text style={styles.subtitle}>Main character energy only.</Text>
+          </View>
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Username (make it fire)"
-            placeholderTextColor="#888"
-            onChangeText={setUsername}
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Email address (@)"
-            placeholderTextColor="#888"
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password (shh...)"
-            placeholderTextColor="#888"
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Username (make it fire)"
+              placeholderTextColor="#888"
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Email address (@)"
+              placeholderTextColor="#888"
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password (shh...)"
+              placeholderTextColor="#888"
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+          </View>
 
-        <TouchableOpacity style={styles.primaryBtn} onPress={handleSignup}>
-          <Text style={styles.primaryBtnText}>VIBE CHECK PASSED 💅</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.primaryBtn} onPress={handleSignup}>
+            <Text style={styles.primaryBtnText}>VIBE CHECK PASSED 💅</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.secondaryBtnText}>Already a member? Log in 🤝</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.secondaryBtnText}>Already a member? Log in 🤝</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0E0E11' },
-  content: { flex: 1, padding: 24, justifyContent: 'center' },
+  content: { flexGrow: 1, padding: 24, justifyContent: 'center' },
   header: { marginBottom: 40, alignItems: 'center' },
   logo: { fontSize: 40, fontWeight: '900', color: '#FFF', letterSpacing: -1.5, textAlign: 'center' },
   logoAccent: { color: '#B388FF' },
