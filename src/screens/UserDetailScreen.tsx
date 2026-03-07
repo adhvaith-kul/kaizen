@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 import { backend } from '../services/backend';
 import { DailyLog, Habit } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function UserDetailScreen({ route, navigation }: any) {
   const { userId, username } = route.params;
@@ -23,20 +24,32 @@ export default function UserDetailScreen({ route, navigation }: any) {
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (group?.id) {
-      Promise.all([backend.getUserLogs(userId, group.id), backend.getAllHabits(userId, group.id)])
-        .then(([logsData, habitsData]) => {
-          setLogs(logsData || []);
-          setHabits(habitsData || []);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error(err);
-          setLoading(false);
-        });
-    }
-  }, [userId, group]);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      if (group?.id) {
+        Promise.all([backend.getUserLogs(userId, group.id), backend.getAllHabits(userId, group.id)])
+          .then(([logsData, habitsData]) => {
+            if (isActive) {
+              setLogs(logsData || []);
+              setHabits(habitsData || []);
+              setLoading(false);
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            if (isActive) {
+              setLoading(false);
+            }
+          });
+      }
+
+      return () => {
+        isActive = false;
+      };
+    }, [userId, group?.id]) // Safe safely dependency is group?.id
+  );
 
   const toggleExpand = (logId: string) => {
     setExpandedLogId(prev => (prev === logId ? null : logId));

@@ -1,21 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, ActivityIndicator } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, logout, groups } = useAuth();
   const [stats, setStats] = useState({ totalHabits: 0, totalDaysLogged: 0 });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      backend.getProfileStats(user.id).then(s => {
-        setStats(s);
-        setLoading(false);
-      });
-    }
-  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      if (user) {
+        backend.getProfileStats(user.id).then(s => {
+          if (isActive) {
+            setStats(s);
+            setLoading(false);
+          }
+        });
+      }
+
+      return () => {
+        isActive = false;
+      };
+    }, [user])
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
