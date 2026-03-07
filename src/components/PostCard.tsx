@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     paddingVertical: 12,
   },
   postAvatar: {
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   placeholderText: { color: '#444', fontSize: 14, fontWeight: '700', letterSpacing: 1 },
   socialBar: {
     flexDirection: 'row',
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 8,
     gap: 18,
@@ -160,10 +160,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     marginBottom: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
   },
   postFooter: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
   },
   habitBadge: {
     alignSelf: 'flex-start',

@@ -56,6 +56,12 @@ export default function ProfileScreen({ navigation }: any) {
     extrapolate: 'clamp',
   });
 
+  const logoOpacity = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
   const generateLast7Days = () => {
     const dates = [];
     const istOffset = 5.5 * 60 * 60 * 1000;
@@ -210,21 +216,27 @@ export default function ProfileScreen({ navigation }: any) {
     <SafeAreaView style={styles.safeArea}>
       {/* ── FIXED STICKY HEADER ── */}
       <View style={styles.fixedHeader}>
-        <Animated.View style={[styles.stickyProfile, { opacity: stickyOpacity }]}>
-          <Image source={{ uri: avatarUri }} style={styles.stickyAvatar} />
-          <Text style={styles.stickyUsername} numberOfLines={1}>
-            @{user?.username}
-          </Text>
-        </Animated.View>
+        <View style={styles.headerLeftContainer}>
+          <Animated.View style={[styles.stickyLeft, { opacity: stickyOpacity, position: 'absolute', left: 0 }]}>
+            <Text style={styles.stickyUsername} numberOfLines={1}>
+              @{user?.username}
+            </Text>
+          </Animated.View>
+          <Animated.View style={{ opacity: logoOpacity }}>
+            <Text style={styles.logo}>KAIZEN</Text>
+          </Animated.View>
+        </View>
 
-        <TouchableOpacity
-          style={styles.headerLogoutBtn}
-          onPress={() => {
-            logout().then(() => navigation.navigate('Login'));
-          }}>
-          <Ionicons name="log-out-outline" size={18} color="#FF3366" />
-          <Text style={styles.logoutText}>LOGOUT</Text>
-        </TouchableOpacity>
+        <View style={styles.fixedHeaderRight}>
+          <TouchableOpacity
+            style={styles.headerLogoutBtn}
+            onPress={() => {
+              logout().then(() => navigation.navigate('Login'));
+            }}>
+            <Ionicons name="log-out-outline" size={18} color="#FF3366" />
+            <Text style={styles.logoutText}>LOGOUT</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Animated.ScrollView
@@ -334,7 +346,7 @@ export default function ProfileScreen({ navigation }: any) {
 
         {feed.length > 0 && (
           <View style={styles.feedSection}>
-            <Text style={[styles.sectionTitle, { paddingHorizontal: 15 }]}>YOUR POSTS</Text>
+            <Text style={[styles.sectionTitle, { paddingHorizontal: 20 }]}>YOUR POSTS</Text>
             {feed.map(item => (
               <PostCard key={item.id} post={item} onLike={handleLike} onOpenComments={handleOpenComments} />
             ))}
@@ -461,35 +473,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingHorizontal: 20,
+    height: 60,
     backgroundColor: '#0E0E11',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A24',
     zIndex: 10,
   },
-  stickyProfile: {
+  headerLeftContainer: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  logo: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFF',
+    letterSpacing: 2,
+    fontStyle: 'italic',
+  },
+  stickyLeft: {
+    zIndex: 2,
+  },
+  fixedHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    paddingRight: 10,
-  },
-  stickyAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#C2FF05',
-    backgroundColor: '#1A1A24',
+    gap: 12,
   },
   stickyUsername: {
     color: '#FFF',
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     letterSpacing: -0.5,
   },
   topContent: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     paddingTop: 10,
   },
   headerLogoutBtn: {
