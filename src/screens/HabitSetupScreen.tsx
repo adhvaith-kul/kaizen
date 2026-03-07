@@ -15,16 +15,10 @@ import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { Category } from '../types';
 import Loader from '../components/Loader';
+import { DEFAULT_CATEGORY_LABELS, CATEGORY_EMOJI_MAP } from '../config/categories';
 
-const CATEGORIES: Category[] = ['Health', 'Finance', 'Work', 'Upskill', 'Social'];
-
-const CATEGORY_EMOJIS: Record<Category, string> = {
-  Health: '💪',
-  Finance: '💸',
-  Work: '💼',
-  Upskill: '🧠',
-  Social: '🥂',
-};
+// Fallback used only until DB categories are loaded
+const FALLBACK_CATEGORIES: Category[] = DEFAULT_CATEGORY_LABELS;
 
 export default function HabitSetupScreen({ route, navigation }: any) {
   const { user, group, refreshGroup, setActiveGroup } = useAuth();
@@ -33,17 +27,25 @@ export default function HabitSetupScreen({ route, navigation }: any) {
   const pendingGroupCreate = route?.params?.pendingGroupCreate;
   const isPending = !!(pendingGroupJoin || pendingGroupCreate);
 
-  let activeCategories = CATEGORIES;
+  let activeCategories = FALLBACK_CATEGORIES;
   if (pendingGroupJoin) {
-    activeCategories = pendingGroupJoin.settings?.allowedCategories || CATEGORIES;
+    activeCategories = pendingGroupJoin.settings?.allowedCategories || FALLBACK_CATEGORIES;
   } else if (pendingGroupCreate) {
-    activeCategories = pendingGroupCreate.categories || CATEGORIES;
+    activeCategories = pendingGroupCreate.categories || FALLBACK_CATEGORIES;
   } else if (group) {
-    activeCategories = group.settings?.allowedCategories || CATEGORIES;
+    activeCategories = group.settings?.allowedCategories || FALLBACK_CATEGORIES;
   }
 
   const [habits, setHabits] = useState<Record<Category, string>>({});
   const [saving, setSaving] = useState(false);
+  const [dbEmojiMap, setDbEmojiMap] = useState<Record<string, string>>(CATEGORY_EMOJI_MAP);
+
+  // Load categories and their emojis from DB
+  useEffect(() => {
+    backend.getCategories().then(cats => {
+      setDbEmojiMap(Object.fromEntries(cats.map(c => [c.label, c.emoji])));
+    });
+  }, []);
 
   useEffect(() => {
     if (user && group && !isPending) {
@@ -139,7 +141,7 @@ export default function HabitSetupScreen({ route, navigation }: any) {
           {activeCategories.map((cat: string) => (
             <View key={cat} style={styles.field}>
               <View style={styles.labelContainer}>
-                <Text style={styles.labelEmoji}>{CATEGORY_EMOJIS[cat] || '✨'}</Text>
+                <Text style={styles.labelEmoji}>{dbEmojiMap[cat] || '✨'}</Text>
                 <Text style={styles.label}>{cat.toUpperCase()}</Text>
               </View>
               <TextInput

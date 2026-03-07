@@ -1,9 +1,23 @@
 import { supabase } from './supabaseClient';
 import { User, Group, Habit, DailyLog, Category, GroupSettings } from '../types';
+import { CategoryMeta, DEFAULT_CATEGORIES } from '../config/categories';
 
 const generateCode = () => Math.random().toString(36).substr(2, 6).toUpperCase();
 
 class Backend {
+  async getCategories(): Promise<CategoryMeta[]> {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('label, emoji')
+      .order('sort_order', { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      // Fall back to static config if DB is unreachable or table is empty
+      return DEFAULT_CATEGORIES;
+    }
+    return data.map(row => ({ label: row.label as Category, emoji: row.emoji }));
+  }
+
   async signup(username: string, email: string, password?: string): Promise<User> {
     const { data: existing } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
     if (existing) throw new Error('User already exists');
