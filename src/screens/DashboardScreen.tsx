@@ -17,12 +17,27 @@ import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { Habit, DailyLog } from '../types';
 import Loader from '../components/Loader';
+import HabitGateOverlay from '../components/HabitGateOverlay';
+
+function getMissingRequirements(habits: Habit[], group: any): string[] {
+  const settings = group?.settings;
+  if (!settings?.allowedCategories?.length) return [];
+  const missing: string[] = [];
+  for (const cat of settings.allowedCategories) {
+    const required = Number(settings.habitsPerCategory?.[cat] ?? 1);
+    const current = habits.filter(h => h.category === cat).length;
+    if (current < required) missing.push(`${cat} (${current}/${required})`);
+  }
+  return missing;
+}
 
 export default function DashboardScreen({ navigation }: any) {
   const { user, group, logout } = useAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [log, setLog] = useState<DailyLog | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [missingHabits, setMissingHabits] = useState<string[]>([]);
   const [rank, setRank] = useState<number | string>('-');
   const [vibeScore, setVibeScore] = useState<number>(0);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -33,18 +48,18 @@ export default function DashboardScreen({ navigation }: any) {
     try {
       const uHabits = await backend.getHabits(user.id, group.id);
       setHabits(uHabits);
+      setMissingHabits(getMissingRequirements(uHabits, group));
 
       const uLog = await backend.getTodayLog(user.id, group.id);
       setLog(uLog);
 
-      if (group) {
-        const board = await backend.getLeaderboard(group.id);
-        const me = board.find(b => b.username === user.username);
-        setRank(me?.rank || '-');
-        setVibeScore(me?.totalPoints || 0);
-      }
+      const board = await backend.getLeaderboard(group.id);
+      const me = board.find(b => b.username === user.username);
+      setRank(me?.rank || '-');
+      setVibeScore(me?.totalPoints || 0);
     } catch (e) {}
     setLoading(false);
+    setInitialLoad(false);
   }, [user, group]);
 
   useFocusEffect(
@@ -118,7 +133,12 @@ export default function DashboardScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {loading && <Loader fullScreen />}
+      {loading && initialLoad && <Loader fullScreen />}
+      {/* ── Blocking gate ──────────────────────────────── */}
+      {!initialLoad && missingHabits.length > 0 && (
+        <HabitGateOverlay missing={missingHabits} onFix={() => navigation.navigate('HabitSetup')} />
+      )}
+      {/* ────────────────────────────────────────── */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← BACK</Text>

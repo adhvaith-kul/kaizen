@@ -22,3 +22,25 @@ DELETE FROM public.habits WHERE group_id IS NULL;
 -- As you mentioned, letting go of the old format and starting fresh is the easiest way. 
 -- You can wipe the logs completely with this command:
 DELETE FROM public.logs;
+
+-- ─────────────────────────────────────────────────────────────
+-- Step 5. Link habits.category → categories.label
+--
+-- This ensures every habit must reference a valid, existing category.
+-- ON UPDATE CASCADE: renaming a category label in the categories table
+--   automatically updates all habits that use that label.
+-- ON DELETE RESTRICT: prevents deleting a category that is still
+--   referenced by any habit (safe default).
+-- ─────────────────────────────────────────────────────────────
+
+-- First, make categories.label uniquely indexable (required for FK target)
+ALTER TABLE public.categories ADD CONSTRAINT categories_label_unique UNIQUE (label);
+
+-- Then add the FK from habits → categories
+ALTER TABLE public.habits
+  ADD CONSTRAINT habits_category_fkey
+  FOREIGN KEY (category)
+  REFERENCES public.categories(label)
+  ON UPDATE CASCADE
+  ON DELETE RESTRICT;
+

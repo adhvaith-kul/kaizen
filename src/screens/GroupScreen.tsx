@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,32 +15,30 @@ import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { Category } from '../types';
 import Loader from '../components/Loader';
-
-const ALL_CATEGORIES: Category[] = ['Health', 'Finance', 'Work', 'Upskill', 'Social'];
+import { DEFAULT_CATEGORY_LABELS } from '../config/categories';
 
 export default function GroupScreen({ navigation }: any) {
   const [groupName, setGroupName] = useState('');
   const [groupCode, setGroupCode] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [allCategories, setAllCategories] = useState<Category[]>(ALL_CATEGORIES);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [newCategory, setNewCategory] = useState('');
-  const [categories, setCategories] = useState<Category[]>(ALL_CATEGORIES);
-  const [habitsPerCat, setHabitsPerCat] = useState<Partial<Record<Category, string>>>({
-    Health: '1',
-    Finance: '1',
-    Work: '1',
-    Upskill: '1',
-    Social: '1',
-  });
-  const [pointsPerCat, setPointsPerCat] = useState<Partial<Record<Category, string>>>({
-    Health: '10',
-    Finance: '10',
-    Work: '10',
-    Upskill: '10',
-    Social: '10',
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [habitsPerCat, setHabitsPerCat] = useState<Partial<Record<Category, string>>>({});
+  const [pointsPerCat, setPointsPerCat] = useState<Partial<Record<Category, string>>>({});
   const { user, refreshGroup, logout, setActiveGroup } = useAuth();
+
+  // Fetch categories from DB on mount
+  useEffect(() => {
+    backend.getCategories().then(cats => {
+      const labels = cats.map(c => c.label);
+      setAllCategories(labels);
+      setCategories(labels);
+      setHabitsPerCat(Object.fromEntries(labels.map(l => [l, '1'])));
+      setPointsPerCat(Object.fromEntries(labels.map(l => [l, '10'])));
+    });
+  }, []);
 
   const handleCreate = async () => {
     if (!user) return;
