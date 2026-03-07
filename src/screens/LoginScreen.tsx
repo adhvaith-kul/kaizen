@@ -1,22 +1,28 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import Loader from '../components/Loader';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
   const handleLogin = async () => {
+    setLoading(true);
     try {
       await login(email, password);
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {loading && <Loader fullScreen />}
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.logo}>

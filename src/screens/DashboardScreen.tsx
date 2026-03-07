@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { Habit, DailyLog } from '../types';
+import Loader from '../components/Loader';
 
 export default function DashboardScreen({ navigation }: any) {
   const { user, group, logout } = useAuth();
@@ -117,6 +118,7 @@ export default function DashboardScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {loading && <Loader fullScreen />}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← BACK</Text>

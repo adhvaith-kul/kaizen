@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { Category } from '../types';
+import Loader from '../components/Loader';
 
 const ALL_CATEGORIES: Category[] = ['Health', 'Finance', 'Work', 'Upskill', 'Social'];
 
@@ -21,6 +22,7 @@ export default function GroupScreen({ navigation }: any) {
   const [groupName, setGroupName] = useState('');
   const [groupCode, setGroupCode] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [allCategories, setAllCategories] = useState<Category[]>(ALL_CATEGORIES);
   const [newCategory, setNewCategory] = useState('');
   const [categories, setCategories] = useState<Category[]>(ALL_CATEGORIES);
@@ -74,6 +76,7 @@ export default function GroupScreen({ navigation }: any) {
 
   const handleJoin = async () => {
     if (!user) return;
+    setLoading(true);
     try {
       const groupToJoin = await backend.getGroupByCode(groupCode);
 
@@ -81,11 +84,14 @@ export default function GroupScreen({ navigation }: any) {
       navigation.navigate('HabitSetup', { pendingGroupJoin: groupToJoin });
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {loading && <Loader fullScreen />}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← BACK</Text>

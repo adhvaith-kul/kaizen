@@ -1,18 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  Image,
-  ActivityIndicator,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, ScrollView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { useFocusEffect } from '@react-navigation/native';
 import { DailyLog } from '../types';
+import Loader from '../components/Loader';
 
 const SQUAD_COLORS = ['#C2FF05', '#FF3366', '#00E5FF', '#B388FF', '#FF9100'];
 
@@ -96,7 +88,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={styles.cardTitle}>LIFETIME STATS 🏆</Text>
 
           {loading ? (
-            <ActivityIndicator color="#C2FF05" style={{ marginVertical: 20 }} />
+            <Loader style={{ marginVertical: 20 }} />
           ) : (
             <View style={styles.statsGrid}>
               <View style={styles.statBox}>
@@ -119,7 +111,7 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.graphCard}>
           <Text style={styles.cardTitle}>LAST 7 DAYS</Text>
           {loading ? (
-            <ActivityIndicator color="#C2FF05" style={{ marginVertical: 40 }} />
+            <Loader style={{ marginVertical: 40 }} />
           ) : (
             <>
               <View style={styles.chartRow}>
