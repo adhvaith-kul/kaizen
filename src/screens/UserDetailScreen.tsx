@@ -95,8 +95,13 @@ export default function UserDetailScreen({ route, navigation }: any) {
                         <Image source={{ uri: imageUrl }} style={styles.habitImage} />
                       </TouchableOpacity>
                     )}
-                    <View style={{ flex: 1, justifyContent: 'center' }}>
-                      <Text style={styles.habitCategory}>{h ? h.category.toUpperCase() : '?'}</Text>
+                    <View style={styles.habitTextContent}>
+                      <View style={styles.habitInfoRow}>
+                        <Text style={styles.habitCategory}>{h ? h.category.toUpperCase() : '?'}</Text>
+                        <Text style={styles.habitPointValue}>
+                          +{h ? group?.settings?.pointsPerCategory?.[h.category] || 10 : 0}
+                        </Text>
+                      </View>
                       <Text style={[styles.habitName, !h && { color: '#666', fontStyle: 'italic' }]}>
                         {h ? h.name : '(Habit changed or deleted)'}
                       </Text>
@@ -220,18 +225,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333',
   },
+  habitTextContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  habitInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   habitCategory: {
     fontSize: 10,
     color: '#888',
     fontWeight: '800',
-    width: 65,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    flex: 1,
+    marginRight: 8,
+  },
+  habitPointValue: {
+    fontSize: 10,
+    color: '#C2FF05',
+    fontWeight: '900',
+    backgroundColor: 'rgba(194, 255, 5, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   habitName: {
     fontSize: 16,
     color: '#FFF',
     fontWeight: '600',
-    flex: 1,
   },
   noHabitsText: {
     color: '#666',
