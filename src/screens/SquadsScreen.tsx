@@ -34,6 +34,23 @@ export default function SquadsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.fixedHeader}>
+        <View>
+          <Text style={styles.greeting}>Good to see you,</Text>
+          <Text style={styles.title}>{user?.username}</Text>
+        </View>
+        <TouchableOpacity onPress={() => setActiveTab('ProfileTab')}>
+          <Image
+            source={{
+              uri:
+                user?.avatarUrl ||
+                `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
+            }}
+            style={styles.avatar}
+          />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         ref={scrollRef}
         style={styles.container}
@@ -49,24 +66,7 @@ export default function SquadsScreen({ navigation }: any) {
             progressViewOffset={20}
           />
         }
-        contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Good to see you,</Text>
-            <Text style={styles.title}>{user?.username}</Text>
-          </View>
-          <TouchableOpacity onPress={() => setActiveTab('ProfileTab')}>
-            <Image
-              source={{
-                uri:
-                  user?.avatarUrl ||
-                  `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
-              }}
-              style={styles.avatar}
-            />
-          </TouchableOpacity>
-        </View>
-
+        contentContainerStyle={{ paddingTop: 20, paddingBottom: 100, flexGrow: 1 }}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>YOUR SQUADS</Text>
@@ -103,25 +103,28 @@ export default function SquadsScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0E0E11' },
-  container: { flex: 1, padding: 20 },
-  header: {
+  container: { flex: 1 },
+  fixedHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 40,
-    marginTop: 10,
-  },
-  greeting: { fontSize: 16, color: '#A0A0B0', fontWeight: '600', marginBottom: 4 },
-  title: { fontSize: 32, fontWeight: '900', color: '#FFF', letterSpacing: -1 },
-  avatar: {
-    width: 60,
+    paddingHorizontal: 20,
     height: 60,
-    borderRadius: 30,
-    backgroundColor: '#1A1A24',
-    borderWidth: 2,
+    backgroundColor: '#0E0E11',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A24',
+    zIndex: 10,
+  },
+  greeting: { fontSize: 12, color: '#A0A0B0', fontWeight: '600' },
+  title: { fontSize: 24, fontWeight: '900', color: '#FFF', letterSpacing: -1, marginTop: 2 },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
     borderColor: '#C2FF05',
   },
-  section: { marginBottom: 30 },
+  section: { marginBottom: 30, paddingHorizontal: 20 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   sectionTitle: { fontSize: 14, fontWeight: '800', color: '#666', letterSpacing: 1.5 },
   addLink: { color: '#FF3366', fontWeight: '700', fontSize: 14 },
