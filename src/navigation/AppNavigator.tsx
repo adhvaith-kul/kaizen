@@ -107,6 +107,24 @@ function MainTabs() {
     }
   };
 
+  // ── FIX: Listen for "openProfile" triggers from HomeScreen ──────────────────────
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('state', (e: any) => {
+      const state = e.data.state;
+      const mainTabsRoute = state.routes.find((r: any) => r.name === 'MainTabs');
+      if (mainTabsRoute?.state) {
+        const homeStackRoute = mainTabsRoute.state.routes[mainTabsRoute.state.index];
+        if (homeStackRoute?.name === 'Home' && homeStackRoute.params?.openProfile) {
+          // Trigger the switch
+          handleTabPress('ProfileTab');
+          // Important: clean up the param so it doesn't trigger again on every re-render
+          navigation.setParams({ openProfile: undefined });
+        }
+      }
+    });
+    return unsubscribe;
+  }, [navigation, activeTab]);
+
   const profileTranslateY = profileAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [SCREEN_HEIGHT, 0],
