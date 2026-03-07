@@ -38,7 +38,7 @@ export default function GroupScreen({ navigation }: any) {
     Upskill: '10',
     Social: '10',
   });
-  const { user, refreshGroup, logout } = useAuth();
+  const { user, refreshGroup, logout, setActiveGroup } = useAuth();
 
   const handleCreate = async () => {
     if (!user) return;
@@ -59,13 +59,14 @@ export default function GroupScreen({ navigation }: any) {
         ppcMap[cat] = pts;
       }
 
-      await backend.createGroup(groupName, user.id, {
-        allowedCategories: categories,
-        habitsPerCategory: hpcMap,
-        pointsPerCategory: ppcMap,
+      navigation.navigate('HabitSetup', {
+        pendingGroupCreate: {
+          name: groupName,
+          categories,
+          habitsPerCategory: hpcMap,
+          pointsPerCategory: ppcMap,
+        },
       });
-      await refreshGroup();
-      navigation.goBack();
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
     }
@@ -74,9 +75,10 @@ export default function GroupScreen({ navigation }: any) {
   const handleJoin = async () => {
     if (!user) return;
     try {
-      await backend.joinGroup(groupCode, user.id);
-      await refreshGroup();
-      navigation.goBack();
+      const groupToJoin = await backend.getGroupByCode(groupCode);
+
+      // Navigate to HabitSetup with this pending group
+      navigation.navigate('HabitSetup', { pendingGroupJoin: groupToJoin });
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
     }
