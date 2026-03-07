@@ -74,7 +74,7 @@ export default function LeaderboardScreen({ navigation }: any) {
       {/* Top bar — always visible */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.homeBtn}>
-          <Text style={styles.homeBtnText}>← HOME</Text>
+          <Text style={styles.homeBtnText}>← SQUADS</Text>
         </TouchableOpacity>
       </View>
 
