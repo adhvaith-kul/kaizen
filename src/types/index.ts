@@ -42,6 +42,7 @@ export interface DailyLog {
   habitId: string;
   date: string; // YYYY-MM-DD
   imageUrl?: string;
+  caption?: string;
   createdAt: string;
   likesCount?: number;
   commentsCount?: number;

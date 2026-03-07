@@ -221,7 +221,8 @@ class Backend {
     userId: string,
     groupId: string,
     habitId: string,
-    imageUri?: string
+    imageUri?: string,
+    caption?: string
   ): Promise<DailyLog[]> {
     const todayLogs = await this.getTodayLog(userId, groupId);
     const existingLog = todayLogs.find(l => l.habitId === habitId);
@@ -252,7 +253,14 @@ class Backend {
       }
       const { error } = await supabase
         .from('logs')
-        .insert({ user_id: userId, group_id: groupId, habit_id: habitId, date, image_url: publicUrl });
+        .insert({
+          user_id: userId,
+          group_id: groupId,
+          habit_id: habitId,
+          date,
+          image_url: publicUrl,
+          caption: caption || null,
+        });
       if (error) throw new Error(error.message);
     }
 
@@ -390,6 +398,7 @@ class Backend {
       habitName: log.habits.name,
       category: log.habits.category,
       imageUrl: log.image_url,
+      caption: log.caption,
       date: log.date,
       timestamp: new Date(log.created_at).getTime(),
       likesCount: log.likes?.length || 0,

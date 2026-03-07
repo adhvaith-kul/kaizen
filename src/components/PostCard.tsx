@@ -68,6 +68,12 @@ export default function PostCard({ post, onLike, onOpenComments }: PostCardProps
           <Text style={styles.habitName}>{post.habitName}</Text> goal! 🔥
         </Text>
 
+        {post.caption ? (
+          <Text style={styles.captionText}>
+            <Text style={styles.postUsernameSmall}>{post.username}</Text> {post.caption}
+          </Text>
+        ) : null}
+
         <View style={styles.commentsPreview}>
           {post.commentsCount > 2 && (
             <TouchableOpacity onPress={() => onOpenComments(post.id)}>
@@ -183,6 +189,12 @@ const styles = StyleSheet.create({
   },
   postUsernameSmall: { fontWeight: '800', color: '#FFF' },
   habitName: { fontWeight: '800', color: '#C2FF05' },
+  captionText: {
+    color: '#DDD',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
   commentsPreview: {
     marginTop: 4,
   },
