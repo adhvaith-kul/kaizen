@@ -101,31 +101,45 @@ class Backend {
   }
 
   async getGroupByCode(code: string): Promise<Group> {
-    const { data: group, error: groupErr } = await supabase.from('groups').select('*').eq('code', code).maybeSingle();
+    const { data: group, error: groupErr } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('code', code)
+      .is('deleted_at', null)
+      .maybeSingle();
     if (groupErr) throw new Error(groupErr.message);
     if (!group) throw new Error('Group not found');
     return { id: group.id, name: group.name, code: group.code, createdBy: group.created_by, settings: group.settings };
   }
 
   async joinGroup(code: string, userId: string): Promise<Group> {
-    const { data: group, error: groupErr } = await supabase.from('groups').select('*').eq('code', code).maybeSingle();
+    const { data: group, error: groupErr } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('code', code)
+      .is('deleted_at', null)
+      .maybeSingle();
     if (groupErr) throw new Error(groupErr.message);
     if (!group) throw new Error('Group not found');
 
     const { error: memberErr } = await supabase
       .from('members')
-      .upsert({ user_id: userId, group_id: group.id }, { onConflict: 'user_id, group_id' });
+      .upsert({ user_id: userId, group_id: group.id, deleted_at: null }, { onConflict: 'user_id, group_id' });
     if (memberErr) throw new Error(memberErr.message);
 
     return { id: group.id, name: group.name, code: group.code, createdBy: group.created_by, settings: group.settings };
   }
 
   async getUserGroups(userId: string): Promise<Group[]> {
-    const { data: members } = await supabase.from('members').select('group_id').eq('user_id', userId);
+    const { data: members } = await supabase
+      .from('members')
+      .select('group_id')
+      .eq('user_id', userId)
+      .is('deleted_at', null);
     if (!members || members.length === 0) return [];
 
     const groupIds = members.map(m => m.group_id);
-    const { data: groups } = await supabase.from('groups').select('*').in('id', groupIds);
+    const { data: groups } = await supabase.from('groups').select('*').in('id', groupIds).is('deleted_at', null);
     if (!groups) return [];
 
     return groups.map(g => ({ id: g.id, name: g.name, code: g.code, createdBy: g.created_by, settings: g.settings }));
@@ -133,13 +147,33 @@ class Backend {
 
   // Keeping this for backward compatibility or simple single-group logic if needed
   async getUserGroup(userId: string): Promise<Group | null> {
-    const { data: member } = await supabase.from('members').select('group_id').eq('user_id', userId).maybeSingle();
+    const { data: member } = await supabase
+      .from('members')
+      .select('group_id')
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .maybeSingle();
     if (!member) return null;
 
-    const { data: group } = await supabase.from('groups').select('*').eq('id', member.group_id).maybeSingle();
+    const { data: group } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('id', member.group_id)
+      .is('deleted_at', null)
+      .maybeSingle();
     return group
       ? { id: group.id, name: group.name, code: group.code, createdBy: group.created_by, settings: group.settings }
       : null;
+  }
+
+  async updateGroup(groupId: string, name: string, settings: GroupSettings): Promise<void> {
+    const { error } = await supabase.from('groups').update({ name, settings }).eq('id', groupId);
+    if (error) throw new Error(error.message);
+  }
+
+  async deleteGroup(groupId: string): Promise<void> {
+    const { error } = await supabase.from('groups').update({ deleted_at: new Date().toISOString() }).eq('id', groupId);
+    if (error) throw new Error(error.message);
   }
 
   async getHabits(userId: string, groupId: string): Promise<Habit[]> {
@@ -148,13 +182,18 @@ class Backend {
       .select('*')
       .eq('user_id', userId)
       .eq('group_id', groupId)
-      .neq('active', false);
+      .is('deleted_at', null);
     if (error) throw new Error(error.message);
     return data.map(h => ({ id: h.id, userId: h.user_id, groupId: h.group_id, category: h.category, name: h.name }));
   }
 
   async getAllHabits(userId: string, groupId: string): Promise<Habit[]> {
-    const { data, error } = await supabase.from('habits').select('*').eq('user_id', userId).eq('group_id', groupId);
+    const { data, error } = await supabase
+      .from('habits')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('group_id', groupId)
+      .is('deleted_at', null);
     if (error) throw new Error(error.message);
     return data.map(h => ({ id: h.id, userId: h.user_id, groupId: h.group_id, category: h.category, name: h.name }));
   }
@@ -166,10 +205,10 @@ class Backend {
   ): Promise<Habit[]> {
     await supabase
       .from('habits')
-      .update({ active: false })
+      .update({ deleted_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('group_id', groupId)
-      .neq('active', false);
+      .is('deleted_at', null);
 
     const { data, error } = await supabase
       .from('habits')
@@ -179,7 +218,7 @@ class Backend {
           group_id: groupId,
           category: h.category,
           name: h.name,
-          active: true,
+          deleted_at: null,
         }))
       )
       .select();
@@ -199,7 +238,8 @@ class Backend {
       .select('*')
       .eq('user_id', userId)
       .eq('group_id', groupId)
-      .eq('date', date);
+      .eq('date', date)
+      .is('deleted_at', null);
 
     if (error) throw new Error(error.message);
     return (data || []).map(d => ({
@@ -258,7 +298,10 @@ class Backend {
     }
 
     if (existingLog) {
-      const { error } = await supabase.from('logs').delete().eq('id', existingLog.id);
+      const { error } = await supabase
+        .from('logs')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', existingLog.id);
       if (error) throw new Error(error.message);
     } else {
       let publicUrl = undefined;
@@ -299,12 +342,16 @@ class Backend {
   async likeLog(userId: string, logId: string): Promise<void> {
     const { error } = await supabase
       .from('likes')
-      .upsert({ user_id: userId, log_id: logId }, { onConflict: 'user_id, log_id' });
+      .upsert({ user_id: userId, log_id: logId, deleted_at: null }, { onConflict: 'user_id, log_id' });
     if (error) throw new Error(error.message);
   }
 
   async unlikeLog(userId: string, logId: string): Promise<void> {
-    const { error } = await supabase.from('likes').delete().eq('user_id', userId).eq('log_id', logId);
+    const { error } = await supabase
+      .from('likes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('log_id', logId);
     if (error) throw new Error(error.message);
   }
 
@@ -318,6 +365,7 @@ class Backend {
       .from('comments')
       .select('*, users(username, avatar_url)')
       .eq('log_id', logId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: true });
 
     if (error) throw new Error(error.message);
@@ -335,7 +383,12 @@ class Backend {
   async getLeaderboard(
     groupId: string
   ): Promise<{ rank: number; userId: string; username: string; avatarUrl?: string; totalPoints: number }[]> {
-    const { data: members } = await supabase.from('members').select('user_id, total_points').eq('group_id', groupId);
+    const { data: members } = await supabase
+      .from('members')
+      .select('user_id, total_points, groups!inner(deleted_at)')
+      .eq('group_id', groupId)
+      .is('deleted_at', null)
+      .is('groups.deleted_at', null);
     if (!members || members.length === 0) return [];
 
     const userIds = members.map(m => m.user_id);
@@ -353,7 +406,7 @@ class Backend {
   }
 
   async getUserLogs(userId: string, groupId?: string): Promise<DailyLog[]> {
-    let query = supabase.from('logs').select('*').eq('user_id', userId);
+    let query = supabase.from('logs').select('*').eq('user_id', userId).is('deleted_at', null);
     if (groupId) query = query.eq('group_id', groupId);
     const { data: logs, error } = await query.order('date', { ascending: false });
 
@@ -370,7 +423,7 @@ class Backend {
   }
 
   async getProfileStats(userId: string): Promise<{ totalHabits: number; totalDaysLogged: number }> {
-    const { data: logs } = await supabase.from('logs').select('date').eq('user_id', userId);
+    const { data: logs } = await supabase.from('logs').select('date').eq('user_id', userId).is('deleted_at', null);
     if (!logs) return { totalHabits: 0, totalDaysLogged: 0 };
 
     const distinctDays = new Set(logs.map(l => l.date)).size;
@@ -378,7 +431,12 @@ class Backend {
   }
 
   async getFeed(userId: string): Promise<any[]> {
-    const { data: memberOf } = await supabase.from('members').select('group_id').eq('user_id', userId);
+    const { data: memberOf } = await supabase
+      .from('members')
+      .select('group_id, groups!inner(deleted_at)')
+      .eq('user_id', userId)
+      .is('groups.deleted_at', null);
+
     if (!memberOf || memberOf.length === 0) return [];
     const groupIds = memberOf.map(m => m.group_id);
 
@@ -390,11 +448,12 @@ class Backend {
         users(username, avatar_url),
         groups(name),
         habits(name, category),
-        likes(user_id),
-        comments(id, text, user_id, created_at, users(username))
+        likes(user_id, deleted_at),
+        comments(id, text, user_id, created_at, deleted_at, users(username))
       `
       )
       .in('group_id', groupIds)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -413,10 +472,11 @@ class Backend {
       caption: log.caption,
       date: log.date,
       timestamp: new Date(log.created_at).getTime(),
-      likesCount: log.likes?.length || 0,
-      commentsCount: log.comments?.length || 0,
-      isLiked: log.likes?.some((l: any) => l.user_id === userId),
+      likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
+      commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
+      isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
       commentsPreview: (log.comments || [])
+        .filter((c: any) => !c.deleted_at)
         .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         .slice(-2)
         .map((c: any) => ({
@@ -435,11 +495,12 @@ class Backend {
         users(username, avatar_url),
         groups(name),
         habits(name, category),
-        likes(user_id),
-        comments(id, text, user_id, created_at, users(username))
+        likes(user_id, deleted_at),
+        comments(id, text, user_id, created_at, deleted_at, users(username))
       `
       )
       .eq('id', logId)
+      .is('deleted_at', null)
       .single();
 
     if (error || !log) return null;
@@ -456,10 +517,11 @@ class Backend {
       imageUrl: log.image_url,
       date: log.date,
       timestamp: new Date(log.created_at).getTime(),
-      likesCount: log.likes?.length || 0,
-      commentsCount: log.comments?.length || 0,
-      isLiked: log.likes?.some((l: any) => l.user_id === userId),
+      likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
+      commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
+      isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
       commentsPreview: (log.comments || [])
+        .filter((c: any) => !c.deleted_at)
         .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         .slice(-2)
         .map((c: any) => ({

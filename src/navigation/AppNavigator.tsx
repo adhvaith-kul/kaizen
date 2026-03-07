@@ -22,6 +22,7 @@ import SquadsScreen from '../screens/SquadsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import UserDetailScreen from '../screens/UserDetailScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
+import EditGroupScreen from '../screens/EditGroupScreen';
 
 import { TabNavigationContext } from '../context/TabNavigationContext';
 
@@ -53,6 +54,7 @@ function SquadsStackScreen() {
       <SquadsStack.Screen name="Group" component={GroupScreen} />
       <SquadsStack.Screen name="UserDetail" component={UserDetailScreen} />
       <SquadsStack.Screen name="PostDetail" component={PostDetailScreen} />
+      <SquadsStack.Screen name="EditGroup" component={EditGroupScreen} />
     </SquadsStack.Navigator>
   );
 }

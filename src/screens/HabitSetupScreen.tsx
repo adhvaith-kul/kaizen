@@ -90,7 +90,7 @@ export default function HabitSetupScreen({ route, navigation }: any) {
         Alert.alert('W', 'You joined the squad and habits are locked in 🔒');
         navigation.reset({
           index: 2,
-          routes: [{ name: 'Squads' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
+          routes: [{ name: 'SquadsRoot' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
         });
       } else if (pendingGroupCreate) {
         const newGroup = await backend.createGroup(pendingGroupCreate.name, user.id, {
@@ -105,7 +105,7 @@ export default function HabitSetupScreen({ route, navigation }: any) {
         Alert.alert('W', 'Squad created and habits locked in 🔒');
         navigation.reset({
           index: 2,
-          routes: [{ name: 'Squads' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
+          routes: [{ name: 'SquadsRoot' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
         });
       } else if (group) {
         await backend.saveHabits(user.id, group.id, payload);
