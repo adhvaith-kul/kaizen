@@ -404,6 +404,49 @@ class Backend {
         })),
     }));
   }
+
+  async getPostDetail(userId: string, logId: string): Promise<any | null> {
+    const { data: log, error } = await supabase
+      .from('logs')
+      .select(
+        `
+        *,
+        users(username, avatar_url),
+        groups(name),
+        habits(name, category),
+        likes(user_id),
+        comments(id, text, user_id, created_at, users(username))
+      `
+      )
+      .eq('id', logId)
+      .single();
+
+    if (error || !log) return null;
+
+    return {
+      id: log.id,
+      userId: log.user_id,
+      username: log.users.username,
+      avatarUrl: log.users.avatar_url,
+      groupName: log.groups.name,
+      groupId: log.group_id,
+      habitName: log.habits.name,
+      category: log.habits.category,
+      imageUrl: log.image_url,
+      date: log.date,
+      timestamp: new Date(log.created_at).getTime(),
+      likesCount: log.likes?.length || 0,
+      commentsCount: log.comments?.length || 0,
+      isLiked: log.likes?.some((l: any) => l.user_id === userId),
+      commentsPreview: (log.comments || [])
+        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .slice(-2)
+        .map((c: any) => ({
+          username: c.users.username,
+          text: c.text,
+        })),
+    };
+  }
 }
 
 export const backend = new Backend();

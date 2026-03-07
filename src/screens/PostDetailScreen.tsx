@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
-  Image,
   RefreshControl,
   Modal,
   TextInput,
@@ -18,69 +17,64 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import Loader from '../components/Loader';
-import { useTabNavigation } from '../context/TabNavigationContext';
 import { HabitComment as Comment } from '../types';
 import PostCard from '../components/PostCard';
 
-export default function HomeScreen({ navigation }: any) {
+export default function PostDetailScreen({ route, navigation }: any) {
+  const { logId } = route.params;
   const { user } = useAuth();
-  const { setActiveTab } = useTabNavigation();
-  const [feed, setFeed] = useState<any[]>([]);
+  const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // Comments State
   const [commentsVisible, setCommentsVisible] = useState(false);
-  const [activePostId, setActivePostId] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [commenting, setCommenting] = useState(false);
 
-  const fetchFeed = useCallback(async () => {
+  const fetchPost = async () => {
     if (!user) return;
     try {
-      const data = await backend.getFeed(user.id);
-      setFeed(data);
+      const data = await backend.getPostDetail(user.id, logId);
+      setPost(data);
     } catch (e) {
-      console.error('Failed to fetch feed:', e);
+      console.error('Failed to fetch post detail:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user]);
+  };
 
   useEffect(() => {
-    fetchFeed();
-  }, [fetchFeed]);
+    fetchPost();
+  }, [logId]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchFeed();
+    fetchPost();
   };
 
-  const handleLike = async (post: any) => {
+  const handleLike = async (item: any) => {
     if (!user) return;
     try {
-      if (post.isLiked) {
-        await backend.unlikeLog(user.id, post.id);
+      if (item.isLiked) {
+        await backend.unlikeLog(user.id, item.id);
       } else {
-        await backend.likeLog(user.id, post.id);
+        await backend.likeLog(user.id, item.id);
       }
       // Optimistic Update
-      setFeed(prev =>
-        prev.map(p =>
-          p.id === post.id
-            ? { ...p, isLiked: !post.isLiked, likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1 }
-            : p
-        )
-      );
+      setPost((prev: any) => ({
+        ...prev,
+        isLiked: !prev.isLiked,
+        likesCount: prev.isLiked ? prev.likesCount - 1 : prev.likesCount + 1,
+      }));
     } catch (e) {
       console.error('Like failed:', e);
     }
   };
 
   const handleOpenComments = async (postId: string) => {
-    setActivePostId(postId);
     setCommentsVisible(true);
     try {
       const data = await backend.getComments(postId);
@@ -91,17 +85,17 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const postComment = async () => {
-    if (!user || !activePostId || !newComment.trim()) return;
+    if (!user || !post || !newComment.trim()) return;
     setCommenting(true);
     try {
-      await backend.addComment(user.id, activePostId, newComment);
+      await backend.addComment(user.id, post.id, newComment);
       setNewComment('');
       // Refresh comments
-      const data = await backend.getComments(activePostId);
+      const data = await backend.getComments(post.id);
       setComments(data);
-      // Update feed count & previews
-      const updatedFeed = await backend.getFeed(user.id);
-      setFeed(updatedFeed);
+      // Update post detail
+      const updatedPost = await backend.getPostDetail(user.id, post.id);
+      setPost(updatedPost);
     } catch (e) {
       console.error('Failed to post comment:', e);
     } finally {
@@ -113,40 +107,38 @@ export default function HomeScreen({ navigation }: any) {
     return <Loader fullScreen />;
   }
 
+  if (!post) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Post</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Post not found or has been deleted.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.logo}>KAIZEN</Text>
-        <TouchableOpacity onPress={() => navigation.setParams({ openProfile: Date.now() })}>
-          <Image
-            source={{
-              uri:
-                user?.avatarUrl ||
-                `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
-            }}
-            style={styles.headerAvatar}
-          />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Post</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
         style={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C2FF05" />}
         contentContainerStyle={{ paddingBottom: 100 }}>
-        {feed.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📭</Text>
-            <Text style={styles.emptyText}>Feed is empty.</Text>
-            <Text style={styles.emptySubtext}>Join a squad and start your grind to see updates here!</Text>
-            <TouchableOpacity style={styles.squadBtn} onPress={() => setActiveTab('SquadsTab')}>
-              <Text style={styles.squadBtnText}>FIND A SQUAD</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          feed.map(item => (
-            <PostCard key={item.id} post={item} onLike={handleLike} onOpenComments={handleOpenComments} />
-          ))
-        )}
+        <PostCard post={post} onLike={handleLike} onOpenComments={handleOpenComments} />
       </ScrollView>
 
       {/* Comments Modal */}
@@ -171,14 +163,7 @@ export default function HomeScreen({ navigation }: any) {
               contentContainerStyle={{ padding: 20 }}
               renderItem={({ item }) => (
                 <View style={styles.commentItem}>
-                  <Image
-                    source={{
-                      uri:
-                        item.avatarUrl ||
-                        `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=C2FF05&radius=50`,
-                    }}
-                    style={styles.commentAvatar}
-                  />
+                  <PostIcon item={item} />
                   <View style={styles.commentInfo}>
                     <Text style={styles.commentUser}>{item.username}</Text>
                     <Text style={styles.commentText}>{item.text}</Text>
@@ -215,50 +200,48 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
+function PostIcon({ item }: any) {
+  return (
+    <View style={styles.commentAvatarContainer}>
+      <Ionicons name="person-circle" size={32} color="#444" />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0E0E11' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#1A1A24',
   },
-  logo: {
-    fontSize: 24,
-    fontWeight: '900',
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
     color: '#FFF',
-    letterSpacing: 2,
-    fontStyle: 'italic',
   },
-  headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#C2FF05',
+  backBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   container: { flex: 1 },
-  emptyState: {
+  errorContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 100,
-    paddingHorizontal: 40,
+    alignItems: 'center',
+    padding: 20,
   },
-  emptyIcon: { fontSize: 60, marginBottom: 20 },
-  emptyText: { fontSize: 22, fontWeight: '800', color: '#FFF', marginBottom: 10 },
-  emptySubtext: { fontSize: 14, color: '#888', textAlign: 'center', marginBottom: 30, lineHeight: 20 },
-  squadBtn: {
-    backgroundColor: '#C2FF05',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 30,
+  errorText: {
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
   },
-  squadBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
-
   // Modal Styles
   modalBg: {
     flex: 1,
@@ -288,7 +271,14 @@ const styles = StyleSheet.create({
   modalTitle: { color: '#FFF', fontWeight: '800', fontSize: 16 },
   closeBtn: { position: 'absolute', right: 20, top: 15 },
   commentItem: { flexDirection: 'row', marginBottom: 20 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
+  commentAvatarContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   commentInfo: { flex: 1 },
   commentUser: { color: '#FFF', fontWeight: '700', fontSize: 13, marginBottom: 2 },
   commentText: { color: '#CCC', fontSize: 14, lineHeight: 18 },
