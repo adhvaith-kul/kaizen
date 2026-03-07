@@ -94,9 +94,8 @@ function MainTabs() {
         }).start();
         tabNavRef.current?.navigate(tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab');
       } else if (activeTab === tabName) {
-        // Reset stack on double tap
-        if (tabName === 'HomeTab') setFeedKey(k => k + 1);
-        else setSquadsKey(k => k + 1);
+        // Do nothing on double tap for now to avoid unnecessary remounts
+        return;
       } else {
         setActiveTab(tabName);
         tabNavRef.current?.navigate(tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab');
