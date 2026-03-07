@@ -1,25 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, SafeAreaView, TouchableOpacity, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function LeaderboardScreen({ navigation }: any) {
   const { group, user } = useAuth();
   const [board, setBoard] = useState<{ rank: number; userId: string; username: string; totalPoints: number }[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (group) {
       setLoading(true);
       const b = await backend.getLeaderboard(group.id);
       setBoard(b);
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
   }, [group]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const getRankEmoji = (rank: number) => {
     if (rank === 1) return '🥇';
@@ -38,8 +41,8 @@ export default function LeaderboardScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.homeBtn}>
-          <Text style={styles.homeBtnText}>← HOME</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.homeBtn}>
+          <Text style={styles.homeBtnText}>← BACK</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.container}>
