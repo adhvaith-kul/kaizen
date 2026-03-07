@@ -60,19 +60,41 @@ function SquadsStackScreen() {
 }
 
 function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
+  const getTabKey = (name: string) => {
+    return state.routes.find((r: any) => r.name === name)?.key;
+  };
+
+  const handlePress = (tabName: string, routeName: string) => {
+    const key = getTabKey(routeName);
+    if (key) {
+      navigation.emit({
+        type: 'tabPress',
+        target: key,
+        canPreventDefault: true,
+      });
+    }
+    onTabPress(tabName);
+  };
+
   return (
     <View style={styles.navBar}>
-      <TouchableOpacity style={styles.navItem} activeOpacity={0.8} onPress={() => onTabPress('HomeTab')}>
+      <TouchableOpacity style={styles.navItem} activeOpacity={0.8} onPress={() => handlePress('HomeTab', 'FeedTab')}>
         <Text style={{ fontSize: 20 }}>🔥</Text>
         <Text style={[styles.navLabel, { color: activeTab === 'HomeTab' ? '#C2FF05' : '#888' }]}>HOME</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.navItem} activeOpacity={0.8} onPress={() => onTabPress('SquadsTab')}>
+      <TouchableOpacity
+        style={styles.navItem}
+        activeOpacity={0.8}
+        onPress={() => handlePress('SquadsTab', 'SquadsTab')}>
         <Text style={{ fontSize: 20 }}>🤝</Text>
         <Text style={[styles.navLabel, { color: activeTab === 'SquadsTab' ? '#C2FF05' : '#888' }]}>SQUADS</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.navItem} activeOpacity={0.8} onPress={() => onTabPress('ProfileTab')}>
+      <TouchableOpacity
+        style={styles.navItem}
+        activeOpacity={0.8}
+        onPress={() => handlePress('ProfileTab', 'ProfileTab')}>
         <Text style={{ fontSize: 20 }}>👤</Text>
         <Text style={[styles.navLabel, { color: activeTab === 'ProfileTab' ? '#C2FF05' : '#888' }]}>PROFILE</Text>
       </TouchableOpacity>
@@ -82,56 +104,40 @@ function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
 
 function MainTabs() {
   const [activeTab, setActiveTab] = React.useState('HomeTab');
-  const profileAnim = React.useRef(new Animated.Value(0)).current;
   const tabNavRef = React.useRef<any>(null);
 
   const handleTabPress = (tabName: string) => {
-    if (tabName === 'ProfileTab') {
-      setActiveTab('ProfileTab');
-      Animated.timing(profileAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      if (activeTab === 'ProfileTab') {
-        setActiveTab(tabName);
-        Animated.timing(profileAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
-        tabNavRef.current?.navigate(tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab');
-      } else if (activeTab === tabName) {
-        // Double tap: Go back to the root of the active stack natively
-        const state = tabNavRef.current?.getState();
-        if (state) {
-          const targetTabRoute = state.routes.find(
-            (r: any) => r.name === (tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab')
-          );
-          // Only dispatch popToTop if there is a nested state and we are deep in the stack
-          // Target the INNER stack navigator's key (route.state.key), not the tab route's key
-          if (targetTabRoute?.state && targetTabRoute.state.index > 0) {
-            tabNavRef.current?.dispatch({
-              ...StackActions.popToTop(),
-              target: targetTabRoute.state.key,
-            });
-          }
+    if (activeTab === tabName) {
+      // Double tap: Go back to the root of the active stack natively
+      const state = tabNavRef.current?.getState();
+      if (state) {
+        let routeName = tabName;
+        if (tabName === 'HomeTab') routeName = 'FeedTab';
+
+        const targetTabRoute = state.routes.find((r: any) => r.name === routeName);
+        if (targetTabRoute?.state && targetTabRoute.state.index > 0) {
+          tabNavRef.current?.dispatch({
+            ...StackActions.popToTop(),
+            target: targetTabRoute.state.key,
+          });
         }
-      } else {
-        // Switch to tab, preserving previous state/stack depth
-        setActiveTab(tabName);
-        tabNavRef.current?.navigate(tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab');
       }
+    } else {
+      // Switch to tab, preserving previous state/stack depth
+      setActiveTab(tabName);
+      let routeName = tabName;
+      if (tabName === 'HomeTab') routeName = 'FeedTab';
+      tabNavRef.current?.navigate(routeName);
     }
   };
 
   const resetStack = (tabName: string) => {
     const state = tabNavRef.current?.getState();
     if (state) {
-      const targetTabRoute = state.routes.find(
-        (r: any) => r.name === (tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab')
-      );
+      let routeName = tabName;
+      if (tabName === 'HomeTab') routeName = 'FeedTab';
+
+      const targetTabRoute = state.routes.find((r: any) => r.name === routeName);
       if (targetTabRoute?.state && targetTabRoute.state.index > 0) {
         tabNavRef.current?.dispatch({
           ...StackActions.popToTop(),
@@ -140,11 +146,6 @@ function MainTabs() {
       }
     }
   };
-
-  const profileTranslateY = profileAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [SCREEN_HEIGHT, 0],
-  });
 
   return (
     <TabNavigationContext.Provider value={{ activeTab, setActiveTab: handleTabPress, resetStack }}>
@@ -157,18 +158,8 @@ function MainTabs() {
           screenOptions={{ headerShown: false }}>
           <Tab.Screen name="FeedTab" component={FeedStackScreen} />
           <Tab.Screen name="SquadsTab" component={SquadsStackScreen} />
+          <Tab.Screen name="ProfileTab" component={ProfileScreen} />
         </Tab.Navigator>
-
-        {/* PROFILE OVERLAY */}
-        <Animated.View
-          style={{
-            ...StyleSheet.absoluteFillObject,
-            transform: [{ translateY: profileTranslateY }],
-            zIndex: 10,
-            backgroundColor: '#0E0E11',
-          }}>
-          <ProfileScreen visible={activeTab === 'ProfileTab'} />
-        </Animated.View>
       </View>
     </TabNavigationContext.Provider>
   );

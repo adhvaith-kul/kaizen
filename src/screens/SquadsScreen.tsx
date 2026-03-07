@@ -9,12 +9,17 @@ import {
   Image,
   RefreshControl,
 } from 'react-native';
+import { useScrollToTop } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useTabNavigation } from '../context/TabNavigationContext';
 import { backend } from '../services/backend';
 
 export default function SquadsScreen({ navigation }: any) {
   const { user, groups, setActiveGroup, refreshGroup } = useAuth();
+  const { setActiveTab } = useTabNavigation();
   const [loading, setLoading] = useState(false);
+  const scrollRef = React.useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
 
   const handleRefresh = async () => {
     setLoading(true);
@@ -30,15 +35,27 @@ export default function SquadsScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
+        ref={scrollRef}
         style={styles.container}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor="#C2FF05" />}
-        contentContainerStyle={{ paddingBottom: 100 }}>
+        alwaysBounceVertical={true}
+        refreshControl={
+          <RefreshControl
+            style={{ zIndex: 10 }}
+            refreshing={loading}
+            onRefresh={handleRefresh}
+            tintColor="#C2FF05"
+            colors={['#C2FF05']}
+            progressBackgroundColor="#1A1A24"
+            progressViewOffset={20}
+          />
+        }
+        contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}>
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Good to see you,</Text>
             <Text style={styles.title}>{user?.username}</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.setParams({ openProfile: Date.now() })}>
+          <TouchableOpacity onPress={() => setActiveTab('ProfileTab')}>
             <Image
               source={{
                 uri:
