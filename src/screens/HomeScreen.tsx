@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useScrollToTop } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
@@ -25,6 +26,9 @@ import PostCard from '../components/PostCard';
 export default function HomeScreen({ navigation }: any) {
   const { user } = useAuth();
   const { setActiveTab } = useTabNavigation();
+  const scrollRef = React.useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
+
   const [feed, setFeed] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -117,7 +121,7 @@ export default function HomeScreen({ navigation }: any) {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Text style={styles.logo}>KAIZEN</Text>
-        <TouchableOpacity onPress={() => navigation.setParams({ openProfile: Date.now() })}>
+        <TouchableOpacity onPress={() => setActiveTab('ProfileTab')}>
           <Image
             source={{
               uri:
@@ -130,9 +134,21 @@ export default function HomeScreen({ navigation }: any) {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C2FF05" />}
-        contentContainerStyle={{ paddingBottom: 100 }}>
+        alwaysBounceVertical={true}
+        refreshControl={
+          <RefreshControl
+            style={{ zIndex: 10 }}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#C2FF05"
+            colors={['#C2FF05']}
+            progressBackgroundColor="#1A1A24"
+            progressViewOffset={20}
+          />
+        }
+        contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}>
         {feed.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>📭</Text>

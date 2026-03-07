@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
@@ -23,7 +24,7 @@ const SQUAD_COLORS = ['#C2FF05', '#FF3366', '#00E5FF', '#B388FF', '#FF9100'];
 const dicebearUri = (seed: string) =>
   `https://api.dicebear.com/9.x/micah/png?seed=${seed}&backgroundColor=C2FF05&radius=50`;
 
-export default function ProfileScreen({ navigation, visible }: any) {
+export default function ProfileScreen({ navigation }: any) {
   const { user, groups, refreshUser, logout } = useAuth();
   const [stats, setStats] = useState({ totalHabits: 0, totalDaysLogged: 0 });
   const [graphData, setGraphData] = useState<any[]>([]);
@@ -46,34 +47,36 @@ export default function ProfileScreen({ navigation, visible }: any) {
     return dates;
   };
 
-  useEffect(() => {
-    if (!visible || !user) return;
-    let isActive = true;
-    setLoading(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (!user) return;
+      let isActive = true;
+      setLoading(true);
 
-    Promise.all([backend.getProfileStats(user.id), backend.getUserLogs(user.id)]).then(([s, logs]) => {
-      if (!isActive) return;
-      setStats(s);
+      Promise.all([backend.getProfileStats(user.id), backend.getUserLogs(user.id)]).then(([s, logs]) => {
+        if (!isActive) return;
+        setStats(s);
 
-      const dates = generateLast7Days();
-      logs.forEach(log => {
-        const day = dates.find(d => d.date === log.date);
-        if (day) {
-          day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + 1;
-          day.total += 1;
-        }
+        const dates = generateLast7Days();
+        logs.forEach(log => {
+          const day = dates.find(d => d.date === log.date);
+          if (day) {
+            day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + 1;
+            day.total += 1;
+          }
+        });
+
+        const highestTotal = Math.max(...dates.map(d => d.total), 1);
+        setMaxTotal(highestTotal);
+        setGraphData(dates);
+        setLoading(false);
       });
 
-      const highestTotal = Math.max(...dates.map(d => d.total), 1);
-      setMaxTotal(highestTotal);
-      setGraphData(dates);
-      setLoading(false);
-    });
-
-    return () => {
-      isActive = false;
-    };
-  }, [visible, user]);
+      return () => {
+        isActive = false;
+      };
+    }, [user])
+  );
 
   // ── Avatar picking ────────────────────────────────────────────────────────────
 
