@@ -80,10 +80,10 @@ export default function LeaderboardScreen({ navigation }: any) {
 
       {/* Squad header — always visible */}
       <View style={styles.header}>
-        <Text style={styles.title}>
-          Hall of <Text style={{ color: '#FF3366' }}>Fame</Text>
+        <Text style={styles.title}>{group?.name}</Text>
+        <Text style={styles.subtitle}>
+          HALL OF <Text style={{ color: '#FF3366' }}>FAME</Text>
         </Text>
-        <Text style={styles.subtitle}>{group?.name} SQUAD</Text>
       </View>
 
       {/* Content area: gate OR leaderboard */}
