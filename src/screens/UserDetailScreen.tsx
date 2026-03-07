@@ -12,9 +12,11 @@ import {
 } from 'react-native';
 import { backend } from '../services/backend';
 import { DailyLog, Habit } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export default function UserDetailScreen({ route, navigation }: any) {
   const { userId, username } = route.params;
+  const { group } = useAuth();
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,17 +24,19 @@ export default function UserDetailScreen({ route, navigation }: any) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([backend.getUserLogs(userId), backend.getAllHabits(userId)])
-      .then(([logsData, habitsData]) => {
-        setLogs(logsData || []);
-        setHabits(habitsData || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, [userId]);
+    if (group?.id) {
+      Promise.all([backend.getUserLogs(userId, group.id), backend.getAllHabits(userId, group.id)])
+        .then(([logsData, habitsData]) => {
+          setLogs(logsData || []);
+          setHabits(habitsData || []);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoading(false);
+        });
+    }
+  }, [userId, group]);
 
   const toggleExpand = (logId: string) => {
     setExpandedLogId(prev => (prev === logId ? null : logId));
@@ -40,13 +44,26 @@ export default function UserDetailScreen({ route, navigation }: any) {
 
   const renderLog = ({ item }: { item: DailyLog }) => {
     const isExpanded = expandedLogId === item.id;
+    let displayPoints = 0;
+    if (group?.settings?.pointsPerCategory) {
+      item.completedHabitIds.forEach(id => {
+        const h = habits.find(habit => habit.id === id);
+        if (h && group.settings?.pointsPerCategory?.[h.category]) {
+          displayPoints += Number(group.settings.pointsPerCategory[h.category]);
+        } else {
+          displayPoints += 10;
+        }
+      });
+    } else {
+      displayPoints = item.completedHabitIds.length * 10;
+    }
 
     return (
       <TouchableOpacity style={styles.logCard} activeOpacity={0.8} onPress={() => toggleExpand(item.id)}>
         <View style={styles.logHeader}>
           <Text style={styles.logDate}>{item.date}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={styles.logPoints}>{item.totalPoints} pts</Text>
+            <Text style={styles.logPoints}>{displayPoints} pts</Text>
             <Text style={styles.expandIcon}>{isExpanded ? '▲' : '▼'}</Text>
           </View>
         </View>

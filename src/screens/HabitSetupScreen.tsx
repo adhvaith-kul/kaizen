@@ -32,8 +32,8 @@ export default function HabitSetupScreen({ navigation }: any) {
   const [habits, setHabits] = useState<Record<Category, string>>({});
 
   useEffect(() => {
-    if (user) {
-      backend.getHabits(user.id).then(userHabits => {
+    if (user && group) {
+      backend.getHabits(user.id, group.id).then(userHabits => {
         const hRec: Record<Category, string> = {};
         activeCategories.forEach((c: string) => {
           hRec[c] = '';
@@ -49,7 +49,7 @@ export default function HabitSetupScreen({ navigation }: any) {
   }, [user, group]);
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user || !group) return;
     const payload = activeCategories
       .map((c: string) => ({ category: c, name: habits[c] || '' }))
       .filter(h => h.name.trim() !== '');
@@ -59,7 +59,7 @@ export default function HabitSetupScreen({ navigation }: any) {
     }
 
     try {
-      await backend.saveHabits(user.id, payload);
+      await backend.saveHabits(user.id, group.id, payload);
       Alert.alert('W', 'Habits locked in 🔒');
       if (navigation.canGoBack()) {
         navigation.goBack();

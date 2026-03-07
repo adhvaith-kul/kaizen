@@ -23,22 +23,24 @@ export default function DashboardScreen({ navigation }: any) {
   const [log, setLog] = useState<DailyLog | null>(null);
   const [loading, setLoading] = useState(false);
   const [rank, setRank] = useState<number | string>('-');
+  const [vibeScore, setVibeScore] = useState<number>(0);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    if (!user || !group) return;
     setLoading(true);
     try {
-      const uHabits = await backend.getHabits(user.id);
+      const uHabits = await backend.getHabits(user.id, group.id);
       setHabits(uHabits);
 
-      const uLog = await backend.getTodayLog(user.id);
+      const uLog = await backend.getTodayLog(user.id, group.id);
       setLog(uLog);
 
       if (group) {
         const board = await backend.getLeaderboard(group.id);
-        const myRank = board.find(b => b.username === user.username)?.rank || '-';
-        setRank(myRank);
+        const me = board.find(b => b.username === user.username);
+        setRank(me?.rank || '-');
+        setVibeScore(me?.totalPoints || 0);
       }
     } catch (e) {}
     setLoading(false);
@@ -51,7 +53,7 @@ export default function DashboardScreen({ navigation }: any) {
   );
 
   const toggle = async (habitId: string) => {
-    if (!user) return;
+    if (!user || !group) return;
     const isCompleted = log?.completedHabitIds.includes(habitId);
     const habit = habits.find(h => h.id === habitId);
     const points =
@@ -74,13 +76,14 @@ export default function DashboardScreen({ navigation }: any) {
       if (result.canceled) return;
 
       setLoading(true);
-      const newLog = await backend.toggleHabitCompletion(user.id, habitId, result.assets[0].uri, points);
+      const newLog = await backend.toggleHabitCompletion(user.id, group.id, habitId, result.assets[0].uri);
       setLog(newLog);
 
       if (group) {
         backend.getLeaderboard(group.id).then(board => {
-          const myRank = board.find(b => b.username === user?.username)?.rank || '-';
-          setRank(myRank);
+          const me = board.find(b => b.username === user?.username);
+          setRank(me?.rank || '-');
+          setVibeScore(me?.totalPoints || 0);
         });
       }
       setLoading(false);
@@ -95,12 +98,13 @@ export default function DashboardScreen({ navigation }: any) {
             style: 'destructive',
             onPress: async () => {
               setLoading(true);
-              const newLog = await backend.toggleHabitCompletion(user.id, habitId, undefined, points);
+              const newLog = await backend.toggleHabitCompletion(user.id, group.id, habitId, undefined);
               setLog(newLog);
               if (group) {
                 backend.getLeaderboard(group.id).then(board => {
-                  const myRank = board.find(b => b.username === user?.username)?.rank || '-';
-                  setRank(myRank);
+                  const me = board.find(b => b.username === user?.username);
+                  setRank(me?.rank || '-');
+                  setVibeScore(me?.totalPoints || 0);
                 });
               }
               setLoading(false);
@@ -140,7 +144,7 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.statsContainer}>
           <View style={[styles.statBox, { backgroundColor: '#B388FF' }]}>
             <Text style={styles.statLabel}>VIBE SCORE</Text>
-            <Text style={styles.statValue}>{log?.totalPoints || 0}</Text>
+            <Text style={styles.statValue}>{vibeScore}</Text>
           </View>
           <TouchableOpacity
             style={[styles.statBox, { backgroundColor: '#1A1A24', borderWidth: 1, borderColor: '#333' }]}

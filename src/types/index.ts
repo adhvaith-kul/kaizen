@@ -29,6 +29,7 @@ export interface GroupMember {
 export interface Habit {
   id: string;
   userId: string;
+  groupId: string; // which group this habit belongs to
   category: Category;
   name: string;
 }
@@ -36,8 +37,8 @@ export interface Habit {
 export interface DailyLog {
   id: string;
   userId: string;
+  groupId: string; // which group's log this is
   date: string; // YYYY-MM-DD
   completedHabitIds: string[];
   habitImageUrls: Record<string, string>;
-  totalPoints: number;
 }

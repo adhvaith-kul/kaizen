@@ -5,7 +5,7 @@ import { backend } from '../services/backend';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, logout, groups } = useAuth();
-  const [stats, setStats] = useState({ totalPoints: 0, totalDaysLogged: 0 });
+  const [stats, setStats] = useState({ totalHabits: 0, totalDaysLogged: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,8 +41,8 @@ export default function ProfileScreen({ navigation }: any) {
           ) : (
             <View style={styles.statsGrid}>
               <View style={styles.statBox}>
-                <Text style={styles.statValue}>{stats.totalPoints}</Text>
-                <Text style={styles.statLabel}>TOTAL POINTS</Text>
+                <Text style={styles.statValue}>{stats.totalHabits}</Text>
+                <Text style={styles.statLabel}>HABITS DONE</Text>
               </View>
               <View style={styles.statBox}>
                 <Text style={styles.statValue}>{stats.totalDaysLogged}</Text>
