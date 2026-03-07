@@ -20,9 +20,16 @@ const Tab = createBottomTabNavigator();
 
 import UserDetailScreen from '../screens/UserDetailScreen';
 
-function HomeStackScreen() {
+function HomeStackScreen({ onNestedChange }: { onNestedChange?: (nested: boolean) => void }) {
   return (
-    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+    <HomeStack.Navigator
+      screenOptions={{ headerShown: false }}
+      screenListeners={{
+        state: (e: any) => {
+          const routes = e.data?.state?.routes ?? [];
+          onNestedChange?.(routes.length > 1);
+        },
+      }}>
       <HomeStack.Screen name="Home" component={HomeScreen} />
       <HomeStack.Screen name="Group" component={GroupScreen} />
       <HomeStack.Screen name="Dashboard" component={DashboardScreen} />
@@ -40,6 +47,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 function MainTabs() {
   const [activeTab, setActiveTab] = React.useState('HomeTab');
   const [homeKey, setHomeKey] = React.useState(0);
+  const [homeIsNested, setHomeIsNested] = React.useState(false);
   const profileAnim = React.useRef(new Animated.Value(0)).current;
   const homeAnim = React.useRef(new Animated.Value(0)).current;
   const navigation = useNavigation<any>();
@@ -72,7 +80,9 @@ function MainTabs() {
           useNativeDriver: true,
         }).start();
       } else {
-        // ALREADY on HomeTab (e.g. nested in Leaderboard)
+        // ALREADY on HomeTab — only animate if we're nested inside a group screen
+        if (!homeIsNested) return; // already at root HomeScreen, do nothing
+
         // Slide the entire stack DOWN to reveal a clone of Home underneath.
         Animated.timing(homeAnim, {
           toValue: SCREEN_HEIGHT,
@@ -86,6 +96,7 @@ function MainTabs() {
           });
           // Unmount and remount HomeStack cleanly
           setHomeKey(k => k + 1);
+          setHomeIsNested(false);
 
           // Wait briefly for React to actually commit the new Home tree, avoiding the visual flash
           setTimeout(() => {
@@ -110,7 +121,7 @@ function MainTabs() {
 
       {/* Foreground Home Stack - Slides down when escaping a group via tab bar */}
       <Animated.View style={{ flex: 1, zIndex: 1, transform: [{ translateY: homeAnim }] }}>
-        <HomeStackScreen key={homeKey} />
+        <HomeStackScreen key={homeKey} onNestedChange={setHomeIsNested} />
       </Animated.View>
 
       {/* Profile View - Slides vertically over everything */}
