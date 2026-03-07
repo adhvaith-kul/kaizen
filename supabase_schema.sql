@@ -100,6 +100,11 @@ insert into storage.buckets (id, name, public)
   values ('habit-images', 'habit-images', true)
   on conflict (id) do nothing;
 
+drop policy if exists "Public Access" on storage.objects;
+drop policy if exists "Public Insert" on storage.objects;
+drop policy if exists "Public Update" on storage.objects;
+drop policy if exists "Public Delete" on storage.objects;
+
 create policy "Public Access" on storage.objects for select using ( bucket_id = 'habit-images' );
 create policy "Public Insert" on storage.objects for insert with check ( bucket_id = 'habit-images' );
 create policy "Public Update" on storage.objects for update using ( bucket_id = 'habit-images' );
