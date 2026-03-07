@@ -1,14 +1,13 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image, ScrollView } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
-import { useFocusEffect } from '@react-navigation/native';
 import { DailyLog } from '../types';
 import Loader from '../components/Loader';
 
 const SQUAD_COLORS = ['#C2FF05', '#FF3366', '#00E5FF', '#B388FF', '#FF9100'];
 
-export default function ProfileScreen({ navigation }: any) {
+export default function ProfileScreen({ navigation, visible }: any) {
   const { user, logout, groups } = useAuth();
   const [stats, setStats] = useState({ totalHabits: 0, totalDaysLogged: 0 });
   const [graphData, setGraphData] = useState<any[]>([]);
@@ -28,45 +27,38 @@ export default function ProfileScreen({ navigation }: any) {
     return dates;
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
+  // Re-fetch every time the Profile tab becomes visible
+  useEffect(() => {
+    if (!visible || !user) return;
+    let isActive = true;
+    setLoading(true);
 
-      if (user) {
-        Promise.all([
-          backend.getProfileStats(user.id),
-          backend.getUserLogs(user.id), // Fetch logs across all groups
-        ]).then(([s, logs]) => {
-          if (isActive) {
-            setStats(s);
+    Promise.all([backend.getProfileStats(user.id), backend.getUserLogs(user.id)]).then(([s, logs]) => {
+      if (!isActive) return;
+      setStats(s);
 
-            // Process Graph Data
-            const dates = generateLast7Days();
-            logs.forEach(log => {
-              const day = dates.find(d => d.date === log.date);
-              if (day && log.completedHabitIds) {
-                const count = log.completedHabitIds.length;
-                if (count > 0) {
-                  day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + count;
-                  day.total += count;
-                }
-              }
-            });
-
-            const highestTotal = Math.max(...dates.map(d => d.total), 1);
-            setMaxTotal(highestTotal);
-            setGraphData(dates);
-
-            setLoading(false);
+      const dates = generateLast7Days();
+      logs.forEach(log => {
+        const day = dates.find(d => d.date === log.date);
+        if (day && log.completedHabitIds) {
+          const count = log.completedHabitIds.length;
+          if (count > 0) {
+            day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + count;
+            day.total += count;
           }
-        });
-      }
+        }
+      });
 
-      return () => {
-        isActive = false;
-      };
-    }, [user])
-  );
+      const highestTotal = Math.max(...dates.map(d => d.total), 1);
+      setMaxTotal(highestTotal);
+      setGraphData(dates);
+      setLoading(false);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [visible, user]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

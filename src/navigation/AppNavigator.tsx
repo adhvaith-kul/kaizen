@@ -121,7 +121,7 @@ function MainTabs() {
           zIndex: 10,
           backgroundColor: '#0E0E11',
         }}>
-        <ProfileScreen />
+        <ProfileScreen visible={activeTab === 'ProfileTab'} />
       </Animated.View>
 
       {/* Custom Bottom NavBar */}
