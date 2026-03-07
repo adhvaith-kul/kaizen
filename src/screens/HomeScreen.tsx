@@ -9,11 +9,18 @@ import {
   Image,
   RefreshControl,
   Dimensions,
+  Modal,
+  TextInput,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import Loader from '../components/Loader';
 import { useTabNavigation } from '../context/TabNavigationContext';
+import { HabitComment as Comment } from '../types';
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
 
@@ -23,6 +30,13 @@ export default function HomeScreen({ navigation }: any) {
   const [feed, setFeed] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Comments State
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [commenting, setCommenting] = useState(false);
 
   const fetchFeed = useCallback(async () => {
     if (!user) return;
@@ -44,6 +58,57 @@ export default function HomeScreen({ navigation }: any) {
   const onRefresh = () => {
     setRefreshing(true);
     fetchFeed();
+  };
+
+  const handleLike = async (post: any) => {
+    if (!user) return;
+    try {
+      if (post.isLiked) {
+        await backend.unlikeLog(user.id, post.id);
+      } else {
+        await backend.likeLog(user.id, post.id);
+      }
+      // Optimistic Update
+      setFeed(prev =>
+        prev.map(p =>
+          p.id === post.id
+            ? { ...p, isLiked: !post.isLiked, likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1 }
+            : p
+        )
+      );
+    } catch (e) {
+      console.error('Like failed:', e);
+    }
+  };
+
+  const handleOpenComments = async (postId: string) => {
+    setActivePostId(postId);
+    setCommentsVisible(true);
+    try {
+      const data = await backend.getComments(postId);
+      setComments(data);
+    } catch (e) {
+      console.error('Failed to fetch comments:', e);
+    }
+  };
+
+  const postComment = async () => {
+    if (!user || !activePostId || !newComment.trim()) return;
+    setCommenting(true);
+    try {
+      await backend.addComment(user.id, activePostId, newComment);
+      setNewComment('');
+      // Refresh comments
+      const data = await backend.getComments(activePostId);
+      setComments(data);
+      // Update feed count & previews
+      const updatedFeed = await backend.getFeed(user.id);
+      setFeed(updatedFeed);
+    } catch (e) {
+      console.error('Failed to post comment:', e);
+    } finally {
+      setCommenting(false);
+    }
   };
 
   if (loading && !refreshing) {
@@ -82,7 +147,6 @@ export default function HomeScreen({ navigation }: any) {
         ) : (
           feed.map(item => (
             <View key={item.id} style={styles.post}>
-              {/* Post Header */}
               <View style={styles.postHeader}>
                 <Image
                   source={{
@@ -97,11 +161,10 @@ export default function HomeScreen({ navigation }: any) {
                   <Text style={styles.postSquadName}>{item.groupName}</Text>
                 </View>
                 <Text style={styles.postDate}>
-                  {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
                 </Text>
               </View>
 
-              {/* Post Image */}
               <View style={styles.imageContainer}>
                 {item.imageUrl ? (
                   <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" />
@@ -113,20 +176,114 @@ export default function HomeScreen({ navigation }: any) {
                 )}
               </View>
 
-              {/* Post Footer */}
+              {/* Social Bar */}
+              <View style={styles.socialBar}>
+                <TouchableOpacity style={styles.socialBtn} onPress={() => handleLike(item)}>
+                  <Ionicons
+                    name={item.isLiked ? 'heart' : 'heart-outline'}
+                    size={26}
+                    color={item.isLiked ? '#FF3366' : '#FFF'}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.socialBtn} onPress={() => handleOpenComments(item.id)}>
+                  <Ionicons name="chatbubble-outline" size={24} color="#FFF" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.likesText}>{item.likesCount} likes</Text>
+
               <View style={styles.postFooter}>
                 <View style={styles.habitBadge}>
                   <Text style={styles.habitBadgeText}>{item.category.toUpperCase()}</Text>
                 </View>
+
                 <Text style={styles.postContent}>
                   <Text style={styles.postUsernameSmall}>{item.username}</Text> crushed their{' '}
                   <Text style={styles.habitName}>{item.habitName}</Text> goal! 🔥
                 </Text>
+
+                {/* Comments Preview */}
+                <View style={styles.commentsPreview}>
+                  {item.commentsCount > 2 && (
+                    <TouchableOpacity onPress={() => handleOpenComments(item.id)}>
+                      <Text style={styles.viewAllComments}>View all {item.commentsCount} comments</Text>
+                    </TouchableOpacity>
+                  )}
+                  {item.commentsPreview?.map((c: any, idx: number) => (
+                    <Text key={idx} style={styles.commentPreviewText}>
+                      <Text style={styles.commentUsername}>{c.username}</Text> {c.text}
+                    </Text>
+                  ))}
+                </View>
               </View>
             </View>
           ))
         )}
       </ScrollView>
+
+      {/* Comments Modal */}
+      <Modal
+        visible={commentsVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCommentsVisible(false)}>
+        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setCommentsVisible(false)}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalTitle}>Comments</Text>
+              <TouchableOpacity onPress={() => setCommentsVisible(false)} style={styles.closeBtn}>
+                <Ionicons name="close" size={24} color="#C2FF05" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={comments}
+              keyExtractor={c => c.id}
+              contentContainerStyle={{ padding: 20 }}
+              renderItem={({ item }) => (
+                <View style={styles.commentItem}>
+                  <Image
+                    source={{
+                      uri:
+                        item.avatarUrl ||
+                        `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=C2FF05&radius=50`,
+                    }}
+                    style={styles.commentAvatar}
+                  />
+                  <View style={styles.commentInfo}>
+                    <Text style={styles.commentUser}>{item.username}</Text>
+                    <Text style={styles.commentText}>{item.text}</Text>
+                  </View>
+                </View>
+              )}
+              ListEmptyComponent={() => (
+                <Text style={{ color: '#666', textAlign: 'center', marginTop: 50 }}>
+                  No comments yet. Be the first!
+                </Text>
+              )}
+            />
+
+            <View style={styles.commentInputRow}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Add a comment..."
+                placeholderTextColor="#666"
+                value={newComment}
+                onChangeText={setNewComment}
+                multiline
+              />
+              <TouchableOpacity
+                onPress={postComment}
+                disabled={commenting || !newComment.trim()}
+                style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.5 }]}>
+                <Text style={styles.postCommentBtnText}>{commenting ? '...' : 'Post'}</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -188,26 +345,27 @@ const styles = StyleSheet.create({
   },
   squadBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
   post: {
-    marginBottom: 20,
+    marginBottom: 40,
     backgroundColor: '#0E0E11',
   },
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
   },
   postAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    marginRight: 12,
     borderWidth: 1,
     borderColor: '#333',
   },
   postHeaderInfo: { flex: 1 },
-  postUsername: { color: '#FFF', fontWeight: '700', fontSize: 14 },
-  postSquadName: { color: '#888', fontSize: 11, fontWeight: '500' },
-  postDate: { color: '#666', fontSize: 11, fontWeight: '500' },
+  postUsername: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+  postSquadName: { color: '#888', fontSize: 12, fontWeight: '500', marginTop: 1 },
+  postDate: { color: '#666', fontSize: 12, fontWeight: '500' },
   imageContainer: {
     width: WINDOW_WIDTH,
     height: WINDOW_WIDTH,
@@ -225,18 +383,36 @@ const styles = StyleSheet.create({
   },
   placeholderEmoji: { fontSize: 80, marginBottom: 10, opacity: 0.5 },
   placeholderText: { color: '#444', fontSize: 14, fontWeight: '700', letterSpacing: 1 },
+  socialBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 15,
+    paddingTop: 12,
+    paddingBottom: 8,
+    gap: 18,
+  },
+  socialBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  likesText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 10,
+    paddingHorizontal: 15,
+  },
   postFooter: {
-    padding: 12,
+    paddingHorizontal: 15,
   },
   habitBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#1A1A24',
+    backgroundColor: '#1A1C12',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
-    marginBottom: 8,
+    borderRadius: 6,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#C2FF0522',
   },
   habitBadgeText: {
     color: '#C2FF05',
@@ -248,7 +424,82 @@ const styles = StyleSheet.create({
     color: '#EEE',
     fontSize: 14,
     lineHeight: 20,
+    marginBottom: 8,
   },
   postUsernameSmall: { fontWeight: '800', color: '#FFF' },
   habitName: { fontWeight: '800', color: '#C2FF05' },
+
+  // Comments Preview
+  commentsPreview: {
+    marginTop: 4,
+  },
+  viewAllComments: {
+    color: '#888',
+    fontSize: 14,
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  commentPreviewText: {
+    color: '#EEE',
+    fontSize: 14,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  commentUsername: {
+    fontWeight: '800',
+    color: '#FFF',
+  },
+
+  // Modal Styles
+  modalBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#121217',
+    height: '75%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A35',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#333',
+    borderRadius: 2,
+    marginBottom: 8,
+  },
+  modalTitle: { color: '#FFF', fontWeight: '800', fontSize: 16 },
+  closeBtn: { position: 'absolute', right: 20, top: 15 },
+  commentItem: { flexDirection: 'row', marginBottom: 20 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
+  commentInfo: { flex: 1 },
+  commentUser: { color: '#FFF', fontWeight: '700', fontSize: 13, marginBottom: 2 },
+  commentText: { color: '#CCC', fontSize: 14, lineHeight: 18 },
+  commentInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A35',
+    backgroundColor: '#1A1A24',
+  },
+  commentInput: {
+    flex: 1,
+    color: '#FFF',
+    fontSize: 14,
+    maxHeight: 100,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  postCommentBtn: { marginLeft: 10, paddingHorizontal: 15 },
+  postCommentBtnText: { color: '#C2FF05', fontWeight: '900', fontSize: 14 },
 });

@@ -38,8 +38,29 @@ export interface Habit {
 export interface DailyLog {
   id: string;
   userId: string;
-  groupId: string; // which group's log this is
+  groupId: string;
+  habitId: string;
   date: string; // YYYY-MM-DD
-  completedHabitIds: string[];
-  habitImageUrls: Record<string, string>;
+  imageUrl?: string;
+  createdAt: string;
+  likesCount?: number;
+  commentsCount?: number;
+  isLiked?: boolean;
+}
+
+export interface Like {
+  id: string;
+  userId: string;
+  logId: string;
+  createdAt: string;
+}
+
+export interface HabitComment {
+  id: string;
+  userId: string;
+  username?: string;
+  avatarUrl?: string;
+  logId: string;
+  text: string;
+  createdAt: string;
 }

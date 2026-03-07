@@ -52,24 +52,21 @@ export default function UserDetailScreen({ route, navigation }: any) {
     setExpandedLogId(prev => (prev === logId ? null : logId));
   };
 
-  const renderLog = ({ item }: { item: DailyLog }) => {
-    const isExpanded = expandedLogId === item.id;
+  const renderLog = ({ item }: { item: { date: string; logs: DailyLog[] } }) => {
+    const isExpanded = expandedLogId === item.date;
     let displayPoints = 0;
-    if (group?.settings?.pointsPerCategory) {
-      item.completedHabitIds.forEach(id => {
-        const h = habits.find(habit => habit.id === id);
-        if (h && group.settings?.pointsPerCategory?.[h.category]) {
-          displayPoints += Number(group.settings.pointsPerCategory[h.category]);
-        } else {
-          displayPoints += 10;
-        }
-      });
-    } else {
-      displayPoints = item.completedHabitIds.length * 10;
-    }
+
+    item.logs.forEach(log => {
+      const h = habits.find(habit => habit.id === log.habitId);
+      if (h && group?.settings?.pointsPerCategory?.[h.category]) {
+        displayPoints += Number(group.settings.pointsPerCategory[h.category]);
+      } else {
+        displayPoints += 10;
+      }
+    });
 
     return (
-      <TouchableOpacity style={styles.logCard} activeOpacity={0.8} onPress={() => toggleExpand(item.id)}>
+      <TouchableOpacity style={styles.logCard} activeOpacity={0.8} onPress={() => toggleExpand(item.date)}>
         <View style={styles.logHeader}>
           <Text style={styles.logDate}>{item.date}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -78,18 +75,18 @@ export default function UserDetailScreen({ route, navigation }: any) {
           </View>
         </View>
         <Text style={styles.logDetails}>
-          {item.completedHabitIds.length} habit{item.completedHabitIds.length === 1 ? '' : 's'} completed
+          {item.logs.length} habit{item.logs.length === 1 ? '' : 's'} completed
         </Text>
 
         {isExpanded && (
           <View style={styles.expandedContent}>
-            {item.completedHabitIds.length > 0 ? (
-              item.completedHabitIds.map(id => {
-                const h = habits.find(habit => habit.id === id);
-                const imageUrl = item.habitImageUrls ? item.habitImageUrls[id] : null;
+            {item.logs.length > 0 ? (
+              item.logs.map(log => {
+                const h = habits.find(habit => habit.id === log.habitId);
+                const imageUrl = log.imageUrl;
 
                 return (
-                  <View key={id} style={styles.completedHabitRow}>
+                  <View key={log.id} style={styles.completedHabitRow}>
                     {imageUrl && (
                       <TouchableOpacity onPress={() => setSelectedImage(imageUrl)}>
                         <Image source={{ uri: imageUrl }} style={styles.habitImage} />
@@ -117,6 +114,17 @@ export default function UserDetailScreen({ route, navigation }: any) {
       </TouchableOpacity>
     );
   };
+
+  const groupedLogs = React.useMemo(() => {
+    const groups: { [key: string]: DailyLog[] } = {};
+    logs.forEach(log => {
+      if (!groups[log.date]) groups[log.date] = [];
+      groups[log.date].push(log);
+    });
+    return Object.entries(groups)
+      .map(([date, items]) => ({ date, logs: items }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [logs]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -150,8 +158,8 @@ export default function UserDetailScreen({ route, navigation }: any) {
           </View>
         ) : (
           <FlatList
-            data={logs}
-            keyExtractor={item => item.id}
+            data={groupedLogs}
+            keyExtractor={item => item.date}
             renderItem={renderLog}
             contentContainerStyle={{ paddingBottom: 100 }}
           />

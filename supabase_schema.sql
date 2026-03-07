@@ -78,19 +78,41 @@ create table public.habits (
 );
 
 -- ─────────────────────────────────────────────────────────────
--- DAILY LOGS
--- One row per user per group per day.
--- completed_habit_ids: array of habit UUIDs ticked that day.
--- habit_image_urls: { habitId: publicStorageUrl } proof photos.
+-- HABIT COMPLETION LOGS
+-- Refactored: One row per single habit completion.
+-- This allows per-habit proof images, likes, and comments.
 -- ─────────────────────────────────────────────────────────────
 create table public.logs (
-  id                  uuid primary key default gen_random_uuid(),
-  user_id             uuid references public.users(id),
-  group_id            uuid references public.groups(id) on delete cascade,
-  date                date not null,
-  completed_habit_ids text[] not null default '{}',
-  habit_image_urls    jsonb  not null default '{}'::jsonb,
-  unique (user_id, group_id, date)
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid references public.users(id),
+  group_id   uuid references public.groups(id) on delete cascade,
+  habit_id   uuid references public.habits(id) on delete cascade,
+  date       date not null,
+  image_url  text,
+  created_at timestamp with time zone default now(),
+  unique (user_id, group_id, habit_id, date)
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- LIKES
+-- ─────────────────────────────────────────────────────────────
+create table public.likes (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid references public.users(id),
+  log_id     uuid references public.logs(id) on delete cascade,
+  created_at timestamp with time zone default now(),
+  unique (user_id, log_id)
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- COMMENTS
+-- ─────────────────────────────────────────────────────────────
+create table public.comments (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid references public.users(id),
+  log_id     uuid references public.logs(id) on delete cascade,
+  text       text not null,
+  created_at timestamp with time zone default now()
 );
 
 -- ─────────────────────────────────────────────────────────────
