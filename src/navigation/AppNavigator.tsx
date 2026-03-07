@@ -1,5 +1,11 @@
 import React from 'react';
-import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  DefaultTheme,
+  useNavigation,
+  StackActions,
+  CommonActions,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
@@ -74,8 +80,6 @@ function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
 
 function MainTabs() {
   const [activeTab, setActiveTab] = React.useState('HomeTab');
-  const [feedKey, setFeedKey] = React.useState(0);
-  const [squadsKey, setSquadsKey] = React.useState(0);
   const profileAnim = React.useRef(new Animated.Value(0)).current;
   const tabNavRef = React.useRef<any>(null);
 
@@ -97,9 +101,23 @@ function MainTabs() {
         }).start();
         tabNavRef.current?.navigate(tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab');
       } else if (activeTab === tabName) {
-        // Do nothing on double tap for now to avoid unnecessary remounts
-        return;
+        // Double tap: Go back to the root of the active stack natively
+        const state = tabNavRef.current?.getState();
+        if (state) {
+          const targetTabRoute = state.routes.find(
+            (r: any) => r.name === (tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab')
+          );
+          // Only dispatch popToTop if there is a nested state and we are deep in the stack
+          // Target the INNER stack navigator's key (route.state.key), not the tab route's key
+          if (targetTabRoute?.state && targetTabRoute.state.index > 0) {
+            tabNavRef.current?.dispatch({
+              ...StackActions.popToTop(),
+              target: targetTabRoute.state.key,
+            });
+          }
+        }
       } else {
+        // Switch to tab, preserving previous state/stack depth
         setActiveTab(tabName);
         tabNavRef.current?.navigate(tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab');
       }
@@ -107,8 +125,18 @@ function MainTabs() {
   };
 
   const resetStack = (tabName: string) => {
-    if (tabName === 'HomeTab') setFeedKey(k => k + 1);
-    else if (tabName === 'SquadsTab') setSquadsKey(k => k + 1);
+    const state = tabNavRef.current?.getState();
+    if (state) {
+      const targetTabRoute = state.routes.find(
+        (r: any) => r.name === (tabName === 'HomeTab' ? 'FeedTab' : 'SquadsTab')
+      );
+      if (targetTabRoute?.state && targetTabRoute.state.index > 0) {
+        tabNavRef.current?.dispatch({
+          ...StackActions.popToTop(),
+          target: targetTabRoute.state.key,
+        });
+      }
+    }
   };
 
   const profileTranslateY = profileAnim.interpolate({
@@ -125,8 +153,8 @@ function MainTabs() {
             return <CustomTabBar {...props} activeTab={activeTab} onTabPress={handleTabPress} />;
           }}
           screenOptions={{ headerShown: false }}>
-          <Tab.Screen name="FeedTab">{() => <FeedStackScreen key={feedKey} />}</Tab.Screen>
-          <Tab.Screen name="SquadsTab">{() => <SquadsStackScreen key={squadsKey} />}</Tab.Screen>
+          <Tab.Screen name="FeedTab" component={FeedStackScreen} />
+          <Tab.Screen name="SquadsTab" component={SquadsStackScreen} />
         </Tab.Navigator>
 
         {/* PROFILE OVERLAY */}
