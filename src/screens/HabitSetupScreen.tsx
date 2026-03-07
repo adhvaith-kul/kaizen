@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { Category } from '../types';
+import Loader from '../components/Loader';
 
 const CATEGORIES: Category[] = ['Health', 'Finance', 'Work', 'Upskill', 'Social'];
 
@@ -42,6 +43,7 @@ export default function HabitSetupScreen({ route, navigation }: any) {
   }
 
   const [habits, setHabits] = useState<Record<Category, string>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (user && group && !isPending) {
@@ -61,6 +63,7 @@ export default function HabitSetupScreen({ route, navigation }: any) {
   }, [user, group, isPending]);
 
   const handleSave = async () => {
+    setSaving(true);
     if (!user) return;
     if (!isPending && !group) return;
 
@@ -113,11 +116,14 @@ export default function HabitSetupScreen({ route, navigation }: any) {
       }
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {saving && <Loader fullScreen />}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← BACK</Text>

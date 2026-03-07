@@ -1,19 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  SafeAreaView,
-  ActivityIndicator,
-  TouchableOpacity,
-  Image,
-  Modal,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Image, Modal } from 'react-native';
 import { backend } from '../services/backend';
 import { DailyLog, Habit } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
+import Loader from '../components/Loader';
 
 export default function UserDetailScreen({ route, navigation }: any) {
   const { userId, username } = route.params;
@@ -131,7 +122,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
         </View>
 
         {loading ? (
-          <ActivityIndicator color="#C2FF05" size="large" style={{ marginTop: 50 }} />
+          <Loader style={{ marginTop: 50 }} />
         ) : logs.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No logs yet 🍃</Text>

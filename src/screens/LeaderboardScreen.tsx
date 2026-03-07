@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, FlatList, RefreshControl, SafeAreaView, Touchab
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
 import { useFocusEffect } from '@react-navigation/native';
+import Loader from '../components/Loader';
 
 export default function LeaderboardScreen({ navigation }: any) {
   const { group, user } = useAuth();
   const [board, setBoard] = useState<{ rank: number; userId: string; username: string; totalPoints: number }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const fetchData = useCallback(async () => {
     if (group) {
@@ -15,6 +17,7 @@ export default function LeaderboardScreen({ navigation }: any) {
       const b = await backend.getLeaderboard(group.id);
       setBoard(b);
       setLoading(false);
+      setInitialLoad(false);
     }
   }, [group]);
 
@@ -40,6 +43,7 @@ export default function LeaderboardScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {initialLoad && <Loader fullScreen />}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.homeBtn}>
           <Text style={styles.homeBtnText}>← HOME</Text>
