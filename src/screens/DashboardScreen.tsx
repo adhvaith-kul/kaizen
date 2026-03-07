@@ -10,6 +10,9 @@ import {
   Alert,
   Image,
   Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
@@ -41,6 +44,9 @@ export default function DashboardScreen({ navigation }: any) {
   const [rank, setRank] = useState<number | string>('-');
   const [vibeScore, setVibeScore] = useState<number>(0);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [pendingHabitId, setPendingHabitId] = useState<string | null>(null);
+  const [captionText, setCaptionText] = useState('');
 
   const fetchData = useCallback(async () => {
     if (!user || !group) return;
@@ -92,18 +98,10 @@ export default function DashboardScreen({ navigation }: any) {
 
       if (result.canceled) return;
 
-      setLoading(true);
-      const newLogs = await backend.toggleHabitCompletion(user.id, group.id, habitId, result.assets[0].uri);
-      setLogs(newLogs);
-
-      if (group) {
-        backend.getLeaderboard(group.id).then(board => {
-          const me = board.find(b => b.userId === user?.id);
-          setRank(me?.rank || '-');
-          setVibeScore(me?.totalPoints || 0);
-        });
-      }
-      setLoading(false);
+      // Show caption modal instead of submitting immediately
+      setPendingImage(result.assets[0].uri);
+      setPendingHabitId(habitId);
+      setCaptionText('');
     } else {
       Alert.alert(
         'Undo Completion?',
@@ -130,6 +128,30 @@ export default function DashboardScreen({ navigation }: any) {
         ]
       );
     }
+  };
+
+  const submitWithCaption = async () => {
+    if (!user || !group || !pendingHabitId || !pendingImage) return;
+    setPendingImage(null);
+    setPendingHabitId(null);
+    setLoading(true);
+    const newLogs = await backend.toggleHabitCompletion(
+      user.id,
+      group.id,
+      pendingHabitId,
+      pendingImage,
+      captionText.trim() || undefined
+    );
+    setLogs(newLogs);
+    setCaptionText('');
+    if (group) {
+      backend.getLeaderboard(group.id).then(board => {
+        const me = board.find(b => b.userId === user?.id);
+        setRank(me?.rank || '-');
+        setVibeScore(me?.totalPoints || 0);
+      });
+    }
+    setLoading(false);
   };
 
   return (
@@ -250,6 +272,62 @@ export default function DashboardScreen({ navigation }: any) {
           )}
         </TouchableOpacity>
       </Modal>
+
+      {/* Caption Modal */}
+      <Modal
+        visible={!!pendingImage}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setPendingImage(null);
+          setPendingHabitId(null);
+        }}>
+        <KeyboardAvoidingView
+          style={styles.captionModalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.captionModalContent}>
+            <View style={styles.captionModalHeader}>
+              <Text style={styles.captionModalTitle}>Add a Caption</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setPendingImage(null);
+                  setPendingHabitId(null);
+                }}>
+                <Text style={styles.captionModalCancel}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {pendingImage && (
+              <Image source={{ uri: pendingImage }} style={styles.captionPreviewImage} resizeMode="cover" />
+            )}
+
+            <TextInput
+              style={styles.captionInput}
+              placeholder="Write a caption... (optional)"
+              placeholderTextColor="#666"
+              value={captionText}
+              onChangeText={setCaptionText}
+              multiline
+              maxLength={200}
+              autoFocus
+            />
+
+            <View style={styles.captionActions}>
+              <TouchableOpacity
+                style={styles.captionSkipBtn}
+                onPress={() => {
+                  setCaptionText('');
+                  submitWithCaption();
+                }}>
+                <Text style={styles.captionSkipText}>Skip</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.captionPostBtn} onPress={submitWithCaption}>
+                <Text style={styles.captionPostText}>Post 🔥</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -364,5 +442,84 @@ const styles = StyleSheet.create({
   fullScreenImage: {
     width: '100%',
     height: '100%',
+  },
+  captionModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'flex-end',
+  },
+  captionModalContent: {
+    backgroundColor: '#1A1A24',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  captionModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  captionModalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  captionModalCancel: {
+    color: '#888',
+    fontSize: 22,
+    fontWeight: '700',
+    padding: 4,
+  },
+  captionPreviewImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 16,
+    marginBottom: 16,
+    backgroundColor: '#0E0E11',
+  },
+  captionInput: {
+    backgroundColor: '#0E0E11',
+    borderRadius: 14,
+    padding: 16,
+    color: '#FFF',
+    fontSize: 16,
+    minHeight: 60,
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: '#2A2A35',
+    marginBottom: 16,
+    textAlignVertical: 'top',
+  },
+  captionActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  captionSkipBtn: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: '#2A2A35',
+    alignItems: 'center',
+  },
+  captionSkipText: {
+    color: '#888',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  captionPostBtn: {
+    flex: 2,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: '#C2FF05',
+    alignItems: 'center',
+  },
+  captionPostText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 15,
+    letterSpacing: 0.5,
   },
 });

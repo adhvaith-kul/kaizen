@@ -89,6 +89,7 @@ create table public.logs (
   habit_id   uuid references public.habits(id) on delete cascade,
   date       date not null,
   image_url  text,
+  caption    text,
   created_at timestamp with time zone default now(),
   unique (user_id, group_id, habit_id, date)
 );
