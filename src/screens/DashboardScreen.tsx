@@ -148,7 +148,7 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
           <TouchableOpacity
             style={[styles.statBox, { backgroundColor: '#1A1A24', borderWidth: 1, borderColor: '#333' }]}
-            onPress={() => navigation.navigate('Leaderboard')}>
+            onPress={() => navigation.goBack()}>
             <Text style={[styles.statLabel, { color: '#888' }]}>SQUAD RANK</Text>
             <Text style={[styles.statValue, { color: '#FFF' }]}>#{rank}</Text>
           </TouchableOpacity>
@@ -199,7 +199,7 @@ export default function DashboardScreen({ navigation }: any) {
         </View>
 
         <View style={styles.actionSection}>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate('Leaderboard')}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.primaryBtnText}>VIEW LEADERBOARD 🏆</Text>
           </TouchableOpacity>
         </View>

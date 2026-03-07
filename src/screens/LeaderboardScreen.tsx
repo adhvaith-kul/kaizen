@@ -42,7 +42,7 @@ export default function LeaderboardScreen({ navigation }: any) {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.homeBtn}>
-          <Text style={styles.homeBtnText}>← BACK</Text>
+          <Text style={styles.homeBtnText}>← HOME</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.container}>
