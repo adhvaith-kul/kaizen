@@ -58,12 +58,9 @@ export default function ProfileScreen({ navigation, visible }: any) {
       const dates = generateLast7Days();
       logs.forEach(log => {
         const day = dates.find(d => d.date === log.date);
-        if (day && log.completedHabitIds) {
-          const count = log.completedHabitIds.length;
-          if (count > 0) {
-            day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + count;
-            day.total += count;
-          }
+        if (day) {
+          day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + 1;
+          day.total += 1;
         }
       });
 

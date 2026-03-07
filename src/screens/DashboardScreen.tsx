@@ -34,7 +34,7 @@ function getMissingRequirements(habits: Habit[], group: any): string[] {
 export default function DashboardScreen({ navigation }: any) {
   const { user, group, logout } = useAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
-  const [log, setLog] = useState<DailyLog | null>(null);
+  const [logs, setLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [missingHabits, setMissingHabits] = useState<string[]>([]);
@@ -50,11 +50,11 @@ export default function DashboardScreen({ navigation }: any) {
       setHabits(uHabits);
       setMissingHabits(getMissingRequirements(uHabits, group));
 
-      const uLog = await backend.getTodayLog(user.id, group.id);
-      setLog(uLog);
+      const uLogs = await backend.getTodayLog(user.id, group.id);
+      setLogs(uLogs);
 
       const board = await backend.getLeaderboard(group.id);
-      const me = board.find(b => b.username === user.username);
+      const me = board.find(b => b.userId === user.id);
       setRank(me?.rank || '-');
       setVibeScore(me?.totalPoints || 0);
     } catch (e) {}
@@ -70,7 +70,8 @@ export default function DashboardScreen({ navigation }: any) {
 
   const toggle = async (habitId: string) => {
     if (!user || !group) return;
-    const isCompleted = log?.completedHabitIds.includes(habitId);
+    const existingLog = logs.find(l => l.habitId === habitId);
+    const isCompleted = !!existingLog;
     const habit = habits.find(h => h.id === habitId);
     const points =
       habit && group?.settings?.pointsPerCategory?.[habit.category]
@@ -92,12 +93,12 @@ export default function DashboardScreen({ navigation }: any) {
       if (result.canceled) return;
 
       setLoading(true);
-      const newLog = await backend.toggleHabitCompletion(user.id, group.id, habitId, result.assets[0].uri);
-      setLog(newLog);
+      const newLogs = await backend.toggleHabitCompletion(user.id, group.id, habitId, result.assets[0].uri);
+      setLogs(newLogs);
 
       if (group) {
         backend.getLeaderboard(group.id).then(board => {
-          const me = board.find(b => b.username === user?.username);
+          const me = board.find(b => b.userId === user?.id);
           setRank(me?.rank || '-');
           setVibeScore(me?.totalPoints || 0);
         });
@@ -114,11 +115,11 @@ export default function DashboardScreen({ navigation }: any) {
             style: 'destructive',
             onPress: async () => {
               setLoading(true);
-              const newLog = await backend.toggleHabitCompletion(user.id, group.id, habitId, undefined);
-              setLog(newLog);
+              const newLogs = await backend.toggleHabitCompletion(user.id, group.id, habitId, undefined);
+              setLogs(newLogs);
               if (group) {
                 backend.getLeaderboard(group.id).then(board => {
-                  const me = board.find(b => b.username === user?.username);
+                  const me = board.find(b => b.userId === user?.id);
                   setRank(me?.rank || '-');
                   setVibeScore(me?.totalPoints || 0);
                 });
@@ -190,8 +191,8 @@ export default function DashboardScreen({ navigation }: any) {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
               TODAY'S MISSION{' '}
-              {log?.date
-                ? `(${new Date(log.date).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })})`
+              {logs.length > 0
+                ? `(${new Date(logs[0].date).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })})`
                 : ''}
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('HabitSetup')}>
@@ -206,8 +207,9 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
           ) : (
             habits.map(h => {
-              const isCompleted = log?.completedHabitIds.includes(h.id);
-              const imageUrl = log?.habitImageUrls?.[h.id];
+              const habitLog = logs.find(l => l.habitId === h.id);
+              const isCompleted = !!habitLog;
+              const imageUrl = habitLog?.imageUrl;
               return (
                 <View key={h.id} style={[styles.habitCard, isCompleted && styles.habitCardDone]}>
                   <View style={styles.habitInfo}>

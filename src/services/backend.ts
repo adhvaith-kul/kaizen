@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { User, Group, Habit, DailyLog, Category, GroupSettings } from '../types';
+import { User, Group, Habit, DailyLog, Category, GroupSettings, HabitComment as Comment } from '../types';
 import { CategoryMeta, DEFAULT_CATEGORIES } from '../config/categories';
 
 const generateCode = () => Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -174,50 +174,29 @@ class Backend {
     return data.map(h => ({ id: h.id, userId: h.user_id, groupId: h.group_id, category: h.category, name: h.name }));
   }
 
-  async getTodayLog(userId: string, groupId: string): Promise<DailyLog> {
+  async getTodayLog(userId: string, groupId: string): Promise<DailyLog[]> {
     const d = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     const istDateObj = new Date(d.getTime() + istOffset);
     const date = istDateObj.toISOString().split('T')[0];
+
     const { data, error } = await supabase
       .from('logs')
       .select('*')
       .eq('user_id', userId)
       .eq('group_id', groupId)
-      .eq('date', date)
-      .maybeSingle();
+      .eq('date', date);
 
-    if (data) {
-      return {
-        id: data.id,
-        userId: data.user_id,
-        groupId: data.group_id,
-        date: data.date,
-        completedHabitIds: data.completed_habit_ids,
-        habitImageUrls: data.habit_image_urls || {},
-      };
-    }
-
-    const { data: newLog, error: newErr } = await supabase
-      .from('logs')
-      .insert({
-        user_id: userId,
-        group_id: groupId,
-        date,
-        completed_habit_ids: [],
-      })
-      .select()
-      .single();
-
-    if (newErr) throw new Error(newErr.message);
-    return {
-      id: newLog.id,
-      userId: newLog.user_id,
-      groupId: newLog.group_id,
-      date: newLog.date,
-      completedHabitIds: newLog.completed_habit_ids,
-      habitImageUrls: newLog.habit_image_urls || {},
-    };
+    if (error) throw new Error(error.message);
+    return (data || []).map(d => ({
+      id: d.id,
+      userId: d.user_id,
+      groupId: d.group_id,
+      habitId: d.habit_id,
+      date: d.date,
+      imageUrl: d.image_url,
+      createdAt: d.created_at,
+    }));
   }
 
   async uploadHabitImage(uri: string, userId: string, habitId: string, date: string): Promise<string> {
@@ -228,7 +207,7 @@ class Backend {
     const blob = await response.blob();
     const arrayBuffer = await new Response(blob).arrayBuffer();
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('habit-images')
       .upload(filename, arrayBuffer, { upsert: true, contentType: blob.type || 'image/jpeg' });
 
@@ -238,13 +217,21 @@ class Backend {
     return publicUrlData.publicUrl;
   }
 
-  async toggleHabitCompletion(userId: string, groupId: string, habitId: string, imageUri?: string): Promise<DailyLog> {
-    const log = await this.getTodayLog(userId, groupId);
-    const isCompleted = log.completedHabitIds ? log.completedHabitIds.includes(habitId) : false;
+  async toggleHabitCompletion(
+    userId: string,
+    groupId: string,
+    habitId: string,
+    imageUri?: string
+  ): Promise<DailyLog[]> {
+    const todayLogs = await this.getTodayLog(userId, groupId);
+    const existingLog = todayLogs.find(l => l.habitId === habitId);
 
-    let nextCompleted = log.completedHabitIds || [];
-    let nextImageUrls = { ...(log.habitImageUrls || {}) };
+    const d = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDateObj = new Date(d.getTime() + istOffset);
+    const date = istDateObj.toISOString().split('T')[0];
 
+    // Points logic
     const { data: groupData } = await supabase.from('groups').select('*').eq('id', groupId).single();
     const { data: habitObj } = await supabase.from('habits').select('*').eq('id', habitId).single();
 
@@ -252,64 +239,77 @@ class Backend {
     if (groupData && habitObj) {
       const ptsPerCat = groupData.settings?.pointsPerCategory || {};
       const pts = Number(ptsPerCat[habitObj.category] || 10);
-      pointsDelta = isCompleted ? -pts : pts;
+      pointsDelta = existingLog ? -pts : pts;
     }
 
-    if (isCompleted) {
-      nextCompleted = nextCompleted.filter(id => id !== habitId);
-      delete nextImageUrls[habitId];
+    if (existingLog) {
+      const { error } = await supabase.from('logs').delete().eq('id', existingLog.id);
+      if (error) throw new Error(error.message);
     } else {
-      nextCompleted = [...nextCompleted, habitId];
+      let publicUrl = undefined;
       if (imageUri) {
-        try {
-          const publicUrl = await this.uploadHabitImage(imageUri, userId, habitId, log.date);
-          nextImageUrls[habitId] = publicUrl;
-        } catch (e) {
-          console.error('Failed to upload image:', e);
-        }
+        publicUrl = await this.uploadHabitImage(imageUri, userId, habitId, date);
       }
+      const { error } = await supabase
+        .from('logs')
+        .insert({ user_id: userId, group_id: groupId, habit_id: habitId, date, image_url: publicUrl });
+      if (error) throw new Error(error.message);
     }
 
-    const { data, error } = await supabase
-      .from('logs')
-      .update({
-        completed_habit_ids: nextCompleted,
-        habit_image_urls: nextImageUrls,
-      })
-      .eq('id', log.id)
-      .select()
-      .single();
-
-    if (error) throw new Error(error.message);
-
+    // Update global points
     if (pointsDelta !== 0) {
-      const { data: memberData, error: selectErr } = await supabase
+      const { data: memberData } = await supabase
         .from('members')
         .select('total_points')
         .eq('user_id', userId)
         .eq('group_id', groupId)
         .single();
 
-      if (selectErr) console.error('Error fetching member points:', selectErr.message);
-
       const currentPoints = memberData?.total_points || 0;
-      const { error: updateErr } = await supabase
+      await supabase
         .from('members')
         .update({ total_points: currentPoints + pointsDelta })
         .eq('user_id', userId)
         .eq('group_id', groupId);
-
-      if (updateErr) console.error('Error updating member points:', updateErr.message);
     }
 
-    return {
-      id: data.id,
-      userId: data.user_id,
-      groupId: data.group_id,
-      date: data.date,
-      completedHabitIds: data.completed_habit_ids,
-      habitImageUrls: data.habit_image_urls || {},
-    };
+    return this.getTodayLog(userId, groupId);
+  }
+
+  async likeLog(userId: string, logId: string): Promise<void> {
+    const { error } = await supabase
+      .from('likes')
+      .upsert({ user_id: userId, log_id: logId }, { onConflict: 'user_id, log_id' });
+    if (error) throw new Error(error.message);
+  }
+
+  async unlikeLog(userId: string, logId: string): Promise<void> {
+    const { error } = await supabase.from('likes').delete().eq('user_id', userId).eq('log_id', logId);
+    if (error) throw new Error(error.message);
+  }
+
+  async addComment(userId: string, logId: string, text: string): Promise<void> {
+    const { error } = await supabase.from('comments').insert({ user_id: userId, log_id: logId, text });
+    if (error) throw new Error(error.message);
+  }
+
+  async getComments(logId: string): Promise<Comment[]> {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*, users(username, avatar_url)')
+      .eq('log_id', logId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw new Error(error.message);
+    return (data || []).map(c => ({
+      id: c.id,
+      userId: c.user_id,
+      username: c.users.username,
+      avatarUrl: c.users.avatar_url,
+      logId: c.log_id,
+      text: c.text,
+      createdAt: c.created_at,
+    }));
   }
 
   async getLeaderboard(
@@ -329,96 +329,80 @@ class Backend {
     }));
 
     board.sort((a, b) => b.totalPoints - a.totalPoints);
-
-    return board.map((item, index) => ({
-      rank: index + 1,
-      userId: item.userId,
-      username: item.username,
-      avatarUrl: item.avatarUrl,
-      totalPoints: item.totalPoints,
-    }));
+    return board.map((item, index) => ({ rank: index + 1, ...item }));
   }
 
   async getUserLogs(userId: string, groupId?: string): Promise<DailyLog[]> {
     let query = supabase.from('logs').select('*').eq('user_id', userId);
-    if (groupId) {
-      query = query.eq('group_id', groupId);
-    }
+    if (groupId) query = query.eq('group_id', groupId);
     const { data: logs, error } = await query.order('date', { ascending: false });
 
     if (error) throw new Error(error.message);
-    return logs.map((log: any) => ({
-      id: log.id,
-      userId: log.user_id,
-      groupId: log.group_id,
-      date: log.date,
-      completedHabitIds: log.completed_habit_ids,
-      habitImageUrls: log.habit_image_urls || {},
+    return (logs || []).map(d => ({
+      id: d.id,
+      userId: d.user_id,
+      groupId: d.group_id,
+      habitId: d.habit_id,
+      date: d.date,
+      imageUrl: d.image_url,
+      createdAt: d.created_at,
     }));
   }
 
   async getProfileStats(userId: string): Promise<{ totalHabits: number; totalDaysLogged: number }> {
-    const { data: logs } = await supabase.from('logs').select('completed_habit_ids').eq('user_id', userId);
+    const { data: logs } = await supabase.from('logs').select('date').eq('user_id', userId);
     if (!logs) return { totalHabits: 0, totalDaysLogged: 0 };
 
-    let totalHabits = 0;
-    for (const log of logs) {
-      if (log.completed_habit_ids) {
-        totalHabits += log.completed_habit_ids.length;
-      }
-    }
-    return { totalHabits, totalDaysLogged: logs.length };
+    const distinctDays = new Set(logs.map(l => l.date)).size;
+    return { totalHabits: logs.length, totalDaysLogged: distinctDays };
   }
 
   async getFeed(userId: string): Promise<any[]> {
-    // 1. Get the groups the user is in
-    const { data: members } = await supabase.from('members').select('group_id').eq('user_id', userId);
-    if (!members || members.length === 0) return [];
-    const groupIds = members.map(m => m.group_id);
+    const { data: memberOf } = await supabase.from('members').select('group_id').eq('user_id', userId);
+    if (!memberOf || memberOf.length === 0) return [];
+    const groupIds = memberOf.map(m => m.group_id);
 
-    // 2. Get recent logs for these groups (limit to last 50 for performance)
-    const { data: logs, error: logErr } = await supabase
+    const { data: logs, error } = await supabase
       .from('logs')
-      .select('*, users(username, avatar_url), groups(name)')
+      .select(
+        `
+        *,
+        users(username, avatar_url),
+        groups(name),
+        habits(name, category),
+        likes(user_id),
+        comments(id, text, user_id, created_at, users(username))
+      `
+      )
       .in('group_id', groupIds)
-      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(50);
 
-    if (logErr || !logs) return [];
+    if (error || !logs) return [];
 
-    // 3. Get all habits for these groups to map the IDs to names
-    const { data: habits } = await supabase.from('habits').select('id, name, category').in('group_id', groupIds);
-
-    const habitMap = Object.fromEntries(habits?.map(h => [h.id, h]) || []);
-
-    // 4. Flatten the logs into individual completion "posts"
-    const feed: any[] = [];
-    logs.forEach(log => {
-      if (!log.completed_habit_ids || log.completed_habit_ids.length === 0) return;
-
-      log.completed_habit_ids.forEach((habitId: string) => {
-        const habit = habitMap[habitId];
-        if (!habit) return;
-
-        feed.push({
-          id: `${log.id}-${habitId}`,
-          userId: log.user_id,
-          username: log.users.username,
-          avatarUrl: log.users.avatar_url,
-          groupName: log.groups.name,
-          groupId: log.group_id,
-          habitName: habit.name,
-          category: habit.category,
-          imageUrl: log.habit_image_urls?.[habitId],
-          date: log.date,
-          // We don't have exact time, so we use log.id as a tie-breaker for deterministic sort
-          timestamp: new Date(log.date).getTime(),
-        });
-      });
-    });
-
-    // Sort by date (already mostly sorted by DB query, but flattening might need a re-sort if we had time)
-    return feed.sort((a, b) => b.timestamp - a.timestamp);
+    return logs.map(log => ({
+      id: log.id,
+      userId: log.user_id,
+      username: log.users.username,
+      avatarUrl: log.users.avatar_url,
+      groupName: log.groups.name,
+      groupId: log.group_id,
+      habitName: log.habits.name,
+      category: log.habits.category,
+      imageUrl: log.image_url,
+      date: log.date,
+      timestamp: new Date(log.created_at).getTime(),
+      likesCount: log.likes?.length || 0,
+      commentsCount: log.comments?.length || 0,
+      isLiked: log.likes?.some((l: any) => l.user_id === userId),
+      commentsPreview: (log.comments || [])
+        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .slice(-2)
+        .map((c: any) => ({
+          username: c.users.username,
+          text: c.text,
+        })),
+    }));
   }
 }
 
