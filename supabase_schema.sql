@@ -18,12 +18,14 @@ create table public.groups (
 create table public.members (
   user_id uuid references public.users(id),
   group_id uuid references public.groups(id),
+  total_points int default 0,
   primary key (user_id, group_id)
 );
 
 create table public.habits (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.users(id),
+  group_id uuid references public.groups(id) on delete cascade,
   category text not null,
   name text not null,
   active boolean default true
@@ -32,11 +34,11 @@ create table public.habits (
 create table public.logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.users(id),
+  group_id uuid references public.groups(id) on delete cascade,
   date date not null,
   completed_habit_ids text[] not null default '{}',
   habit_image_urls jsonb not null default '{}'::jsonb,
-  total_points integer not null default 0,
-  unique (user_id, date)
+  unique (user_id, group_id, date)
 );
 
 -- NOTE: Execute the below individually in the Supabase SQL editor to enable photo uploads
