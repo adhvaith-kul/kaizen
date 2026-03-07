@@ -25,14 +25,26 @@ const CATEGORY_EMOJIS: Record<Category, string> = {
   Social: '🥂',
 };
 
-export default function HabitSetupScreen({ navigation }: any) {
-  const { user, group } = useAuth();
-  const activeCategories = group?.settings?.allowedCategories?.length ? group.settings.allowedCategories : CATEGORIES;
+export default function HabitSetupScreen({ route, navigation }: any) {
+  const { user, group, refreshGroup, setActiveGroup } = useAuth();
+
+  const pendingGroupJoin = route?.params?.pendingGroupJoin;
+  const pendingGroupCreate = route?.params?.pendingGroupCreate;
+  const isPending = !!(pendingGroupJoin || pendingGroupCreate);
+
+  let activeCategories = CATEGORIES;
+  if (pendingGroupJoin) {
+    activeCategories = pendingGroupJoin.settings?.allowedCategories || CATEGORIES;
+  } else if (pendingGroupCreate) {
+    activeCategories = pendingGroupCreate.categories || CATEGORIES;
+  } else if (group) {
+    activeCategories = group.settings?.allowedCategories || CATEGORIES;
+  }
 
   const [habits, setHabits] = useState<Record<Category, string>>({});
 
   useEffect(() => {
-    if (user && group) {
+    if (user && group && !isPending) {
       backend.getHabits(user.id, group.id).then(userHabits => {
         const hRec: Record<Category, string> = {};
         activeCategories.forEach((c: string) => {
@@ -46,25 +58,58 @@ export default function HabitSetupScreen({ navigation }: any) {
         setHabits(hRec);
       });
     }
-  }, [user, group]);
+  }, [user, group, isPending]);
 
   const handleSave = async () => {
-    if (!user || !group) return;
+    if (!user) return;
+    if (!isPending && !group) return;
+
     const payload = activeCategories
       .map((c: string) => ({ category: c, name: habits[c] || '' }))
       .filter(h => h.name.trim() !== '');
+
     if (payload.length === 0) {
       Alert.alert('💀 Bruh', 'You gotta enter at least one habit.');
       return;
     }
 
     try {
-      await backend.saveHabits(user.id, group.id, payload);
-      Alert.alert('W', 'Habits locked in 🔒');
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-      } else {
-        navigation.navigate('Dashboard');
+      let targetGroupId = group?.id;
+
+      if (pendingGroupJoin) {
+        const joinedGroup = await backend.joinGroup(pendingGroupJoin.code, user.id);
+        targetGroupId = joinedGroup.id;
+        await backend.saveHabits(user.id, targetGroupId, payload);
+        await refreshGroup();
+        setActiveGroup(joinedGroup);
+        Alert.alert('W', 'You joined the squad and habits are locked in 🔒');
+        navigation.reset({
+          index: 2,
+          routes: [{ name: 'Home' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
+        });
+      } else if (pendingGroupCreate) {
+        const newGroup = await backend.createGroup(pendingGroupCreate.name, user.id, {
+          allowedCategories: pendingGroupCreate.categories,
+          habitsPerCategory: pendingGroupCreate.habitsPerCategory,
+          pointsPerCategory: pendingGroupCreate.pointsPerCategory,
+        });
+        targetGroupId = newGroup.id;
+        await backend.saveHabits(user.id, targetGroupId, payload);
+        await refreshGroup();
+        setActiveGroup(newGroup);
+        Alert.alert('W', 'Squad created and habits locked in 🔒');
+        navigation.reset({
+          index: 2,
+          routes: [{ name: 'Home' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
+        });
+      } else if (group) {
+        await backend.saveHabits(user.id, group.id, payload);
+        Alert.alert('W', 'Habits updated 🔒');
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('Dashboard');
+        }
       }
     } catch (e: any) {
       Alert.alert('💀 Yikes', e.message);

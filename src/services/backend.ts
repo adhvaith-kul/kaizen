@@ -48,6 +48,13 @@ class Backend {
     return { id: group.id, name: group.name, code: group.code, createdBy: group.created_by, settings: group.settings };
   }
 
+  async getGroupByCode(code: string): Promise<Group> {
+    const { data: group, error: groupErr } = await supabase.from('groups').select('*').eq('code', code).maybeSingle();
+    if (groupErr) throw new Error(groupErr.message);
+    if (!group) throw new Error('Group not found');
+    return { id: group.id, name: group.name, code: group.code, createdBy: group.created_by, settings: group.settings };
+  }
+
   async joinGroup(code: string, userId: string): Promise<Group> {
     const { data: group, error: groupErr } = await supabase.from('groups').select('*').eq('code', code).maybeSingle();
     if (groupErr) throw new Error(groupErr.message);
