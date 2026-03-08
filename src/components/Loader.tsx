@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, Easing, StyleSheet } from 'react-native';
+import { View, Animated, Easing, StyleSheet, Text } from 'react-native';
 
 interface LoaderProps {
   size?: number;
@@ -57,32 +57,12 @@ export default function Loader({ size = 48, color = '#C2FF05', style, fullScreen
 
   const loaderContent = (
     <View style={[{ justifyContent: 'center', alignItems: 'center' }, style]}>
-      <Animated.View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: 4,
-          borderColor: color,
-          borderTopColor: 'transparent',
-          transform: [{ rotate: spin }, { scale }],
-        }}
-      />
-      <Animated.View
-        style={{
-          position: 'absolute',
-          width: size * 0.4,
-          height: size * 0.4,
-          borderRadius: size * 0.2,
-          backgroundColor: color,
-          transform: [{ scale }],
-          opacity,
-          shadowColor: color,
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.8,
-          shadowRadius: 10,
-        }}
-      />
+      <Animated.View style={{ transform: [{ scale }], alignItems: 'center' }}>
+        <Text style={styles.logoLabel}>KAIZEN</Text>
+        <View style={styles.mottoBadge}>
+          <Text style={styles.mottoText}>SELF-IMPROVEMENT. GAMIFIED.</Text>
+        </View>
+      </Animated.View>
     </View>
   );
 
@@ -100,5 +80,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
+  },
+  logoLabel: {
+    color: '#FFF',
+    fontSize: 42,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    letterSpacing: 4,
+  },
+  mottoBadge: {
+    marginTop: 8,
+    backgroundColor: '#C2FF05',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  mottoText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
 });

@@ -241,7 +241,10 @@ export default function ProfileScreen({ navigation }: any) {
             </Text>
           </Animated.View>
           <Animated.View style={{ opacity: logoOpacity }}>
-            <Text style={styles.logo}>KAIZEN</Text>
+            <View style={styles.logoContainer}>
+              <Text style={styles.logo}>KAIZEN</Text>
+              <Text style={styles.motto}>SELF-IMPROVEMENT. GAMIFIED.</Text>
+            </View>
           </Animated.View>
         </View>
 
@@ -364,7 +367,7 @@ export default function ProfileScreen({ navigation }: any) {
 
         {feed.length > 0 && (
           <View style={styles.feedSection}>
-            <Text style={[styles.sectionTitle, { paddingHorizontal: 20 }]}>YOUR POSTS</Text>
+            <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>YOUR POSTS</Text>
             {feed.map(item => (
               <PostCard
                 key={item.id}
@@ -505,17 +508,29 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   headerLeftContainer: {
-    flex: 1,
     height: '100%',
     justifyContent: 'center',
     position: 'relative',
+    zIndex: 10,
+  },
+  logoContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
   },
   logo: {
     fontSize: 24,
     fontWeight: '900',
     color: '#FFF',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     fontStyle: 'italic',
+    lineHeight: 26,
+  },
+  motto: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#C2FF05',
+    letterSpacing: 0.5,
+    marginTop: -2,
   },
   stickyLeft: {
     zIndex: 2,
@@ -847,7 +862,7 @@ const styles = StyleSheet.create({
   commentInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#2A2A35',

@@ -139,7 +139,10 @@ export default function HomeScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Text style={styles.logo}>KAIZEN</Text>
+        <View style={styles.logoContainer}>
+          <Text style={styles.logo}>KAIZEN</Text>
+          <Text style={styles.motto}>SELF-IMPROVEMENT. GAMIFIED.</Text>
+        </View>
         <TouchableOpacity onPress={() => setActiveTab('ProfileTab')}>
           <Image
             source={{
@@ -262,18 +265,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     height: 60,
     backgroundColor: '#0E0E11',
     borderBottomWidth: 1,
     borderBottomColor: '#1A1A24',
   },
+  logoContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
   logo: {
     fontSize: 24,
     fontWeight: '900',
     color: '#FFF',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     fontStyle: 'italic',
+    lineHeight: 26,
+  },
+  motto: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#C2FF05',
+    letterSpacing: 0.5,
+    marginTop: -2,
   },
   headerAvatar: {
     width: 32,
@@ -328,7 +343,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalTitle: { color: '#FFF', fontWeight: '800', fontSize: 16 },
-  closeBtn: { position: 'absolute', right: 20, top: 15 },
+  closeBtn: { position: 'absolute', right: 16, top: 15 },
   commentItem: { flexDirection: 'row', marginBottom: 20 },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
   commentInfo: { flex: 1 },
@@ -337,7 +352,7 @@ const styles = StyleSheet.create({
   commentInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#2A2A35',
