@@ -33,6 +33,7 @@ const dicebearUri = (seed: string) =>
 export default function ProfileScreen({ navigation }: any) {
   const { user, groups, refreshUser, logout } = useAuth();
   const [stats, setStats] = useState({ totalHabits: 0, totalDaysLogged: 0 });
+  const [followStats, setFollowStats] = useState({ following: 0, followers: 0 });
   const [graphData, setGraphData] = useState<any[]>([]);
   const [maxTotal, setMaxTotal] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -81,27 +82,32 @@ export default function ProfileScreen({ navigation }: any) {
       let isActive = true;
       setLoading(true);
 
-      Promise.all([backend.getProfileStats(user.id), backend.getUserLogs(user.id), backend.getUserFeed(user.id)]).then(
-        ([s, logs, feedData]) => {
-          if (!isActive) return;
-          setStats(s);
-          setFeed(feedData);
+      Promise.all([
+        backend.getProfileStats(user.id),
+        backend.getUserLogs(user.id),
+        backend.getUserFeed(user.id),
+        backend.getFollowing(user.id),
+        backend.getFollowers(user.id),
+      ]).then(([s, logs, feedData, following, followers]) => {
+        if (!isActive) return;
+        setStats(s);
+        setFeed(feedData);
+        setFollowStats({ following: following.length, followers: followers.length });
 
-          const dates = generateLast7Days();
-          logs.forEach(log => {
-            const day = dates.find(d => d.date === log.date);
-            if (day) {
-              day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + 1;
-              day.total += 1;
-            }
-          });
+        const dates = generateLast7Days();
+        logs.forEach(log => {
+          const day = dates.find(d => d.date === log.date);
+          if (day) {
+            day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + 1;
+            day.total += 1;
+          }
+        });
 
-          const highestTotal = Math.max(...dates.map(d => d.total), 1);
-          setMaxTotal(highestTotal);
-          setGraphData(dates);
-          setLoading(false);
-        }
-      );
+        const highestTotal = Math.max(...dates.map(d => d.total), 1);
+        setMaxTotal(highestTotal);
+        setGraphData(dates);
+        setLoading(false);
+      });
 
       return () => {
         isActive = false;
@@ -288,6 +294,19 @@ export default function ProfileScreen({ navigation }: any) {
 
             <Text style={styles.username}>@{user?.username}</Text>
             <Text style={styles.email}>{user?.email}</Text>
+
+            <TouchableOpacity style={styles.followStatsRow} onPress={() => navigation.navigate('Friends')}>
+              <View style={styles.followStatItem}>
+                <Text style={styles.followStatValue}>{followStats.following}</Text>
+                <Text style={styles.followStatLabel}>FOLLOWING</Text>
+              </View>
+              <View style={styles.followStatDivider} />
+              <View style={styles.followStatItem}>
+                <Text style={styles.followStatValue}>{followStats.followers}</Text>
+                <Text style={styles.followStatLabel}>FOLLOWERS</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color="#666" style={{ marginLeft: 8 }} />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.statsCard}>
@@ -633,6 +652,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     fontWeight: '600',
+    marginBottom: 16,
+  },
+  followStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A24',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A35',
+  },
+  followStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  followStatValue: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  followStatLabel: {
+    color: '#666',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  followStatDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: '#2A2A35',
+    marginHorizontal: 12,
   },
   statsCard: {
     marginBottom: 40,

@@ -499,12 +499,23 @@ class Backend {
     }));
   }
 
-  async getProfileStats(userId: string): Promise<{ totalHabits: number; totalDaysLogged: number }> {
-    const { data: logs } = await supabase.from('logs').select('date').eq('user_id', userId).is('deleted_at', null);
-    if (!logs) return { totalHabits: 0, totalDaysLogged: 0 };
+  async getProfileStats(
+    userId: string
+  ): Promise<{ totalHabits: number; totalDaysLogged: number; totalSquads: number }> {
+    const [logsRes, squadsRes] = await Promise.all([
+      supabase.from('logs').select('date').eq('user_id', userId).is('deleted_at', null),
+      supabase.from('members').select('group_id').eq('user_id', userId).is('deleted_at', null),
+    ]);
+
+    const logs = logsRes.data || [];
+    const squads = squadsRes.data || [];
 
     const distinctDays = new Set(logs.map(l => l.date)).size;
-    return { totalHabits: logs.length, totalDaysLogged: distinctDays };
+    return {
+      totalHabits: logs.length,
+      totalDaysLogged: distinctDays,
+      totalSquads: squads.length,
+    };
   }
 
   async getFeed(userId: string): Promise<any[]> {
@@ -667,6 +678,82 @@ class Backend {
           text: c.text,
         })),
     };
+  }
+
+  // ── FOLLOWS / FRIENDS ─────────────────────────────────────────────
+
+  async followUser(followerId: string, followingId: string): Promise<void> {
+    const { error } = await supabase.from('follows').insert({ follower_id: followerId, following_id: followingId });
+    if (error) throw new Error(error.message);
+  }
+
+  async unfollowUser(followerId: string, followingId: string): Promise<void> {
+    const { error } = await supabase
+      .from('follows')
+      .delete()
+      .eq('follower_id', followerId)
+      .eq('following_id', followingId);
+    if (error) throw new Error(error.message);
+  }
+
+  async isFollowing(followerId: string, followingId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('follows')
+      .select('id')
+      .eq('follower_id', followerId)
+      .eq('following_id', followingId)
+      .maybeSingle();
+
+    if (error) return false;
+    return !!data;
+  }
+
+  async getFollowing(userId: string): Promise<User[]> {
+    const { data, error } = await supabase
+      .from('follows')
+      .select('following:following_id(id, username, email, avatar_url)')
+      .eq('follower_id', userId);
+
+    if (error || !data) return [];
+    return data.map((d: any) => ({
+      id: d.following.id,
+      username: d.following.username,
+      email: d.following.email,
+      avatarUrl: d.following.avatar_url ?? undefined,
+    }));
+  }
+
+  async getFollowers(userId: string): Promise<User[]> {
+    const { data, error } = await supabase
+      .from('follows')
+      .select('follower:follower_id(id, username, email, avatar_url)')
+      .eq('following_id', userId);
+
+    if (error || !data) return [];
+    return data.map((d: any) => ({
+      id: d.follower.id,
+      username: d.follower.username,
+      email: d.follower.email,
+      avatarUrl: d.follower.avatar_url ?? undefined,
+    }));
+  }
+
+  async searchUsers(query: string, currentUserId: string): Promise<User[]> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, username, email, avatar_url')
+      .neq('id', currentUserId)
+      .ilike('username', `%${query}%`)
+      .is('deleted_at', null)
+      .limit(20);
+
+    if (error || !data) return [];
+    return data.map(u => ({
+      id: u.id,
+      username: u.username,
+      email: u.email,
+      avatarUrl: u.avatar_url ?? undefined,
+    }));
   }
 }
 

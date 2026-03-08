@@ -1,178 +1,234 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Image, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  SafeAreaView,
+  TouchableOpacity,
+  Image,
+  Modal,
+  ActivityIndicator,
+  Animated,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { backend } from '../services/backend';
-import { DailyLog, Habit } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
+import PostCard from '../components/PostCard';
+import { HabitComment as Comment } from '../types';
 
 export default function UserDetailScreen({ route, navigation }: any) {
   const { userId, username } = route.params;
-  const { group } = useAuth();
-  const [logs, setLogs] = useState<DailyLog[]>([]);
-  const [habits, setHabits] = useState<Habit[]>([]);
+  const { user, group } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [stats, setStats] = useState({ totalHabits: 0, totalDaysLogged: 0, totalSquads: 0 });
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followingLoading, setFollowingLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [feed, setFeed] = useState<any[]>([]);
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [50, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
+      setLoading(true);
 
-      if (group?.id) {
-        Promise.all([
-          backend.getUserLogs(userId, group.id),
-          backend.getAllHabits(userId, group.id),
-          backend.getUser(userId),
-        ])
-          .then(([logsData, habitsData, userData]) => {
-            if (isActive) {
-              setLogs(logsData || []);
-              setHabits(habitsData || []);
-              setAvatarUrl(userData?.avatarUrl || null);
-              setLoading(false);
-            }
-          })
-          .catch(err => {
-            console.error(err);
-            if (isActive) {
-              setLoading(false);
-            }
-          });
-      }
+      const loadData = async () => {
+        try {
+          const [userData, userStats, followingStatus, userFeed] = await Promise.all([
+            backend.getUser(userId),
+            backend.getProfileStats(userId),
+            user ? backend.isFollowing(user.id, userId) : Promise.resolve(false),
+            backend.getUserFeed(userId),
+          ]);
+
+          if (isActive) {
+            setAvatarUrl(userData?.avatarUrl || null);
+            setStats(userStats);
+            setIsFollowing(followingStatus);
+            setFeed(userFeed);
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error(err);
+          if (isActive) setLoading(false);
+        }
+      };
+
+      loadData();
 
       return () => {
         isActive = false;
       };
-    }, [userId, group?.id]) // Safe safely dependency is group?.id
+    }, [userId, group?.id, user?.id])
   );
 
-  const toggleExpand = (logId: string) => {
-    setExpandedLogId(prev => (prev === logId ? null : logId));
-  };
-
-  const renderLog = ({ item }: { item: { date: string; logs: DailyLog[] } }) => {
-    const isExpanded = expandedLogId === item.date;
-    let displayPoints = 0;
-
-    item.logs.forEach(log => {
-      if (log.isDisqualified) return;
-      const h = habits.find(habit => habit.id === log.habitId);
-      if (h && group?.settings?.pointsPerCategory?.[h.category]) {
-        displayPoints += Number(group.settings.pointsPerCategory[h.category]);
+  const handleFollowToggle = async () => {
+    if (!user || followingLoading) return;
+    setFollowingLoading(true);
+    try {
+      if (isFollowing) {
+        await backend.unfollowUser(user.id, userId);
+        setIsFollowing(false);
       } else {
-        displayPoints += 10;
+        await backend.followUser(user.id, userId);
+        setIsFollowing(true);
       }
-    });
-
-    return (
-      <TouchableOpacity style={styles.logCard} activeOpacity={0.8} onPress={() => toggleExpand(item.date)}>
-        <View style={styles.logHeader}>
-          <Text style={styles.logDate}>{item.date}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={styles.logPoints}>{displayPoints} pts</Text>
-            <Text style={styles.expandIcon}>{isExpanded ? '▲' : '▼'}</Text>
-          </View>
-        </View>
-        <Text style={styles.logDetails}>
-          {item.logs.length} habit{item.logs.length === 1 ? '' : 's'} completed
-        </Text>
-
-        {isExpanded && (
-          <View style={styles.expandedContent}>
-            {item.logs.length > 0 ? (
-              item.logs.map(log => {
-                const h = habits.find(habit => habit.id === log.habitId);
-                const imageUrl = log.imageUrl;
-
-                return (
-                  <TouchableOpacity
-                    key={log.id}
-                    style={styles.completedHabitRow}
-                    onPress={() => navigation.navigate('PostDetail', { logId: log.id })}>
-                    {imageUrl ? (
-                      <Image source={{ uri: imageUrl }} style={styles.habitImage} />
-                    ) : (
-                      <View style={[styles.habitImage, { justifyContent: 'center', alignItems: 'center' }]}>
-                        <Text style={{ fontSize: 20 }}>{getCategoryEmoji(h?.category || '')}</Text>
-                      </View>
-                    )}
-                    <View style={styles.habitTextContent}>
-                      <Text style={styles.habitCategory}>{h ? h.category.toUpperCase() : '?'}</Text>
-                      <Text
-                        style={[
-                          styles.habitName,
-                          !h && { color: '#666', fontStyle: 'italic' },
-                          log.isDisqualified && { textDecorationLine: 'line-through', color: '#666' },
-                        ]}>
-                        {h ? h.name : '(Habit changed or deleted)'}{' '}
-                        {log.isDisqualified && <Text style={{ color: '#FF3366', fontSize: 10 }}>[DISQUALIFIED]</Text>}
-                      </Text>
-                    </View>
-                    <Text style={[styles.habitPointValue, log.isDisqualified && { backgroundColor: '#331111' }]}>
-                      {log.isDisqualified ? '0' : `+${h ? group?.settings?.pointsPerCategory?.[h.category] || 10 : 0}`}
-                    </Text>
-                    <Ionicons name="chevron-forward" size={16} color="#444" />
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              <Text style={styles.noHabitsText}>No habits tracked this day</Text>
-            )}
-          </View>
-        )}
-      </TouchableOpacity>
-    );
+    } catch (e) {
+      console.error('Follow toggle failed:', e);
+    } finally {
+      setFollowingLoading(false);
+    }
   };
 
-  const groupedLogs = React.useMemo(() => {
-    const groups: { [key: string]: DailyLog[] } = {};
-    logs.forEach(log => {
-      if (!groups[log.date]) groups[log.date] = [];
-      groups[log.date].push(log);
-    });
-    return Object.entries(groups)
-      .map(([date, items]) => ({ date, logs: items }))
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [logs]);
+  const handleLike = async (post: any) => {
+    if (!user) return;
+    try {
+      if (post.isLiked) {
+        await backend.unlikeLog(user.id, post.id);
+      } else {
+        await backend.likeLog(user.id, post.id);
+      }
+      setFeed(prev =>
+        prev.map(p =>
+          p.id === post.id
+            ? { ...p, isLiked: !post.isLiked, likesCount: post.isLiked ? p.likesCount - 1 : p.likesCount + 1 }
+            : p
+        )
+      );
+    } catch (e) {
+      console.error('Like failed:', e);
+    }
+  };
+
+  const handleSuspect = async (post: any) => {
+    if (!user) return;
+    try {
+      if (post.isSuspected) {
+        await backend.unsuspectLog(user.id, post.id);
+      } else {
+        await backend.suspectLog(user.id, post.id);
+      }
+      const updatedPost = await backend.getPostDetail(user.id, post.id);
+      if (updatedPost) {
+        setFeed(prev => prev.map(p => (p.id === post.id ? { ...p, ...updatedPost } : p)));
+      }
+    } catch (e) {
+      console.error('Suspect failed:', e);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← BACK</Text>
+          <Ionicons name="chevron-back" size={24} color="#FFF" />
+          <Text style={styles.backBtnText}>BACK</Text>
         </TouchableOpacity>
+
+        <Animated.View style={[styles.stickyHeaderContent, { opacity: headerOpacity }]}>
+          <Text style={styles.stickyUsername}>@{username}</Text>
+          <Text style={styles.stickyStat}>
+            {stats.totalHabits} {stats.totalHabits === 1 ? 'HABIT' : 'HABITS'} • {stats.totalDaysLogged}{' '}
+            {stats.totalDaysLogged === 1 ? 'DAY' : 'DAYS'} • {stats.totalSquads}{' '}
+            {stats.totalSquads === 1 ? 'SQUAD' : 'SQUADS'}
+          </Text>
+        </Animated.View>
+
+        <View style={{ width: 80 }} />
       </View>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Image
-            source={{
-              uri:
-                avatarUrl || `https://api.dicebear.com/9.x/micah/png?seed=${username}&backgroundColor=C2FF05&radius=50`,
-            }}
-            style={styles.headerAvatar}
-          />
-          <View>
-            <Text style={styles.title}>
-              <Text style={{ color: '#C2FF05' }}>{username}</Text>'s Log
-            </Text>
-            <Text style={styles.subtitle}>SQUAD MEMBER</Text>
-          </View>
-        </View>
-
         {loading ? (
           <Loader style={{ marginTop: 50 }} />
-        ) : logs.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No logs yet 🍃</Text>
-          </View>
         ) : (
-          <FlatList
-            data={groupedLogs}
-            keyExtractor={item => item.date}
-            renderItem={renderLog}
+          <Animated.FlatList
+            onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+              useNativeDriver: true,
+            })}
+            scrollEventThrottle={16}
+            data={feed}
+            keyExtractor={item => item.id}
+            ListHeaderComponent={() => (
+              <View>
+                <View style={styles.header}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setSelectedImage(
+                        avatarUrl ||
+                          `https://api.dicebear.com/9.x/micah/png?seed=${username}&backgroundColor=C2FF05&radius=50`
+                      )
+                    }>
+                    <Image
+                      source={{
+                        uri:
+                          avatarUrl ||
+                          `https://api.dicebear.com/9.x/micah/png?seed=${username}&backgroundColor=C2FF05&radius=50`,
+                      }}
+                      style={styles.headerAvatar}
+                    />
+                  </TouchableOpacity>
+                  <View style={styles.headerInfo}>
+                    <View style={styles.usernameRow}>
+                      <Text style={styles.title}>@{username}</Text>
+                      {user && user.id !== userId && (
+                        <TouchableOpacity
+                          style={[styles.followBtn, isFollowing && styles.followingBtn]}
+                          onPress={handleFollowToggle}
+                          disabled={followingLoading}>
+                          {followingLoading ? (
+                            <ActivityIndicator size="small" color={isFollowing ? '#888' : '#000'} />
+                          ) : (
+                            <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
+                              {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <View style={styles.miniStats}>
+                      <View style={styles.miniStatItem}>
+                        <Text style={styles.miniStatValue}>{stats.totalHabits}</Text>
+                        <Text style={styles.miniStatLabel}>{stats.totalHabits === 1 ? 'HABIT' : 'HABITS'}</Text>
+                      </View>
+                      <View style={styles.miniStatDivider} />
+                      <View style={styles.miniStatItem}>
+                        <Text style={styles.miniStatValue}>{stats.totalDaysLogged}</Text>
+                        <Text style={styles.miniStatLabel}>{stats.totalDaysLogged === 1 ? 'DAY' : 'DAYS'}</Text>
+                      </View>
+                      <View style={styles.miniStatDivider} />
+                      <View style={styles.miniStatItem}>
+                        <Text style={styles.miniStatValue}>{stats.totalSquads}</Text>
+                        <Text style={styles.miniStatLabel}>{stats.totalSquads === 1 ? 'SQUAD' : 'SQUADS'}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                {feed.length > 0 && <Text style={styles.sectionTitle}>POSTS</Text>}
+              </View>
+            )}
+            renderItem={({ item }) => (
+              <PostCard
+                post={item}
+                onLike={() => handleLike(item)}
+                onSuspect={() => handleSuspect(item)}
+                onOpenComments={() => navigation.navigate('PostDetail', { logId: item.id })}
+              />
+            )}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>No posts yet 🍃</Text>
+              </View>
+            )}
             contentContainerStyle={{ paddingBottom: 100 }}
           />
         )}
@@ -193,26 +249,43 @@ export default function UserDetailScreen({ route, navigation }: any) {
   );
 }
 
-function getCategoryEmoji(cat: string) {
-  const map: any = {
-    Health: '💪',
-    Productivity: '💼',
-    Sleep: '😴',
-    Diet: '🥗',
-    Finance: '💸',
-    Upskill: '🧠',
-    Chores: '🧹',
-  };
-  return map[cat] || '✨';
-}
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0E0E11' },
-  container: { flex: 1, paddingHorizontal: 20 },
-  topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
-  backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
-  backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 30, marginTop: 10 },
+  container: { flex: 1 },
+  topBar: {
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A24',
+    zIndex: 10,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 80,
+  },
+  backBtnText: { color: '#FFF', fontWeight: '800', fontSize: 12, letterSpacing: 1, marginLeft: -4 },
+  stickyHeaderContent: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  stickyUsername: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  stickyStat: {
+    color: '#C2FF05',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginTop: 1,
+  },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 30, marginTop: 10, paddingHorizontal: 20 },
   headerAvatar: {
     width: 60,
     height: 60,
@@ -222,76 +295,68 @@ const styles = StyleSheet.create({
     marginRight: 15,
   },
   title: { fontSize: 24, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
-  subtitle: { fontSize: 10, fontWeight: '800', color: '#888', letterSpacing: 1.5, marginTop: 2 },
-  emptyState: { alignItems: 'center', marginTop: 50 },
-  emptyText: { color: '#666', fontSize: 18, fontWeight: '700' },
-  logCard: {
+  headerInfo: { flex: 1 },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  followBtn: {
+    backgroundColor: '#C2FF05',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  followingBtn: {
     backgroundColor: '#1A1A24',
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 15,
     borderWidth: 1,
     borderColor: '#2A2A35',
   },
-  logHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  logDate: { color: '#FFF', fontSize: 18, fontWeight: '800' },
-  logPoints: { color: '#C2FF05', fontSize: 16, fontWeight: '900', marginRight: 8 },
-  expandIcon: { color: '#666', fontSize: 12 },
-  logDetails: { color: '#A0A0B0', fontSize: 14, fontWeight: '600' },
-  expandedContent: {
-    marginTop: 15,
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#2A2A35',
+  followBtnText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
-  completedHabitRow: {
+  followingBtnText: {
+    color: '#888',
+  },
+  miniStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
-  habitImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    marginRight: 12,
-    backgroundColor: '#0A0A0F',
-    borderWidth: 1,
-    borderColor: '#333',
+  miniStatItem: {
+    alignItems: 'center',
+    marginRight: 15,
   },
-  habitTextContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  habitCategory: {
-    fontSize: 10,
-    color: '#888',
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  habitPointValue: {
-    fontSize: 10,
-    color: '#C2FF05',
-    fontWeight: '900',
-    backgroundColor: 'rgba(194, 255, 5, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    overflow: 'hidden',
-    minWidth: 45,
-    textAlign: 'center',
-    marginRight: 10,
-  },
-  habitName: {
-    fontSize: 16,
+  miniStatValue: {
     color: '#FFF',
-    fontWeight: '600',
-  },
-  noHabitsText: {
-    color: '#666',
-    fontStyle: 'italic',
     fontSize: 14,
+    fontWeight: '900',
   },
+  miniStatLabel: {
+    color: '#666',
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  miniStatDivider: {
+    width: 1,
+    height: 10,
+    backgroundColor: '#2A2A35',
+    marginRight: 15,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#666',
+    letterSpacing: 2,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  emptyState: { alignItems: 'center', marginTop: 50 },
+  emptyText: { color: '#666', fontSize: 18, fontWeight: '700' },
   modalBg: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.9)',

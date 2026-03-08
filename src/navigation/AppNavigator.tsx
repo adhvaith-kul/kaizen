@@ -23,6 +23,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import UserDetailScreen from '../screens/UserDetailScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import EditGroupScreen from '../screens/EditGroupScreen';
+import FriendsScreen from '../screens/FriendsScreen';
 
 import { TabNavigationContext } from '../context/TabNavigationContext';
 
@@ -32,6 +33,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const Stack = createNativeStackNavigator();
 const FeedStack = createNativeStackNavigator();
 const SquadsStack = createNativeStackNavigator();
+const FriendsStack = createNativeStackNavigator();
+const ProfileStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function FeedStackScreen() {
@@ -40,6 +43,7 @@ function FeedStackScreen() {
       <FeedStack.Screen name="Home" component={HomeScreen} />
       <FeedStack.Screen name="UserDetail" component={UserDetailScreen} />
       <FeedStack.Screen name="PostDetail" component={PostDetailScreen} />
+      <FeedStack.Screen name="Friends" component={FriendsScreen} />
     </FeedStack.Navigator>
   );
 }
@@ -55,7 +59,29 @@ function SquadsStackScreen() {
       <SquadsStack.Screen name="UserDetail" component={UserDetailScreen} />
       <SquadsStack.Screen name="PostDetail" component={PostDetailScreen} />
       <SquadsStack.Screen name="EditGroup" component={EditGroupScreen} />
+      <SquadsStack.Screen name="Friends" component={FriendsScreen} />
     </SquadsStack.Navigator>
+  );
+}
+
+function FriendsStackScreen() {
+  return (
+    <FriendsStack.Navigator screenOptions={{ headerShown: false }}>
+      <FriendsStack.Screen name="FriendsRoot" component={FriendsScreen} initialParams={{ isTab: true }} />
+      <FriendsStack.Screen name="UserDetail" component={UserDetailScreen} />
+      <FriendsStack.Screen name="PostDetail" component={PostDetailScreen} />
+    </FriendsStack.Navigator>
+  );
+}
+
+function ProfileStackScreen() {
+  return (
+    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStack.Screen name="ProfileRoot" component={ProfileScreen} />
+      <ProfileStack.Screen name="Friends" component={FriendsScreen} />
+      <ProfileStack.Screen name="UserDetail" component={UserDetailScreen} />
+      <ProfileStack.Screen name="PostDetail" component={PostDetailScreen} />
+    </ProfileStack.Navigator>
   );
 }
 
@@ -89,6 +115,14 @@ function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
         onPress={() => handlePress('SquadsTab', 'SquadsTab')}>
         <Text style={{ fontSize: 20 }}>🤝</Text>
         <Text style={[styles.navLabel, { color: activeTab === 'SquadsTab' ? '#C2FF05' : '#888' }]}>SQUADS</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.navItem}
+        activeOpacity={0.8}
+        onPress={() => handlePress('FriendsTab', 'FriendsTab')}>
+        <Text style={{ fontSize: 20 }}>👥</Text>
+        <Text style={[styles.navLabel, { color: activeTab === 'FriendsTab' ? '#C2FF05' : '#888' }]}>FRIENDS</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -158,7 +192,8 @@ function MainTabs() {
           screenOptions={{ headerShown: false }}>
           <Tab.Screen name="FeedTab" component={FeedStackScreen} />
           <Tab.Screen name="SquadsTab" component={SquadsStackScreen} />
-          <Tab.Screen name="ProfileTab" component={ProfileScreen} />
+          <Tab.Screen name="FriendsTab" component={FriendsStackScreen} />
+          <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
         </Tab.Navigator>
       </View>
     </TabNavigationContext.Provider>

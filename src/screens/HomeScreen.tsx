@@ -132,6 +132,10 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
+  const handlePressUser = (userId: string, username: string) => {
+    navigation.navigate('UserDetail', { userId, username });
+  };
+
   if (loading && !refreshing) {
     return <Loader fullScreen />;
   }
@@ -188,6 +192,7 @@ export default function HomeScreen({ navigation }: any) {
               onLike={handleLike}
               onSuspect={handleSuspect}
               onOpenComments={handleOpenComments}
+              onPressUser={handlePressUser}
             />
           ))
         )}
