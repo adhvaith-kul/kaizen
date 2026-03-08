@@ -446,7 +446,7 @@ export default function ProfileScreen({ navigation }: any) {
             <FlatList
               data={comments}
               keyExtractor={c => c.id}
-              contentContainerStyle={{ padding: 20 }}
+              contentContainerStyle={{ paddingVertical: 20, paddingHorizontal: 16 }}
               renderItem={({ item }) => (
                 <View style={styles.commentItem}>
                   <Image
