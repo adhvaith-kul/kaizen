@@ -120,18 +120,14 @@ export default function LeaderboardScreen({ navigation }: any) {
                       },
                     ]}
                     activeOpacity={0.8}
-                    onPress={() => {
-                      if (isMe) {
-                        setActiveTab('ProfileTab');
-                      } else {
-                        navigation.navigate('UserLogs', {
-                          userId: item.userId,
-                          username: item.username,
-                          groupId: group?.id,
-                          groupName: group?.name,
-                        });
-                      }
-                    }}>
+                    onPress={() =>
+                      navigation.navigate('UserLogs', {
+                        userId: item.userId,
+                        username: item.username,
+                        groupId: group?.id,
+                        groupName: group?.name,
+                      })
+                    }>
                     <View style={styles.rankContainer}>
                       <Text style={styles.rankText}>{getRankEmoji(item.rank)}</Text>
                     </View>

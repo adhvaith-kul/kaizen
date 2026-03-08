@@ -386,7 +386,7 @@ export default function ProfileScreen({ navigation }: any) {
 
         {feed.length > 0 && (
           <View style={styles.feedSection}>
-            <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>YOUR POSTS</Text>
+            <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>YOUR ACTIVITY</Text>
             {feed.map(item => (
               <PostCard
                 key={item.id}
