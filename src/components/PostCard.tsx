@@ -102,23 +102,25 @@ export default function PostCard({ post, onLike, onSuspect, onOpenComments }: Po
         </Text>
 
         {post.caption ? (
-          <Text style={styles.captionText}>
+          <Text style={[styles.captionText, post.isDisqualified && styles.disqualifiedText]}>
             <Text style={styles.postUsernameSmall}>{post.username}</Text> {post.caption}
           </Text>
         ) : null}
 
-        <View style={styles.commentsPreview}>
-          {post.commentsCount > 2 && (
-            <TouchableOpacity onPress={() => onOpenComments(post.id)}>
-              <Text style={styles.viewAllComments}>View all {post.commentsCount} comments</Text>
-            </TouchableOpacity>
-          )}
-          {post.commentsPreview?.map((c: any, idx: number) => (
-            <Text key={idx} style={styles.commentPreviewText}>
-              <Text style={styles.commentUsername}>{c.username}</Text> {c.text}
-            </Text>
-          ))}
-        </View>
+        {!post.isDisqualified && (
+          <View style={styles.commentsPreview}>
+            {post.commentsCount > 2 && (
+              <TouchableOpacity onPress={() => onOpenComments(post.id)}>
+                <Text style={styles.viewAllComments}>View all {post.commentsCount} comments</Text>
+              </TouchableOpacity>
+            )}
+            {post.commentsPreview?.map((c: any, idx: number) => (
+              <Text key={idx} style={styles.commentPreviewText}>
+                <Text style={styles.commentUsername}>{c.username}</Text> {c.text}
+              </Text>
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -180,7 +182,7 @@ const styles = StyleSheet.create({
   socialBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 13, // 16 - (30-24)/2 to align icons visually
     paddingTop: 12,
     paddingBottom: 8,
   },
@@ -242,7 +244,7 @@ const styles = StyleSheet.create({
     color: '#EEE',
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   postUsernameSmall: { fontWeight: '800', color: '#FFF' },
   habitName: { fontWeight: '800', color: '#C2FF05' },
@@ -275,10 +277,10 @@ const styles = StyleSheet.create({
     color: '#DDD',
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   commentsPreview: {
-    marginTop: 4,
+    marginTop: 6,
   },
   viewAllComments: {
     color: '#888',

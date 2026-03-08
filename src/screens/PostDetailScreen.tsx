@@ -176,7 +176,7 @@ export default function PostDetailScreen({ route, navigation }: any) {
             <FlatList
               data={comments}
               keyExtractor={c => c.id}
-              contentContainerStyle={{ padding: 20 }}
+              contentContainerStyle={{ paddingVertical: 20, paddingHorizontal: 16 }}
               renderItem={({ item }) => (
                 <View style={styles.commentItem}>
                   <PostIcon item={item} />
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   commentInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#2A2A35',
