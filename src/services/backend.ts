@@ -286,16 +286,7 @@ class Backend {
     const istDateObj = new Date(d.getTime() + istOffset);
     const date = istDateObj.toISOString().split('T')[0];
 
-    // Points logic
-    const { data: groupData } = await supabase.from('groups').select('*').eq('id', groupId).single();
-    const { data: habitObj } = await supabase.from('habits').select('*').eq('id', habitId).single();
-
-    let pointsDelta = 0;
-    if (groupData && habitObj) {
-      const ptsPerCat = groupData.settings?.pointsPerCategory || {};
-      const pts = Number(ptsPerCat[habitObj.category] || 10);
-      pointsDelta = existingLog ? -pts : pts;
-    }
+    // Recalculate points after adding/removing log below
 
     if (existingLog) {
       const { error } = await supabase
@@ -319,26 +310,94 @@ class Backend {
       if (error) throw new Error(error.message);
     }
 
-    // Update global points
-    if (pointsDelta !== 0) {
-      const { data: memberData } = await supabase
-        .from('members')
-        .select('total_points')
-        .eq('user_id', userId)
-        .eq('group_id', groupId)
-        .single();
-
-      const currentPoints = memberData?.total_points || 0;
-      await supabase
-        .from('members')
-        .update({ total_points: currentPoints + pointsDelta })
-        .eq('user_id', userId)
-        .eq('group_id', groupId);
-    }
-
+    // Update points
+    await this.recalculateUserPoints(userId, groupId);
     return this.getTodayLog(userId, groupId);
   }
 
+  async suspectLog(userId: string, logId: string): Promise<void> {
+    const { data: logData } = await supabase.from('logs').select('user_id, group_id').eq('id', logId).single();
+    if (!logData) return;
+
+    const { error } = await supabase
+      .from('suspects')
+      .upsert({ user_id: userId, log_id: logId, deleted_at: null }, { onConflict: 'user_id, log_id' });
+    if (error) throw new Error(error.message);
+
+    await this.recalculateUserPoints(logData.user_id, logData.group_id);
+  }
+
+  async unsuspectLog(userId: string, logId: string): Promise<void> {
+    const { data: logData } = await supabase.from('logs').select('user_id, group_id').eq('id', logId).single();
+    if (!logData) return;
+
+    const { error } = await supabase
+      .from('suspects')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .eq('log_id', logId);
+    if (error) throw new Error(error.message);
+
+    await this.recalculateUserPoints(logData.user_id, logData.group_id);
+  }
+
+  async recalculateUserPoints(userId: string, groupId: string): Promise<void> {
+    try {
+      const { data: groupData } = await supabase.from('groups').select('*').eq('id', groupId).single();
+      const { data: members } = await supabase
+        .from('members')
+        .select('user_id')
+        .eq('group_id', groupId)
+        .is('deleted_at', null);
+
+      const memberCount = (members || []).length;
+      const ptsPerCat = groupData?.settings?.pointsPerCategory || {};
+
+      const { data: logs } = await supabase
+        .from('logs')
+        .select('habits(category), suspects(user_id, deleted_at)')
+        .eq('user_id', userId)
+        .eq('group_id', groupId)
+        .is('deleted_at', null);
+
+      let totalPoints = 0;
+      (logs || []).forEach(log => {
+        const suspectsCount = (log.suspects || []).filter((s: any) => !s.deleted_at).length;
+        const isDisqualified = memberCount > 0 && suspectsCount >= memberCount / 2;
+
+        if (!isDisqualified) {
+          const habData: any = log.habits;
+          const category = (Array.isArray(habData) ? habData[0]?.category : habData?.category) || 'Health';
+          const pts = Number(ptsPerCat[category] || 10);
+          totalPoints += pts;
+        }
+      });
+
+      const { error } = await supabase
+        .from('members')
+        .update({ total_points: totalPoints })
+        .eq('user_id', userId)
+        .eq('group_id', groupId);
+
+      if (error) console.error('[recalculateUserPoints] Update error:', error.message);
+    } catch (e) {
+      console.error('[recalculateUserPoints] Error:', e);
+    }
+  }
+  async recalculateGroupPoints(groupId: string): Promise<void> {
+    try {
+      const { data: members } = await supabase
+        .from('members')
+        .select('user_id')
+        .eq('group_id', groupId)
+        .is('deleted_at', null);
+      if (!members) return;
+
+      await Promise.all(members.map(m => this.recalculateUserPoints(m.user_id, groupId)));
+    } catch (e) {
+      console.error('[recalculateGroupPoints] Error:', e);
+    }
+  }
   async likeLog(userId: string, logId: string): Promise<void> {
     const { error } = await supabase
       .from('likes')
@@ -383,6 +442,10 @@ class Backend {
   async getLeaderboard(
     groupId: string
   ): Promise<{ rank: number; userId: string; username: string; avatarUrl?: string; totalPoints: number }[]> {
+    // Force recalculate points for anyone in the group to fix stale values
+    // For small squad sizes this is fast and corrects for membership changes
+    await this.recalculateGroupPoints(groupId);
+
     const { data: members } = await supabase
       .from('members')
       .select('user_id, total_points, groups!inner(deleted_at)')
@@ -406,7 +469,18 @@ class Backend {
   }
 
   async getUserLogs(userId: string, groupId?: string): Promise<DailyLog[]> {
-    let query = supabase.from('logs').select('*').eq('user_id', userId).is('deleted_at', null);
+    let query = supabase
+      .from('logs')
+      .select(
+        `
+        *,
+        groups(members(user_id)),
+        suspects(user_id, deleted_at)
+      `
+      )
+      .eq('user_id', userId)
+      .is('deleted_at', null);
+
     if (groupId) query = query.eq('group_id', groupId);
     const { data: logs, error } = await query.order('date', { ascending: false });
 
@@ -419,6 +493,9 @@ class Backend {
       date: d.date,
       imageUrl: d.image_url,
       createdAt: d.created_at,
+      suspectsCount: d.suspects?.filter((s: any) => !s.deleted_at).length || 0,
+      isDisqualified:
+        (d.suspects?.filter((s: any) => !s.deleted_at).length || 0) >= (d.groups?.members?.length || 0) / 2,
     }));
   }
 
@@ -446,9 +523,10 @@ class Backend {
         `
         *,
         users(username, avatar_url),
-        groups(name),
+        groups(name, members(user_id)),
         habits(name, category),
         likes(user_id, deleted_at),
+        suspects(user_id, deleted_at),
         comments(id, text, user_id, created_at, deleted_at, users(username))
       `
       )
@@ -473,8 +551,12 @@ class Backend {
       date: log.date,
       timestamp: new Date(log.created_at).getTime(),
       likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
+      suspectsCount: log.suspects?.filter((s: any) => !s.deleted_at).length || 0,
       commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
       isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
+      isSuspected: log.suspects?.some((s: any) => s.user_id === userId && !s.deleted_at),
+      isDisqualified:
+        (log.suspects?.filter((s: any) => !s.deleted_at).length || 0) >= (log.groups?.members?.length || 0) / 2,
       commentsPreview: (log.comments || [])
         .filter((c: any) => !c.deleted_at)
         .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -493,9 +575,10 @@ class Backend {
         `
         *,
         users(username, avatar_url),
-        groups(name),
+        groups(name, members(user_id)),
         habits(name, category),
         likes(user_id, deleted_at),
+        suspects(user_id, deleted_at),
         comments(id, text, user_id, created_at, deleted_at, users(username))
       `
       )
@@ -519,8 +602,12 @@ class Backend {
       date: log.date,
       timestamp: new Date(log.created_at).getTime(),
       likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
+      suspectsCount: log.suspects?.filter((s: any) => !s.deleted_at).length || 0,
       commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
       isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
+      isSuspected: log.suspects?.some((s: any) => s.user_id === userId && !s.deleted_at),
+      isDisqualified:
+        (log.suspects?.filter((s: any) => !s.deleted_at).length || 0) >= (log.groups?.members?.length || 0) / 2,
       commentsPreview: (log.comments || [])
         .filter((c: any) => !c.deleted_at)
         .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
@@ -539,9 +626,10 @@ class Backend {
         `
         *,
         users(username, avatar_url),
-        groups(name),
+        groups(name, members(user_id)),
         habits(name, category),
         likes(user_id, deleted_at),
+        suspects(user_id, deleted_at),
         comments(id, text, user_id, created_at, deleted_at, users(username))
       `
       )
@@ -564,8 +652,12 @@ class Backend {
       date: log.date,
       timestamp: new Date(log.created_at).getTime(),
       likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
+      suspectsCount: log.suspects?.filter((s: any) => !s.deleted_at).length || 0,
       commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
       isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
+      isSuspected: log.suspects?.some((s: any) => s.user_id === userId && !s.deleted_at),
+      isDisqualified:
+        (log.suspects?.filter((s: any) => !s.deleted_at).length || 0) >= (log.groups?.members?.length || 0) / 2,
       commentsPreview: (log.comments || [])
         .filter((c: any) => !c.deleted_at)
         .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())

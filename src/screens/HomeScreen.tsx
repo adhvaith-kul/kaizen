@@ -83,6 +83,25 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
+  const handleSuspect = async (post: any) => {
+    if (!user) return;
+    try {
+      if (post.isSuspected) {
+        await backend.unsuspectLog(user.id, post.id);
+      } else {
+        await backend.suspectLog(user.id, post.id);
+      }
+
+      // Fetch fresh post data to handle complex disqualification logic
+      const updatedPost = await backend.getPostDetail(user.id, post.id);
+      if (updatedPost) {
+        setFeed(prev => prev.map(p => (p.id === post.id ? { ...p, ...updatedPost } : p)));
+      }
+    } catch (e) {
+      console.error('Suspect failed:', e);
+    }
+  };
+
   const handleOpenComments = async (postId: string) => {
     setActivePostId(postId);
     setCommentsVisible(true);
@@ -160,7 +179,13 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         ) : (
           feed.map(item => (
-            <PostCard key={item.id} post={item} onLike={handleLike} onOpenComments={handleOpenComments} />
+            <PostCard
+              key={item.id}
+              post={item}
+              onLike={handleLike}
+              onSuspect={handleSuspect}
+              onOpenComments={handleOpenComments}
+            />
           ))
         )}
       </ScrollView>

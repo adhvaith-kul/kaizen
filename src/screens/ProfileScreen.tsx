@@ -182,6 +182,24 @@ export default function ProfileScreen({ navigation }: any) {
     }
   };
 
+  const handleSuspect = async (post: any) => {
+    if (!user) return;
+    try {
+      if (post.isSuspected) {
+        await backend.unsuspectLog(user.id, post.id);
+      } else {
+        await backend.suspectLog(user.id, post.id);
+      }
+      // Fetch fresh post data
+      const updatedPost = await backend.getPostDetail(user.id, post.id);
+      if (updatedPost) {
+        setFeed(prev => prev.map(p => (p.id === post.id ? { ...p, ...updatedPost } : p)));
+      }
+    } catch (e) {
+      console.error('Suspect failed:', e);
+    }
+  };
+
   const handleOpenComments = async (postId: string) => {
     setActivePostId(postId);
     setCommentsVisible(true);
@@ -348,7 +366,13 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={styles.feedSection}>
             <Text style={[styles.sectionTitle, { paddingHorizontal: 20 }]}>YOUR POSTS</Text>
             {feed.map(item => (
-              <PostCard key={item.id} post={item} onLike={handleLike} onOpenComments={handleOpenComments} />
+              <PostCard
+                key={item.id}
+                post={item}
+                onLike={handleLike}
+                onSuspect={handleSuspect}
+                onOpenComments={handleOpenComments}
+              />
             ))}
           </View>
         )}
@@ -473,7 +497,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     height: 60,
     backgroundColor: '#0E0E11',
     borderBottomWidth: 1,
@@ -508,7 +532,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   topContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 10,
   },
   headerLogoutBtn: {

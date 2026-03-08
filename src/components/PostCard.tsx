@@ -7,10 +7,11 @@ const { width: WINDOW_WIDTH } = Dimensions.get('window');
 interface PostCardProps {
   post: any;
   onLike: (post: any) => void;
+  onSuspect: (post: any) => void;
   onOpenComments: (postId: string) => void;
 }
 
-export default function PostCard({ post, onLike, onOpenComments }: PostCardProps) {
+export default function PostCard({ post, onLike, onSuspect, onOpenComments }: PostCardProps) {
   return (
     <View style={styles.post}>
       <View style={styles.postHeader}>
@@ -43,29 +44,61 @@ export default function PostCard({ post, onLike, onOpenComments }: PostCardProps
       </View>
 
       <View style={styles.socialBar}>
-        <TouchableOpacity style={styles.socialBtn} onPress={() => onLike(post)}>
-          <Ionicons
-            name={post.isLiked ? 'heart' : 'heart-outline'}
-            size={26}
-            color={post.isLiked ? '#FF3366' : '#FFF'}
-          />
-        </TouchableOpacity>
+        <View style={styles.actionGroup}>
+          <TouchableOpacity style={styles.socialBtn} onPress={() => onLike(post)}>
+            <Ionicons
+              name={post.isLiked ? 'thumbs-up' : 'thumbs-up-outline'}
+              size={24}
+              color={post.isLiked ? '#C2FF05' : '#FFF'}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.socialBtn} onPress={() => onSuspect(post)}>
+            <Ionicons
+              name={post.isSuspected ? 'thumbs-down' : 'thumbs-down-outline'}
+              size={24}
+              color={post.isSuspected ? '#FF3366' : '#888'}
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={styles.socialBtn} onPress={() => onOpenComments(post.id)}>
           <Ionicons name="chatbubble-outline" size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.likesText}>{post.likesCount} likes</Text>
+      <View style={styles.statsBar}>
+        <Text style={styles.likesText}>
+          {post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}
+        </Text>
+        {post.suspectsCount > 0 && (
+          <>
+            <View style={styles.statDot} />
+            <Text style={[styles.suspectsText, post.isDisqualified && { color: '#FF3366' }]}>
+              {post.suspectsCount} {post.suspectsCount === 1 ? 'flag' : 'flags'}
+            </Text>
+          </>
+        )}
+      </View>
 
       <View style={styles.postFooter}>
-        <View style={styles.habitBadge}>
-          <Text style={styles.habitBadgeText}>{post.category.toUpperCase()}</Text>
+        <View style={[styles.habitBadge, post.isDisqualified && styles.disqualifiedBadge]}>
+          <Text style={[styles.habitBadgeText, post.isDisqualified && styles.disqualifiedBadgeText]}>
+            {post.isDisqualified ? 'DISQUALIFIED' : post.category.toUpperCase()}
+          </Text>
         </View>
 
-        <Text style={styles.postContent}>
+        {post.isDisqualified && (
+          <View style={styles.disqualifiedWarning}>
+            <Ionicons name="warning" size={16} color="#FF3366" />
+            <Text style={styles.disqualifiedWarningText}>Flagged by squad as suspicious activity.</Text>
+          </View>
+        )}
+
+        <Text style={[styles.postContent, post.isDisqualified && styles.disqualifiedText]}>
           <Text style={styles.postUsernameSmall}>{post.username}</Text> crushed their{' '}
-          <Text style={styles.habitName}>{post.habitName}</Text> goal! 🔥
+          <Text style={[styles.habitName, post.isDisqualified && styles.disqualifiedHabitName]}>{post.habitName}</Text>{' '}
+          goal! 🔥
         </Text>
 
         {post.caption ? (
@@ -112,7 +145,7 @@ const styles = StyleSheet.create({
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
   },
   postAvatar: {
@@ -146,24 +179,48 @@ const styles = StyleSheet.create({
   placeholderText: { color: '#444', fontSize: 14, fontWeight: '700', letterSpacing: 1 },
   socialBar: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
-    gap: 18,
   },
-  socialBtn: {
+  actionGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+  },
+  socialBtn: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statsBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 16,
+  },
+  statDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#666',
+    marginHorizontal: 10,
+    alignSelf: 'center',
   },
   likesText: {
     color: '#FFF',
     fontSize: 14,
     fontWeight: '800',
-    marginBottom: 10,
-    paddingHorizontal: 20,
+  },
+  suspectsText: {
+    color: '#999',
+    fontSize: 14,
+    fontWeight: '700',
   },
   postFooter: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   habitBadge: {
     alignSelf: 'flex-start',
@@ -189,6 +246,31 @@ const styles = StyleSheet.create({
   },
   postUsernameSmall: { fontWeight: '800', color: '#FFF' },
   habitName: { fontWeight: '800', color: '#C2FF05' },
+  disqualifiedText: {
+    color: '#555',
+    textDecorationLine: 'line-through',
+  },
+  disqualifiedHabitName: {
+    color: '#555',
+  },
+  disqualifiedBadge: {
+    backgroundColor: '#241313',
+    borderColor: '#FF336644',
+  },
+  disqualifiedBadgeText: {
+    color: '#FF3366',
+  },
+  disqualifiedWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  disqualifiedWarningText: {
+    color: '#FF3366',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   captionText: {
     color: '#DDD',
     fontSize: 14,

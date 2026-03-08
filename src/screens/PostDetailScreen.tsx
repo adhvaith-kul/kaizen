@@ -74,6 +74,22 @@ export default function PostDetailScreen({ route, navigation }: any) {
     }
   };
 
+  const handleSuspect = async (item: any) => {
+    if (!user) return;
+    try {
+      if (item.isSuspected) {
+        await backend.unsuspectLog(user.id, item.id);
+      } else {
+        await backend.suspectLog(user.id, item.id);
+      }
+      // Refresh post detail
+      const updatedPost = await backend.getPostDetail(user.id, item.id);
+      setPost(updatedPost);
+    } catch (e) {
+      console.error('Suspect failed:', e);
+    }
+  };
+
   const handleOpenComments = async (postId: string) => {
     setCommentsVisible(true);
     try {
@@ -138,7 +154,7 @@ export default function PostDetailScreen({ route, navigation }: any) {
         style={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C2FF05" />}
         contentContainerStyle={{ paddingBottom: 100 }}>
-        <PostCard post={post} onLike={handleLike} onOpenComments={handleOpenComments} />
+        <PostCard post={post} onLike={handleLike} onSuspect={handleSuspect} onOpenComments={handleOpenComments} />
       </ScrollView>
 
       {/* Comments Modal */}
