@@ -19,10 +19,12 @@ import { backend } from '../services/backend';
 import Loader from '../components/Loader';
 import { HabitComment as Comment } from '../types';
 import PostCard from '../components/PostCard';
+import { useTabNavigation } from '../context/TabNavigationContext';
 
 export default function PostDetailScreen({ route, navigation }: any) {
   const { logId } = route.params;
   const { user } = useAuth();
+  const { setActiveTab } = useTabNavigation();
   const [post, setPost] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -119,6 +121,14 @@ export default function PostDetailScreen({ route, navigation }: any) {
     }
   };
 
+  const handlePressUser = (id: string, name: string) => {
+    if (user?.id === id) {
+      setActiveTab('ProfileTab');
+    } else {
+      navigation.navigate('UserDetail', { userId: id, username: name });
+    }
+  };
+
   if (loading && !refreshing) {
     return <Loader fullScreen />;
   }
@@ -154,7 +164,13 @@ export default function PostDetailScreen({ route, navigation }: any) {
         style={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C2FF05" />}
         contentContainerStyle={{ paddingBottom: 100 }}>
-        <PostCard post={post} onLike={handleLike} onSuspect={handleSuspect} onOpenComments={handleOpenComments} />
+        <PostCard
+          post={post}
+          onLike={handleLike}
+          onSuspect={handleSuspect}
+          onOpenComments={handleOpenComments}
+          onPressUser={handlePressUser}
+        />
       </ScrollView>
 
       {/* Comments Modal */}

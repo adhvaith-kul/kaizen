@@ -101,7 +101,13 @@ export default function FriendsScreen({ navigation, route }: any) {
     return (
       <TouchableOpacity
         style={styles.userCard}
-        onPress={() => navigation.navigate('UserDetail', { userId: item.id, username: item.username })}>
+        onPress={() => {
+          if (isMe) {
+            setGlobalActiveTab('ProfileTab');
+          } else {
+            navigation.navigate('UserDetail', { userId: item.id, username: item.username });
+          }
+        }}>
         <Image source={{ uri: item.avatarUrl || dicebearUri(item.username) }} style={styles.avatar} />
         <View style={styles.userInfo}>
           <Text style={styles.username}>@{item.username}</Text>
