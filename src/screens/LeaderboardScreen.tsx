@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import HabitGateOverlay from '../components/HabitGateOverlay';
 import { Habit } from '../types';
+import { useTabNavigation } from '../context/TabNavigationContext';
 
 /** Returns list of missing requirement strings, empty = all good. */
 function getMissingRequirements(habits: Habit[], group: any): string[] {
@@ -26,6 +27,7 @@ function getMissingRequirements(habits: Habit[], group: any): string[] {
 
 export default function LeaderboardScreen({ navigation }: any) {
   const { group, user } = useAuth();
+  const { setActiveTab } = useTabNavigation();
   const [board, setBoard] = useState<
     { rank: number; userId: string; username: string; avatarUrl?: string; totalPoints: number }[]
   >([]);
@@ -118,7 +120,18 @@ export default function LeaderboardScreen({ navigation }: any) {
                       },
                     ]}
                     activeOpacity={0.8}
-                    onPress={() => navigation.navigate('UserDetail', { userId: item.userId, username: item.username })}>
+                    onPress={() => {
+                      if (isMe) {
+                        setActiveTab('ProfileTab');
+                      } else {
+                        navigation.navigate('UserLogs', {
+                          userId: item.userId,
+                          username: item.username,
+                          groupId: group?.id,
+                          groupName: group?.name,
+                        });
+                      }
+                    }}>
                     <View style={styles.rankContainer}>
                       <Text style={styles.rankText}>{getRankEmoji(item.rank)}</Text>
                     </View>

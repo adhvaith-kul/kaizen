@@ -132,8 +132,12 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
-  const handlePressUser = (userId: string, username: string) => {
-    navigation.navigate('UserDetail', { userId, username });
+  const handlePressUser = (id: string, name: string) => {
+    if (user?.id === id) {
+      setActiveTab('ProfileTab');
+    } else {
+      navigation.navigate('UserDetail', { userId: id, username: name });
+    }
   };
 
   if (loading && !refreshing) {

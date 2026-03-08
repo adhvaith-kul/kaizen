@@ -24,6 +24,7 @@ import UserDetailScreen from '../screens/UserDetailScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import EditGroupScreen from '../screens/EditGroupScreen';
 import FriendsScreen from '../screens/FriendsScreen';
+import UserLogsScreen from '../screens/UserLogsScreen';
 
 import { TabNavigationContext } from '../context/TabNavigationContext';
 
@@ -44,6 +45,7 @@ function FeedStackScreen() {
       <FeedStack.Screen name="UserDetail" component={UserDetailScreen} />
       <FeedStack.Screen name="PostDetail" component={PostDetailScreen} />
       <FeedStack.Screen name="Friends" component={FriendsScreen} />
+      <FeedStack.Screen name="UserLogs" component={UserLogsScreen} />
     </FeedStack.Navigator>
   );
 }
@@ -60,6 +62,7 @@ function SquadsStackScreen() {
       <SquadsStack.Screen name="PostDetail" component={PostDetailScreen} />
       <SquadsStack.Screen name="EditGroup" component={EditGroupScreen} />
       <SquadsStack.Screen name="Friends" component={FriendsScreen} />
+      <SquadsStack.Screen name="UserLogs" component={UserLogsScreen} />
     </SquadsStack.Navigator>
   );
 }
@@ -70,6 +73,7 @@ function FriendsStackScreen() {
       <FriendsStack.Screen name="FriendsRoot" component={FriendsScreen} initialParams={{ isTab: true }} />
       <FriendsStack.Screen name="UserDetail" component={UserDetailScreen} />
       <FriendsStack.Screen name="PostDetail" component={PostDetailScreen} />
+      <FriendsStack.Screen name="UserLogs" component={UserLogsScreen} />
     </FriendsStack.Navigator>
   );
 }
@@ -81,6 +85,7 @@ function ProfileStackScreen() {
       <ProfileStack.Screen name="Friends" component={FriendsScreen} />
       <ProfileStack.Screen name="UserDetail" component={UserDetailScreen} />
       <ProfileStack.Screen name="PostDetail" component={PostDetailScreen} />
+      <ProfileStack.Screen name="UserLogs" component={UserLogsScreen} />
     </ProfileStack.Navigator>
   );
 }

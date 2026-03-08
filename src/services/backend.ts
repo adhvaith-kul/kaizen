@@ -579,8 +579,8 @@ class Backend {
     }));
   }
 
-  async getUserFeed(userId: string): Promise<any[]> {
-    const { data: logs, error } = await supabase
+  async getUserFeed(userId: string, groupId?: string): Promise<any[]> {
+    let query = supabase
       .from('logs')
       .select(
         `
@@ -594,8 +594,13 @@ class Backend {
       `
       )
       .eq('user_id', userId)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+      .is('deleted_at', null);
+
+    if (groupId) {
+      query = query.eq('group_id', groupId);
+    }
+
+    const { data: logs, error } = await query.order('created_at', { ascending: false });
 
     if (error || !logs) return [];
 
