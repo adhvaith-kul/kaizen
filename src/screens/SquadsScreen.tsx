@@ -35,9 +35,9 @@ export default function SquadsScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.fixedHeader}>
-        <View>
-          <Text style={styles.greeting}>Good to see you,</Text>
-          <Text style={styles.title}>{user?.username}</Text>
+        <View style={styles.logoContainer}>
+          <Text style={styles.logo}>KAIZEN</Text>
+          <Text style={styles.motto}>SELF-IMPROVEMENT. GAMIFIED.</Text>
         </View>
         <TouchableOpacity onPress={() => setActiveTab('ProfileTab')}>
           <Image
@@ -115,8 +115,25 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1A1A24',
     zIndex: 10,
   },
-  greeting: { fontSize: 12, color: '#A0A0B0', fontWeight: '600' },
-  title: { fontSize: 24, fontWeight: '900', color: '#FFF', letterSpacing: -1, marginTop: 2 },
+  logoContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  logo: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFF',
+    letterSpacing: 1.5,
+    fontStyle: 'italic',
+    lineHeight: 26,
+  },
+  motto: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#C2FF05',
+    letterSpacing: 0.5,
+    marginTop: -2,
+  },
   avatar: {
     width: 32,
     height: 32,

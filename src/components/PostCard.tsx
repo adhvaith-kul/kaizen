@@ -9,24 +9,26 @@ interface PostCardProps {
   onLike: (post: any) => void;
   onSuspect: (post: any) => void;
   onOpenComments: (postId: string) => void;
+  onPressUser?: (userId: string, username: string) => void;
 }
-
-export default function PostCard({ post, onLike, onSuspect, onOpenComments }: PostCardProps) {
+export default function PostCard({ post, onLike, onSuspect, onOpenComments, onPressUser }: PostCardProps) {
   return (
     <View style={styles.post}>
       <View style={styles.postHeader}>
-        <Image
-          source={{
-            uri:
-              post.avatarUrl ||
-              `https://api.dicebear.com/9.x/micah/png?seed=${post.username}&backgroundColor=C2FF05&radius=50`,
-          }}
-          style={styles.postAvatar}
-        />
-        <View style={styles.postHeaderInfo}>
+        <TouchableOpacity onPress={() => onPressUser?.(post.userId, post.username)}>
+          <Image
+            source={{
+              uri:
+                post.avatarUrl ||
+                `https://api.dicebear.com/9.x/micah/png?seed=${post.username}&backgroundColor=C2FF05&radius=50`,
+            }}
+            style={styles.postAvatar}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.postHeaderInfo} onPress={() => onPressUser?.(post.userId, post.username)}>
           <Text style={styles.postUsername}>{post.username}</Text>
           <Text style={styles.postSquadName}>{post.groupName}</Text>
-        </View>
+        </TouchableOpacity>
         <Text style={styles.postDate}>
           {new Date(post.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
         </Text>
@@ -96,14 +98,20 @@ export default function PostCard({ post, onLike, onSuspect, onOpenComments }: Po
         )}
 
         <Text style={[styles.postContent, post.isDisqualified && styles.disqualifiedText]}>
-          <Text style={styles.postUsernameSmall}>{post.username}</Text> crushed their{' '}
+          <Text style={styles.postUsernameSmall} onPress={() => onPressUser?.(post.userId, post.username)}>
+            {post.username}
+          </Text>{' '}
+          crushed their{' '}
           <Text style={[styles.habitName, post.isDisqualified && styles.disqualifiedHabitName]}>{post.habitName}</Text>{' '}
           goal! 🔥
         </Text>
 
         {post.caption ? (
           <Text style={[styles.captionText, post.isDisqualified && styles.disqualifiedText]}>
-            <Text style={styles.postUsernameSmall}>{post.username}</Text> {post.caption}
+            <Text style={styles.postUsernameSmall} onPress={() => onPressUser?.(post.userId, post.username)}>
+              {post.username}
+            </Text>{' '}
+            {post.caption}
           </Text>
         ) : null}
 
