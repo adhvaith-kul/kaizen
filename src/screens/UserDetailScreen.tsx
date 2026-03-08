@@ -58,6 +58,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
     let displayPoints = 0;
 
     item.logs.forEach(log => {
+      if (log.isDisqualified) return;
       const h = habits.find(habit => habit.id === log.habitId);
       if (h && group?.settings?.pointsPerCategory?.[h.category]) {
         displayPoints += Number(group.settings.pointsPerCategory[h.category]);
@@ -100,12 +101,18 @@ export default function UserDetailScreen({ route, navigation }: any) {
                     )}
                     <View style={styles.habitTextContent}>
                       <Text style={styles.habitCategory}>{h ? h.category.toUpperCase() : '?'}</Text>
-                      <Text style={[styles.habitName, !h && { color: '#666', fontStyle: 'italic' }]}>
-                        {h ? h.name : '(Habit changed or deleted)'}
+                      <Text
+                        style={[
+                          styles.habitName,
+                          !h && { color: '#666', fontStyle: 'italic' },
+                          log.isDisqualified && { textDecorationLine: 'line-through', color: '#666' },
+                        ]}>
+                        {h ? h.name : '(Habit changed or deleted)'}{' '}
+                        {log.isDisqualified && <Text style={{ color: '#FF3366', fontSize: 10 }}>[DISQUALIFIED]</Text>}
                       </Text>
                     </View>
-                    <Text style={styles.habitPointValue}>
-                      +{h ? group?.settings?.pointsPerCategory?.[h.category] || 10 : 0}
+                    <Text style={[styles.habitPointValue, log.isDisqualified && { backgroundColor: '#331111' }]}>
+                      {log.isDisqualified ? '0' : `+${h ? group?.settings?.pointsPerCategory?.[h.category] || 10 : 0}`}
                     </Text>
                     <Ionicons name="chevron-forward" size={16} color="#444" />
                   </TouchableOpacity>
@@ -220,7 +227,7 @@ const styles = StyleSheet.create({
   emptyText: { color: '#666', fontSize: 18, fontWeight: '700' },
   logCard: {
     backgroundColor: '#1A1A24',
-    padding: 20,
+    padding: 16,
     borderRadius: 20,
     marginBottom: 15,
     borderWidth: 1,

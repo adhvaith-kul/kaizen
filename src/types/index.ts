@@ -47,6 +47,9 @@ export interface DailyLog {
   likesCount?: number;
   commentsCount?: number;
   isLiked?: boolean;
+  suspectsCount?: number;
+  isSuspected?: boolean;
+  isDisqualified?: boolean;
 }
 
 export interface Like {
