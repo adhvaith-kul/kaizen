@@ -213,7 +213,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
                   </View>
                 </View>
 
-                {feed.length > 0 && <Text style={styles.sectionTitle}>POSTS</Text>}
+                {feed.length > 0 && <Text style={styles.sectionTitle}>ACTIVITY</Text>}
               </View>
             )}
             renderItem={({ item }) => (
@@ -226,7 +226,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
             )}
             ListEmptyComponent={() => (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No posts yet 🍃</Text>
+                <Text style={styles.emptyText}>No activity yet 🍃</Text>
               </View>
             )}
             contentContainerStyle={{ paddingBottom: 100 }}
