@@ -14,6 +14,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
+import Loader from '../components/Loader';
+import { Category, GroupSettings } from '../types';
 
 export default function EditGroupScreen({ navigation, route }: any) {
   const { group } = route.params || {};
