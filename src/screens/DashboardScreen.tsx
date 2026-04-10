@@ -17,6 +17,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
 import { Habit, DailyLog } from '../types';
 import Loader from '../components/Loader';
@@ -36,6 +37,7 @@ function getMissingRequirements(habits: Habit[], group: any): string[] {
 
 export default function DashboardScreen({ navigation }: any) {
   const { user, group, logout } = useAuth();
+  const { showAlert } = useGlobalAlert();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [logs, setLogs] = useState<DailyLog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,7 +89,7 @@ export default function DashboardScreen({ navigation }: any) {
     if (!isCompleted) {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert('Permission needed', 'You need camera permissions to upload proof of your habit.');
+        showAlert('Permission needed', 'You need camera permissions to upload proof of your habit.');
         return;
       }
 
@@ -103,7 +105,7 @@ export default function DashboardScreen({ navigation }: any) {
       setPendingHabitId(habitId);
       setCaptionText('');
     } else {
-      Alert.alert(
+      showAlert(
         'Undo Completion?',
         `Are you sure? This will delete your photo proof and subtract ${points} points from your vibe score.`,
         [

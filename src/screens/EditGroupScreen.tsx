@@ -12,9 +12,8 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
-import { Category, GroupSettings } from '../types';
-import Loader from '../components/Loader';
 
 export default function EditGroupScreen({ navigation, route }: any) {
   const { group } = route.params || {};
@@ -30,6 +29,7 @@ export default function EditGroupScreen({ navigation, route }: any) {
     Object.fromEntries(Object.entries(group?.settings?.pointsPerCategory || {}).map(([k, v]) => [k, String(v)]))
   );
   const { user, refreshGroup, setActiveGroup } = useAuth();
+  const { showAlert } = useGlobalAlert();
 
   useEffect(() => {
     backend.getCategories().then(cats => {
@@ -76,17 +76,17 @@ export default function EditGroupScreen({ navigation, route }: any) {
       const updatedGroup = updatedGroups.find(g => g.id === group.id);
       if (updatedGroup) setActiveGroup(updatedGroup);
 
-      Alert.alert('Success', 'Squad settings updated! 🚀');
+      showAlert('Success', 'Squad settings updated! 🚀');
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('💀 Yikes', e.message);
+      showAlert('💀 Yikes', e.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = () => {
-    Alert.alert('DELETE SQUAD?', 'This will delete the squad and all logs for everyone. This cannot be undone. 💀', [
+    showAlert('DELETE SQUAD?', 'This will delete the squad and all logs for everyone. This cannot be undone. 💀', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'DELETE',
@@ -102,7 +102,7 @@ export default function EditGroupScreen({ navigation, route }: any) {
               routes: [{ name: 'SquadsRoot' }],
             });
           } catch (e: any) {
-            Alert.alert('Error', e.message);
+            showAlert('Error', e.message);
           } finally {
             setLoading(false);
           }
