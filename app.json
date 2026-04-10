@@ -27,6 +27,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
+      "icon": "./assets/icon.png",
       "config": {
         "description": "Kaizen - Build better habits",
         "themeColor": "#0E0E11"
