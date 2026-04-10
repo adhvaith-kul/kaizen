@@ -14,6 +14,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
+import Loader from '../components/Loader';
+import { Category } from '../types';
 
 export default function GroupScreen({ navigation }: any) {
   const [groupName, setGroupName] = useState('');
