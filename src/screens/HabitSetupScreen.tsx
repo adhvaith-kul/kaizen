@@ -14,6 +14,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
+import Loader from '../components/Loader';
+import { Category } from '../types';
+import { DEFAULT_CATEGORY_LABELS, CATEGORY_EMOJI_MAP } from '../config/categories';
 
 export default function HabitSetupScreen({ route, navigation }: any) {
   const { user, group, refreshGroup, setActiveGroup } = useAuth();
@@ -22,11 +25,11 @@ export default function HabitSetupScreen({ route, navigation }: any) {
   const pendingGroupJoin = route?.params?.pendingGroupJoin;
   const isPending = !!pendingGroupJoin;
 
-  let activeCategories = FALLBACK_CATEGORIES;
+  let activeCategories = DEFAULT_CATEGORY_LABELS;
   if (pendingGroupJoin) {
-    activeCategories = pendingGroupJoin.settings?.allowedCategories || FALLBACK_CATEGORIES;
+    activeCategories = pendingGroupJoin.settings?.allowedCategories || DEFAULT_CATEGORY_LABELS;
   } else if (group) {
-    activeCategories = group.settings?.allowedCategories || FALLBACK_CATEGORIES;
+    activeCategories = group.settings?.allowedCategories || DEFAULT_CATEGORY_LABELS;
   }
 
   const [habits, setHabits] = useState<Record<Category, string>>({});
