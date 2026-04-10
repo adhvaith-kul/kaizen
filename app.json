@@ -26,7 +26,11 @@
       "permissions": ["android.permission.RECORD_AUDIO"]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "config": {
+        "description": "Kaizen - Build better habits",
+        "themeColor": "#0E0E11"
+      }
     },
     "extra": {
       "eas": {
