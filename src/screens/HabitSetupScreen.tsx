@@ -12,16 +12,12 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
-import { Category } from '../types';
-import Loader from '../components/Loader';
-import { DEFAULT_CATEGORY_LABELS, CATEGORY_EMOJI_MAP } from '../config/categories';
-
-// Fallback used only until DB categories are loaded
-const FALLBACK_CATEGORIES: Category[] = DEFAULT_CATEGORY_LABELS;
 
 export default function HabitSetupScreen({ route, navigation }: any) {
   const { user, group, refreshGroup, setActiveGroup } = useAuth();
+  const { showAlert } = useGlobalAlert();
 
   const pendingGroupJoin = route?.params?.pendingGroupJoin;
   const isPending = !!pendingGroupJoin;
@@ -71,7 +67,7 @@ export default function HabitSetupScreen({ route, navigation }: any) {
       .filter(h => h.name.trim() !== '');
 
     if (payload.length === 0) {
-      Alert.alert('💀 Bruh', 'You gotta enter at least one habit.');
+      showAlert('💀 Bruh', 'You gotta enter at least one habit.');
       return;
     }
 
@@ -84,14 +80,14 @@ export default function HabitSetupScreen({ route, navigation }: any) {
         await backend.saveHabits(user.id, targetGroupId, payload);
         await refreshGroup();
         setActiveGroup(joinedGroup);
-        Alert.alert('W', 'You joined the squad and habits are locked in 🔒');
+        showAlert('W', 'You joined the squad and habits are locked in 🔒');
         navigation.reset({
           index: 2,
           routes: [{ name: 'SquadsRoot' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
         });
       } else if (group) {
         await backend.saveHabits(user.id, group.id, payload);
-        Alert.alert('W', 'Habits updated 🔒');
+        showAlert('W', 'Habits updated 🔒');
         if (route.params?.fromCreateGroup) {
           navigation.reset({
             index: 2,
@@ -104,7 +100,7 @@ export default function HabitSetupScreen({ route, navigation }: any) {
         }
       }
     } catch (e: any) {
-      Alert.alert('💀 Yikes', e.message);
+      showAlert('💀 Yikes', e.message);
     } finally {
       setSaving(false);
     }

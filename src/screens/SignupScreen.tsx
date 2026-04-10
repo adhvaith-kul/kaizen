@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalAlert } from '../context/AlertContext';
 import Loader from '../components/Loader';
 
 export default function SignupScreen({ navigation }: any) {
@@ -20,17 +21,18 @@ export default function SignupScreen({ navigation }: any) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
+  const { showAlert } = useGlobalAlert();
 
   const handleSignup = async () => {
     if (password.length < 6) {
-      Alert.alert('💀 Bruh', 'Password needs to be at least 6 characters.');
+      showAlert('💀 Bruh', 'Password needs to be at least 6 characters.');
       return;
     }
     setLoading(true);
     try {
       await signup(username, email, password);
     } catch (e: any) {
-      Alert.alert('💀 Bruh', e.message);
+      showAlert('💀 Bruh', e.message);
     } finally {
       setLoading(false);
     }

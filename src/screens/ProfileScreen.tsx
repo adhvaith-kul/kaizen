@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
 import { DailyLog, HabitComment as Comment } from '../types';
 import Loader from '../components/Loader';
@@ -32,6 +33,7 @@ const dicebearUri = (seed: string) =>
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, groups, refreshUser, logout } = useAuth();
+  const { showAlert } = useGlobalAlert();
   const [stats, setStats] = useState({ totalHabits: 0, totalDaysLogged: 0 });
   const [followStats, setFollowStats] = useState({ following: 0, followers: 0 });
   const [graphData, setGraphData] = useState<any[]>([]);
@@ -123,7 +125,7 @@ export default function ProfileScreen({ navigation }: any) {
     if (fromCamera) {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Camera access is required to take a photo.');
+        showAlert('Permission needed', 'Camera access is required to take a photo.');
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -134,7 +136,7 @@ export default function ProfileScreen({ navigation }: any) {
     } else {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Photo library access is required to choose a photo.');
+        showAlert('Permission needed', 'Photo library access is required to choose a photo.');
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -158,7 +160,7 @@ export default function ProfileScreen({ navigation }: any) {
       await backend.updateUserAvatar(user.id, publicUrl);
       await refreshUser();
     } catch (e: any) {
-      Alert.alert('Upload failed', e?.message || 'Something went wrong. Please try again.');
+      showAlert('Upload failed', e?.message || 'Something went wrong. Please try again.');
     } finally {
       setUploading(false);
     }
