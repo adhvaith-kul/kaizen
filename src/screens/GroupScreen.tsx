@@ -12,10 +12,8 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
-import { Category } from '../types';
-import Loader from '../components/Loader';
-import { DEFAULT_CATEGORY_LABELS } from '../config/categories';
 
 export default function GroupScreen({ navigation }: any) {
   const [groupName, setGroupName] = useState('');
@@ -28,6 +26,7 @@ export default function GroupScreen({ navigation }: any) {
   const [habitsPerCat, setHabitsPerCat] = useState<Partial<Record<Category, string>>>({});
   const [pointsPerCat, setPointsPerCat] = useState<Partial<Record<Category, string>>>({});
   const { user, refreshGroup, logout, setActiveGroup } = useAuth();
+  const { showAlert } = useGlobalAlert();
 
   // Fetch categories from DB on mount
   useEffect(() => {
@@ -69,7 +68,7 @@ export default function GroupScreen({ navigation }: any) {
       await refreshGroup();
       setActiveGroup(newGroup);
 
-      Alert.alert('Success', "Squad created! Let's set up your goals first. 🔒", [
+      showAlert('Success', "Squad created! Let's set up your goals first. 🔒", [
         {
           text: 'LFG',
           onPress: () => {
@@ -78,7 +77,7 @@ export default function GroupScreen({ navigation }: any) {
         },
       ]);
     } catch (e: any) {
-      Alert.alert('💀 Yikes', e.message);
+      showAlert('💀 Yikes', e.message);
     } finally {
       setLoading(false);
     }
@@ -93,7 +92,7 @@ export default function GroupScreen({ navigation }: any) {
       // Navigate to HabitSetup with this pending group
       navigation.navigate('HabitSetup', { pendingGroupJoin: groupToJoin });
     } catch (e: any) {
-      Alert.alert('💀 Yikes', e.message);
+      showAlert('💀 Yikes', e.message);
     } finally {
       setLoading(false);
     }
