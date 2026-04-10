@@ -74,7 +74,7 @@ export default function SignupScreen({ navigation }: any) {
           </View>
 
           <TouchableOpacity style={styles.primaryBtn} onPress={handleSignup}>
-            <Text style={styles.primaryBtnText}>VIBE CHECK PASSED 💅</Text>
+            <Text style={styles.primaryBtnText}>VIBE CHECK PASSED</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Login')}>
