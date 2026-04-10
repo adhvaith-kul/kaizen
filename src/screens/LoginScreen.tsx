@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalAlert } from '../context/AlertContext';
 import Loader from '../components/Loader';
 
 export default function LoginScreen({ navigation }: any) {
@@ -19,13 +20,14 @@ export default function LoginScreen({ navigation }: any) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const { showAlert } = useGlobalAlert();
 
   const handleLogin = async () => {
     setLoading(true);
     try {
       await login(email, password);
     } catch (e: any) {
-      Alert.alert('💀 Yikes', e.message);
+      showAlert('💀 Yikes', e.message);
     } finally {
       setLoading(false);
     }
