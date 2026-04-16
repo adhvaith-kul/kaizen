@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import * as Linking from 'expo-linking';
 import { backend } from '../services/backend';
-import { StatusBar, Text, View, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
+import { StatusBar, Text, View, StyleSheet, Animated, Dimensions, TouchableOpacity, Platform } from 'react-native';
 
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
@@ -236,25 +236,76 @@ const VibeTheme = {
   },
 };
 
+// ── PWA DEEP LINK INTERCEPT ───────────────────────────────────────
+// We intercept the link BEFORE React Navigation inits to avoid "Not Found"
+// errors if the user is not logged in / the screens aren't mounted.
+let initialWebUrl: string | null = null;
+if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  initialWebUrl = window.location.href;
+  if (window.location.pathname.includes('/join/')) {
+    window.history.replaceState({}, '', '/');
+  }
+}
+// ──────────────────────────────────────────────────────────────────
+
 function DeepLinkHandler() {
-  const { user } = useAuth();
+  const { user, groups, setActiveGroup } = useAuth();
   const { showAlert } = useGlobalAlert();
   const navigation = useNavigation<any>();
+
+  // Use refs so async callbacks always read the latest values,
+  // avoiding stale-closure bugs when groups load after the timeout fires.
+  const groupsRef = React.useRef(groups);
+  groupsRef.current = groups;
+  const processedRef = React.useRef(false);
 
   React.useEffect(() => {
     const handleUrl = async (url: string | null) => {
       if (!url || !user) return;
 
-      const { path } = Linking.parse(url);
-      // On some platforms path might be nested, checking startsWith and split
-      const isJoinPath = path?.includes('join/');
-      if (isJoinPath) {
-        const parts = path.split('join/');
-        const code = parts[parts.length - 1];
+      let code = '';
 
-        if (code) {
-          try {
-            const groupToJoin = await backend.getGroupByCode(code);
+      // Fallback manual parse for web, as Linking.parse can strip paths in edge cases
+      if (Platform.OS === 'web' && url.includes('/join/')) {
+        const parts = url.split('/join/');
+        code = parts[parts.length - 1];
+      } else {
+        const fullUrl = url.includes('://') ? url : Linking.createURL(url);
+        const parsed = Linking.parse(fullUrl);
+
+        if (parsed.path?.includes('join/')) {
+          code = parsed.path.split('join/')[1];
+        } else if (parsed.queryParams?.code) {
+          code = String(parsed.queryParams.code);
+        }
+      }
+
+      if (code) {
+        // Normalize: strip trailing slash/query params, uppercase for case-insensitive match
+        code = code.split('?')[0].split('/')[0].toUpperCase();
+        // Consume the initial web URL so we don't re-trigger it endlessly
+        initialWebUrl = null;
+        processedRef.current = true;
+
+        try {
+          const groupToJoin = await backend.getGroupByCode(code);
+          // Read latest groups from ref (may have loaded while the API call was in-flight)
+          const currentGroups = groupsRef.current;
+          const alreadyJoined = currentGroups.some(g => g.id === groupToJoin.id);
+
+          if (alreadyJoined) {
+            // Already in the squad — jump straight to standings
+            const existingGroup = currentGroups.find(g => g.id === groupToJoin.id);
+            if (existingGroup) setActiveGroup(existingGroup);
+
+            navigation.navigate('MainTabs', {
+              screen: 'SquadsTab',
+              params: {
+                screen: 'Leaderboard',
+              },
+            });
+          } else {
+            // Not a member yet — prompt to join
             showAlert('Join Squad? 🤝', `Do you want to join "${groupToJoin.name}"?`, [
               { text: 'Cancel', style: 'cancel' },
               {
@@ -270,17 +321,47 @@ function DeepLinkHandler() {
                 },
               },
             ]);
-          } catch (e: any) {
-            showAlert('💀 Yikes', e.message);
           }
+        } catch (e: any) {
+          showAlert('Invite Failed', `Couldn't find an active squad for code: ${code}.`);
+          console.log('[DeepLinkHandler] Join error:', e.message);
         }
       }
     };
 
-    Linking.getInitialURL().then(handleUrl);
+    // Delay processing slightly to ensure MainTabs has mounted after login
+    const processInitialUrl = () => {
+      if (processedRef.current) return; // Already handled — don't fire again
+      setTimeout(() => {
+        if (processedRef.current) return;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          handleUrl(initialWebUrl || window.location.href);
+        } else {
+          Linking.getInitialURL().then(handleUrl);
+        }
+      }, 500);
+    };
+
+    if (user) {
+      processInitialUrl();
+    }
+
+    // Standard listener (handles links opened while app is already running)
     const sub = Linking.addEventListener('url', event => handleUrl(event.url));
-    return () => sub.remove();
-  }, [user, navigation, showAlert]);
+
+    // Web: catch browser back/forward navigation
+    let webSub: any;
+    if (Platform.OS === 'web') {
+      const handlePopState = () => handleUrl(window.location.href);
+      window.addEventListener('popstate', handlePopState);
+      webSub = { remove: () => window.removeEventListener('popstate', handlePopState) };
+    }
+
+    return () => {
+      sub.remove();
+      if (webSub) webSub.remove();
+    };
+  }, [user, groups, navigation, showAlert, setActiveGroup]);
 
   return null;
 }

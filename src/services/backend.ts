@@ -1,4 +1,4 @@
-import { Share } from 'react-native';
+import { Share, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { supabase } from './supabaseClient';
 import { User, Group, Habit, DailyLog, Category, GroupSettings, HabitComment as Comment } from '../types';
@@ -863,7 +863,16 @@ class Backend {
   // ── SQUAD INVITE SHARE ──────────────────────────────────────────────
 
   async shareSquadInvite(group: Group): Promise<void> {
-    const joinUrl = Linking.createURL(`join/${group.code}`);
+    let joinUrl = '';
+    
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      // If we are on web (PWA), use the actual deployed domain URL
+      joinUrl = `${window.location.origin}/join/${group.code}`;
+    } else {
+      // If we are on native (iOS/Android), use Expo's linking to create a deep link
+      joinUrl = Linking.createURL(`join/${group.code}`);
+    }
+
     const message =
       `🏆 Join my squad "${group.name}" on KAIZEN!\n\n` +
       `Tap this link to join directly:\n${joinUrl}\n\n` +
