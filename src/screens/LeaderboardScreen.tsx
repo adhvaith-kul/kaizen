@@ -78,11 +78,20 @@ export default function LeaderboardScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.homeBtn}>
           <Text style={styles.homeBtnText}>← SQUADS</Text>
         </TouchableOpacity>
-        {group?.createdBy === user?.id && (
-          <TouchableOpacity onPress={() => navigation.navigate('EditGroup', { group })} style={styles.manageBtn}>
-            <Text style={styles.manageBtnText}>MANAGE ⚙️</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.topBarActions}>
+          {group && (
+            <TouchableOpacity
+              style={styles.shareBtn}
+              onPress={() => backend.shareSquadInvite(group)}>
+              <Text style={styles.shareBtnText}>📤 INVITE</Text>
+            </TouchableOpacity>
+          )}
+          {group?.createdBy === user?.id && (
+            <TouchableOpacity onPress={() => navigation.navigate('EditGroup', { group })} style={styles.manageBtn}>
+              <Text style={styles.manageBtnText}>MANAGE ⚙️</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Squad header — always visible */}
@@ -178,6 +187,16 @@ const styles = StyleSheet.create({
   },
   homeBtn: { padding: 5, marginLeft: -5 },
   homeBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
+  topBarActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  shareBtn: {
+    backgroundColor: '#1A1A24',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#2A2A35',
+  },
+  shareBtnText: { color: '#C2FF05', fontWeight: '800', fontSize: 12, letterSpacing: 0.5 },
   manageBtn: { padding: 5, marginRight: -5 },
   manageBtnText: { color: '#C2FF05', fontWeight: '800', letterSpacing: 1 },
 

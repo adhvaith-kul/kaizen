@@ -1,7 +1,18 @@
+import { Share } from 'react-native';
+import * as Linking from 'expo-linking';
 import { supabase } from './supabaseClient';
 import { User, Group, Habit, DailyLog, Category, GroupSettings, HabitComment as Comment } from '../types';
 import { CategoryMeta, DEFAULT_CATEGORIES } from '../config/categories';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
+
+// Solve "neither webcryptoapi nor a crypto module is available" for Expo/React Native
+bcrypt.setRandomFallback((len: number) => {
+  const array = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    array[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(array);
+});
 
 const generateCode = () => Math.random().toString(36).substr(2, 6).toUpperCase();
 
@@ -24,7 +35,11 @@ class Backend {
     if (existing) throw new Error('User already exists');
 
     // Hash the password before storing
-    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+    let hashedPassword = null;
+    if (password && typeof password === 'string') {
+      const salt = await bcrypt.genSalt(10);
+      hashedPassword = await bcrypt.hash(password, salt);
+    }
 
     const { data, error } = await supabase
       .from('users')
@@ -42,8 +57,8 @@ class Backend {
     if (!data) throw new Error('Invalid credentials');
 
     // Verify the password against the stored hash
-    if (data.password) {
-      const isMatch = await bcrypt.compare(password || '', data.password);
+    if (data.password && password) {
+      const isMatch = await bcrypt.compare(String(password), String(data.password));
       if (!isMatch) throw new Error('Invalid credentials');
     } else if (password) {
       // User has no password set but one was provided
@@ -843,6 +858,21 @@ class Backend {
       email: u.email,
       avatarUrl: u.avatar_url ?? undefined,
     }));
+  }
+
+  // ── SQUAD INVITE SHARE ──────────────────────────────────────────────
+
+  async shareSquadInvite(group: Group): Promise<void> {
+    const joinUrl = Linking.createURL(`join/${group.code}`);
+    const message =
+      `🏆 Join my squad "${group.name}" on KAIZEN!\n\n` +
+      `Tap this link to join directly:\n${joinUrl}\n\n` +
+      `Invite Code: ${group.code}`;
+
+    await Share.share({
+      message,
+      title: `Join ${group.name} on KAIZEN`,
+    });
   }
 }
 

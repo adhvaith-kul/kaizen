@@ -9,6 +9,9 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalAlert } from '../context/AlertContext';
+import * as Linking from 'expo-linking';
+import { backend } from '../services/backend';
 import { StatusBar, Text, View, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
 
 import LoginScreen from '../screens/LoginScreen';
@@ -233,6 +236,55 @@ const VibeTheme = {
   },
 };
 
+function DeepLinkHandler() {
+  const { user } = useAuth();
+  const { showAlert } = useGlobalAlert();
+  const navigation = useNavigation<any>();
+
+  React.useEffect(() => {
+    const handleUrl = async (url: string | null) => {
+      if (!url || !user) return;
+
+      const { path } = Linking.parse(url);
+      // On some platforms path might be nested, checking startsWith and split
+      const isJoinPath = path?.includes('join/');
+      if (isJoinPath) {
+        const parts = path.split('join/');
+        const code = parts[parts.length - 1];
+
+        if (code) {
+          try {
+            const groupToJoin = await backend.getGroupByCode(code);
+            showAlert('Join Squad? 🤝', `Do you want to join "${groupToJoin.name}"?`, [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'JOIN',
+                onPress: () => {
+                  navigation.navigate('MainTabs', {
+                    screen: 'SquadsTab',
+                    params: {
+                      screen: 'HabitSetup',
+                      params: { pendingGroupJoin: groupToJoin },
+                    },
+                  });
+                },
+              },
+            ]);
+          } catch (e: any) {
+            showAlert('💀 Yikes', e.message);
+          }
+        }
+      }
+    };
+
+    Linking.getInitialURL().then(handleUrl);
+    const sub = Linking.addEventListener('url', event => handleUrl(event.url));
+    return () => sub.remove();
+  }, [user, navigation, showAlert]);
+
+  return null;
+}
+
 export default function AppNavigator() {
   const { user } = useAuth();
 
@@ -240,6 +292,7 @@ export default function AppNavigator() {
     <>
       <StatusBar barStyle="light-content" />
       <NavigationContainer theme={VibeTheme}>
+        <DeepLinkHandler />
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {!user ? (
             <>

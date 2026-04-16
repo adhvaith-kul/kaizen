@@ -129,7 +129,14 @@ export default function EditGroupScreen({ navigation, route }: any) {
           <Text style={styles.desc}>Customise your domain.</Text>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>SQUAD NAME</Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>SQUAD NAME</Text>
+              <TouchableOpacity
+                style={styles.shareBtnInline}
+                onPress={() => backend.shareSquadInvite(group)}>
+                <Text style={styles.shareBtnTextInline}>📤 SHARE INVITE</Text>
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Squad name"
@@ -248,7 +255,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A2A35',
   },
-  cardTitle: { color: '#B388FF', fontSize: 14, fontWeight: '800', marginBottom: 16, letterSpacing: 1 },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardTitle: { color: '#B388FF', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
+  shareBtnInline: {
+    backgroundColor: '#C2FF05',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  shareBtnTextInline: { color: '#000', fontWeight: '900', fontSize: 10, letterSpacing: 0.5 },
   input: {
     backgroundColor: '#0E0E11',
     color: '#FFF',
