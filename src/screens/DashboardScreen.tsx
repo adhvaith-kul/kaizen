@@ -7,7 +7,6 @@ import {
   ScrollView,
   RefreshControl,
   SafeAreaView,
-  Alert,
   Image,
   Modal,
   TextInput,

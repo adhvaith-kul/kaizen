@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
-  Alert,
   TextInput,
   KeyboardAvoidingView,
   FlatList,

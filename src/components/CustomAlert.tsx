@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal } from 'react-native';
 
 interface AlertButton {
   text: string;
@@ -16,24 +16,34 @@ interface CustomAlertProps {
 }
 
 export default function CustomAlert({ visible, title, message, onClose, buttons }: CustomAlertProps) {
-  const [fadeAnim] = React.useState(new Animated.Value(0));
+  const [scaleAnim] = React.useState(new Animated.Value(0.88));
+  const [opacityAnim] = React.useState(new Animated.Value(0));
 
   React.useEffect(() => {
     if (visible) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 200,
+          friction: 18,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } else {
-      fadeAnim.setValue(0);
+      scaleAnim.setValue(0.88);
+      opacityAnim.setValue(0);
     }
   }, [visible]);
 
   const handleButtonPress = (onPress?: () => void) => {
     onClose();
     if (onPress) {
-      setTimeout(() => onPress(), 100); // Small delay to let modal close
+      setTimeout(() => onPress(), 100);
     }
   };
 
@@ -49,63 +59,88 @@ export default function CustomAlert({ visible, title, message, onClose, buttons 
     return (
       <View style={styles.buttonRow}>
         {buttons.map((btn, i) => (
-          <TouchableOpacity 
-            key={i} 
-            style={[styles.button, btn.style === 'cancel' && styles.cancelBtn, buttons.length > 1 && styles.flexBtn]} 
+          <TouchableOpacity
+            key={i}
+            style={[
+              styles.button,
+              btn.style === 'cancel' && styles.cancelBtn,
+              btn.style === 'destructive' && styles.destructiveBtn,
+              buttons.length > 1 && styles.flexBtn,
+            ]}
             onPress={() => handleButtonPress(btn.onPress)}
           >
-            <Text style={[styles.buttonText, btn.style === 'cancel' && styles.cancelBtnText]}>{btn.text.toUpperCase()}</Text>
+            <Text
+              style={[
+                styles.buttonText,
+                btn.style === 'cancel' && styles.cancelBtnText,
+                btn.style === 'destructive' && styles.destructiveBtnText,
+              ]}
+            >
+              {btn.text.toUpperCase()}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
     );
   };
 
-  if (!visible) return null;
-
   return (
-    <View style={styles.overlay}>
-      <Animated.View style={[styles.alertBox, { opacity: fadeAnim, transform: [{ scale: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.message}>{message}</Text>
-        {renderButtons()}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
+        <Animated.View style={[styles.alertBox, { transform: [{ scale: scaleAnim }] }]}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.message}>{message}</Text>
+          {renderButtons()}
+        </Animated.View>
       </Animated.View>
-    </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    zIndex: 9999,
+    padding: 24,
   },
   alertBox: {
     backgroundColor: '#1A1A24',
     borderRadius: 24,
-    padding: 24,
+    padding: 28,
     width: '100%',
     maxWidth: 340,
     borderWidth: 1,
     borderColor: '#2A2A35',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    elevation: 20,
   },
   title: {
     fontSize: 20,
     fontWeight: '900',
     color: '#FFF',
-    marginBottom: 12,
+    marginBottom: 10,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   message: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#A0A0B0',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
+    fontWeight: '500',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -126,13 +161,19 @@ const styles = StyleSheet.create({
   cancelBtn: {
     backgroundColor: '#2A2A35',
   },
+  destructiveBtn: {
+    backgroundColor: '#FF3366',
+  },
   buttonText: {
     color: '#000',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     letterSpacing: 1,
   },
   cancelBtnText: {
+    color: '#FFF',
+  },
+  destructiveBtnText: {
     color: '#FFF',
   },
 });
