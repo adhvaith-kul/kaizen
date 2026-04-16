@@ -485,8 +485,17 @@ class Backend {
       totalPoints: m.total_points || 0,
     }));
 
-    board.sort((a, b) => b.totalPoints - a.totalPoints);
-    return board.map((item, index) => ({ rank: index + 1, ...item }));
+    // Sort: points descending, then username ascending for alphabetical tie-breaking
+    board.sort((a, b) => b.totalPoints - a.totalPoints || a.username.localeCompare(b.username));
+
+    // Standard competition ranking: 1,2,2,4 (tied players share a rank, next rank skips)
+    let rank = 1;
+    return board.map((item, index) => {
+      if (index > 0 && item.totalPoints < board[index - 1].totalPoints) {
+        rank = index + 1;
+      }
+      return { rank, ...item };
+    });
   }
 
   async getUserLogs(userId: string, groupId?: string): Promise<DailyLog[]> {
