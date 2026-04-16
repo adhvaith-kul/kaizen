@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useScrollToTop } from '@react-navigation/native';
+import { useScrollToTop, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
@@ -53,9 +53,13 @@ export default function HomeScreen({ navigation }: any) {
     }
   }, [user]);
 
-  useEffect(() => {
-    fetchFeed();
-  }, [fetchFeed]);
+  useFocusEffect(
+    useCallback(() => {
+      // Only show full-screen loader on the very first load
+      // Subsequent tab focuses do a silent background refresh
+      fetchFeed();
+    }, [fetchFeed])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

@@ -355,14 +355,35 @@ class Backend {
 
       const { data: logs } = await supabase
         .from('logs')
-        .select('habits(category), suspects(user_id, deleted_at)')
+        .select('id, habits(category)')
         .eq('user_id', userId)
         .eq('group_id', groupId)
         .is('deleted_at', null);
 
+      if (!logs || logs.length === 0) {
+        await supabase
+          .from('members')
+          .update({ total_points: 0 })
+          .eq('user_id', userId)
+          .eq('group_id', groupId);
+        return;
+      }
+
+      const logIds = logs.map((l: any) => l.id);
+      const { data: suspects } = await supabase
+        .from('suspects')
+        .select('log_id, user_id, deleted_at')
+        .in('log_id', logIds)
+        .is('deleted_at', null);
+
+      const suspectsByLog: Record<string, number> = {};
+      for (const s of suspects || []) {
+        suspectsByLog[s.log_id] = (suspectsByLog[s.log_id] || 0) + 1;
+      }
+
       let totalPoints = 0;
-      (logs || []).forEach(log => {
-        const suspectsCount = (log.suspects || []).filter((s: any) => !s.deleted_at).length;
+      logs.forEach((log: any) => {
+        const suspectsCount = suspectsByLog[log.id] || 0;
         const isDisqualified = memberCount > 0 && suspectsCount >= memberCount / 2;
 
         if (!isDisqualified) {
@@ -474,8 +495,7 @@ class Backend {
       .select(
         `
         *,
-        groups(members(user_id)),
-        suspects(user_id, deleted_at)
+        groups(members(user_id))
       `
       )
       .eq('user_id', userId)
@@ -485,7 +505,21 @@ class Backend {
     const { data: logs, error } = await query.order('date', { ascending: false });
 
     if (error) throw new Error(error.message);
-    return (logs || []).map(d => ({
+    if (!logs || logs.length === 0) return [];
+
+    const logIds = logs.map((l: any) => l.id);
+    const { data: suspects } = await supabase
+      .from('suspects')
+      .select('log_id, user_id, deleted_at')
+      .in('log_id', logIds)
+      .is('deleted_at', null);
+
+    const suspectsByLog: Record<string, number> = {};
+    for (const s of suspects || []) {
+      suspectsByLog[s.log_id] = (suspectsByLog[s.log_id] || 0) + 1;
+    }
+
+    return logs.map((d: any) => ({
       id: d.id,
       userId: d.user_id,
       groupId: d.group_id,
@@ -493,10 +527,11 @@ class Backend {
       date: d.date,
       imageUrl: d.image_url,
       createdAt: d.created_at,
-      suspectsCount: d.suspects?.filter((s: any) => !s.deleted_at).length || 0,
+      suspectsCount: suspectsByLog[d.id] || 0,
       isDisqualified:
-        (d.suspects?.filter((s: any) => !s.deleted_at).length || 0) >= (d.groups?.members?.length || 0) / 2,
+        (suspectsByLog[d.id] || 0) >= (d.groups?.members?.length || 0) / 2,
     }));
+
   }
 
   async getProfileStats(
@@ -528,55 +563,72 @@ class Backend {
     if (!memberOf || memberOf.length === 0) return [];
     const groupIds = memberOf.map(m => m.group_id);
 
-    const { data: logs, error } = await supabase
-      .from('logs')
-      .select(
+    const [logsResult, suspectsResult] = await Promise.all([
+      supabase
+        .from('logs')
+        .select(
+          `
+          *,
+          users(username, avatar_url),
+          groups(name, members(user_id)),
+          habits(name, category),
+          likes(user_id, deleted_at),
+          comments(id, text, user_id, created_at, deleted_at, users(username))
         `
-        *,
-        users(username, avatar_url),
-        groups(name, members(user_id)),
-        habits(name, category),
-        likes(user_id, deleted_at),
-        suspects(user_id, deleted_at),
-        comments(id, text, user_id, created_at, deleted_at, users(username))
-      `
-      )
-      .in('group_id', groupIds)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(50);
+        )
+        .in('group_id', groupIds)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('suspects')
+        .select('log_id, user_id, deleted_at')
+        .is('deleted_at', null),
+    ]);
 
+    const { data: logs, error } = logsResult;
     if (error || !logs) return [];
 
-    return logs.map(log => ({
-      id: log.id,
-      userId: log.user_id,
-      username: log.users.username,
-      avatarUrl: log.users.avatar_url,
-      groupName: log.groups.name,
-      groupId: log.group_id,
-      habitName: log.habits.name,
-      category: log.habits.category,
-      imageUrl: log.image_url,
-      caption: log.caption,
-      date: log.date,
-      timestamp: new Date(log.created_at).getTime(),
-      likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
-      suspectsCount: log.suspects?.filter((s: any) => !s.deleted_at).length || 0,
-      commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
-      isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
-      isSuspected: log.suspects?.some((s: any) => s.user_id === userId && !s.deleted_at),
-      isDisqualified:
-        (log.suspects?.filter((s: any) => !s.deleted_at).length || 0) >= (log.groups?.members?.length || 0) / 2,
-      commentsPreview: (log.comments || [])
-        .filter((c: any) => !c.deleted_at)
-        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        .slice(-2)
-        .map((c: any) => ({
-          username: c.users.username,
-          text: c.text,
-        })),
-    }));
+    const suspectsByLog: Record<string, { user_id: string; deleted_at: string | null }[]> = {};
+    for (const s of suspectsResult.data || []) {
+      if (!suspectsByLog[s.log_id]) suspectsByLog[s.log_id] = [];
+      suspectsByLog[s.log_id].push(s);
+    }
+
+    return logs
+      .filter(log => log.habits && log.users)
+      .map(log => {
+        const suspects = suspectsByLog[log.id] || [];
+        const memberCount = log.groups?.members?.length || 0;
+        return {
+          id: log.id,
+          userId: log.user_id,
+          username: log.users.username,
+          avatarUrl: log.users.avatar_url,
+          groupName: log.groups?.name ?? '',
+          groupId: log.group_id,
+          habitName: log.habits?.name ?? 'Habit',
+          category: log.habits?.category ?? 'Health',
+          imageUrl: log.image_url,
+          caption: log.caption,
+          date: log.date,
+          timestamp: new Date(log.created_at).getTime(),
+          likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
+          suspectsCount: suspects.length,
+          commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
+          isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
+          isSuspected: suspects.some(s => s.user_id === userId),
+          isDisqualified: memberCount > 0 && suspects.length >= memberCount / 2,
+          commentsPreview: (log.comments || [])
+            .filter((c: any) => !c.deleted_at)
+            .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            .slice(-2)
+            .map((c: any) => ({
+              username: c.users?.username ?? '',
+              text: c.text,
+            })),
+        };
+      });
   }
 
   async getUserFeed(userId: string, groupId?: string): Promise<any[]> {
@@ -589,7 +641,6 @@ class Backend {
         groups(name, members(user_id)),
         habits(name, category),
         likes(user_id, deleted_at),
-        suspects(user_id, deleted_at),
         comments(id, text, user_id, created_at, deleted_at, users(username))
       `
       )
@@ -600,86 +651,110 @@ class Backend {
       query = query.eq('group_id', groupId);
     }
 
-    const { data: logs, error } = await query.order('created_at', { ascending: false });
+    const [logsResult, suspectsResult] = await Promise.all([
+      query.order('created_at', { ascending: false }),
+      supabase.from('suspects').select('log_id, user_id, deleted_at').is('deleted_at', null),
+    ]);
 
+    const { data: logs, error } = logsResult;
     if (error || !logs) return [];
 
-    return logs.map(log => ({
-      id: log.id,
-      userId: log.user_id,
-      username: log.users.username,
-      avatarUrl: log.users.avatar_url,
-      groupName: log.groups.name,
-      groupId: log.group_id,
-      habitName: log.habits.name,
-      category: log.habits.category,
-      imageUrl: log.image_url,
-      caption: log.caption,
-      date: log.date,
-      timestamp: new Date(log.created_at).getTime(),
-      likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
-      suspectsCount: log.suspects?.filter((s: any) => !s.deleted_at).length || 0,
-      commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
-      isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
-      isSuspected: log.suspects?.some((s: any) => s.user_id === userId && !s.deleted_at),
-      isDisqualified:
-        (log.suspects?.filter((s: any) => !s.deleted_at).length || 0) >= (log.groups?.members?.length || 0) / 2,
-      commentsPreview: (log.comments || [])
-        .filter((c: any) => !c.deleted_at)
-        .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        .slice(-2)
-        .map((c: any) => ({
-          username: c.users.username,
-          text: c.text,
-        })),
-    }));
+    const suspectsByLog: Record<string, { user_id: string; deleted_at: string | null }[]> = {};
+    for (const s of suspectsResult.data || []) {
+      if (!suspectsByLog[s.log_id]) suspectsByLog[s.log_id] = [];
+      suspectsByLog[s.log_id].push(s);
+    }
+
+    return logs
+      .filter(log => log.habits && log.users)
+      .map(log => {
+        const suspects = suspectsByLog[log.id] || [];
+        const memberCount = log.groups?.members?.length || 0;
+        return {
+          id: log.id,
+          userId: log.user_id,
+          username: log.users.username,
+          avatarUrl: log.users.avatar_url,
+          groupName: log.groups?.name ?? '',
+          groupId: log.group_id,
+          habitName: log.habits?.name ?? 'Habit',
+          category: log.habits?.category ?? 'Health',
+          imageUrl: log.image_url,
+          caption: log.caption,
+          date: log.date,
+          timestamp: new Date(log.created_at).getTime(),
+          likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
+          suspectsCount: suspects.length,
+          commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
+          isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
+          isSuspected: suspects.some(s => s.user_id === userId),
+          isDisqualified: memberCount > 0 && suspects.length >= memberCount / 2,
+          commentsPreview: (log.comments || [])
+            .filter((c: any) => !c.deleted_at)
+            .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            .slice(-2)
+            .map((c: any) => ({
+              username: c.users?.username ?? '',
+              text: c.text,
+            })),
+        };
+      });
   }
 
   async getPostDetail(userId: string, logId: string): Promise<any | null> {
-    const { data: log, error } = await supabase
-      .from('logs')
-      .select(
+    const [logResult, suspectsResult] = await Promise.all([
+      supabase
+        .from('logs')
+        .select(
+          `
+          *,
+          users(username, avatar_url),
+          groups(name, members(user_id)),
+          habits(name, category),
+          likes(user_id, deleted_at),
+          comments(id, text, user_id, created_at, deleted_at, users(username))
         `
-        *,
-        users(username, avatar_url),
-        groups(name, members(user_id)),
-        habits(name, category),
-        likes(user_id, deleted_at),
-        suspects(user_id, deleted_at),
-        comments(id, text, user_id, created_at, deleted_at, users(username))
-      `
-      )
-      .eq('id', logId)
-      .is('deleted_at', null)
-      .single();
+        )
+        .eq('id', logId)
+        .is('deleted_at', null)
+        .single(),
+      supabase
+        .from('suspects')
+        .select('log_id, user_id, deleted_at')
+        .eq('log_id', logId)
+        .is('deleted_at', null),
+    ]);
 
+    const { data: log, error } = logResult;
     if (error || !log) return null;
+
+    const suspects = suspectsResult.data || [];
+    const memberCount = log.groups?.members?.length || 0;
 
     return {
       id: log.id,
       userId: log.user_id,
-      username: log.users.username,
-      avatarUrl: log.users.avatar_url,
-      groupName: log.groups.name,
+      username: log.users?.username ?? 'Unknown',
+      avatarUrl: log.users?.avatar_url,
+      groupName: log.groups?.name ?? '',
       groupId: log.group_id,
-      habitName: log.habits.name,
-      category: log.habits.category,
+      habitName: log.habits?.name ?? 'Habit',
+      category: log.habits?.category ?? 'Health',
       imageUrl: log.image_url,
       date: log.date,
       timestamp: new Date(log.created_at).getTime(),
       likesCount: log.likes?.filter((l: any) => !l.deleted_at).length || 0,
-      suspectsCount: log.suspects?.filter((s: any) => !s.deleted_at).length || 0,
+      suspectsCount: suspects.length,
       commentsCount: log.comments?.filter((c: any) => !c.deleted_at).length || 0,
       isLiked: log.likes?.some((l: any) => l.user_id === userId && !l.deleted_at),
-      isSuspected: log.suspects?.some((s: any) => s.user_id === userId && !s.deleted_at),
-      isDisqualified:
-        (log.suspects?.filter((s: any) => !s.deleted_at).length || 0) >= (log.groups?.members?.length || 0) / 2,
+      isSuspected: suspects.some(s => s.user_id === userId),
+      isDisqualified: memberCount > 0 && suspects.length >= memberCount / 2,
       commentsPreview: (log.comments || [])
         .filter((c: any) => !c.deleted_at)
         .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         .slice(-2)
         .map((c: any) => ({
-          username: c.users.username,
+          username: c.users?.username ?? '',
           text: c.text,
         })),
     };
