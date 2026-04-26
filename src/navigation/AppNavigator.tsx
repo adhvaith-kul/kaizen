@@ -28,6 +28,7 @@ import PostDetailScreen from '../screens/PostDetailScreen';
 import EditGroupScreen from '../screens/EditGroupScreen';
 import FriendsScreen from '../screens/FriendsScreen';
 import UserLogsScreen from '../screens/UserLogsScreen';
+import ChallengesScreen from '../screens/ChallengesScreen';
 
 import { TabNavigationContext } from '../context/TabNavigationContext';
 
@@ -39,6 +40,7 @@ const FeedStack = createNativeStackNavigator();
 const SquadsStack = createNativeStackNavigator();
 const FriendsStack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator();
+const ChallengesStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function FeedStackScreen() {
@@ -93,6 +95,14 @@ function ProfileStackScreen() {
   );
 }
 
+function ChallengesStackScreen() {
+  return (
+    <ChallengesStack.Navigator screenOptions={{ headerShown: false }}>
+      <ChallengesStack.Screen name="ChallengesRoot" component={ChallengesScreen} />
+    </ChallengesStack.Navigator>
+  );
+}
+
 function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
   const getTabKey = (name: string) => {
     return state.routes.find((r: any) => r.name === name)?.key;
@@ -123,6 +133,14 @@ function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
         onPress={() => handlePress('SquadsTab', 'SquadsTab')}>
         <Text style={{ fontSize: 20 }}>🤝</Text>
         <Text style={[styles.navLabel, { color: activeTab === 'SquadsTab' ? '#C2FF05' : '#888' }]}>SQUADS</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.navItem}
+        activeOpacity={0.8}
+        onPress={() => handlePress('ChallengesTab', 'ChallengesTab')}>
+        <Text style={{ fontSize: 20 }}>🏆</Text>
+        <Text style={[styles.navLabel, { color: activeTab === 'ChallengesTab' ? '#C2FF05' : '#888' }]}>CHALLENGES</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -200,6 +218,7 @@ function MainTabs() {
           screenOptions={{ headerShown: false }}>
           <Tab.Screen name="FeedTab" component={FeedStackScreen} />
           <Tab.Screen name="SquadsTab" component={SquadsStackScreen} />
+          <Tab.Screen name="ChallengesTab" component={ChallengesStackScreen} />
           <Tab.Screen name="FriendsTab" component={FriendsStackScreen} />
           <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
         </Tab.Navigator>

@@ -68,3 +68,25 @@ export interface HabitComment {
   text: string;
   createdAt: string;
 }
+
+export interface Challenge {
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  habits: { name: string; category: Category }[];
+  createdAt: string;
+}
+
+export interface UserChallenge {
+  id: string;
+  userId: string;
+  challengeId: string;
+  startDate: string;
+  currentStreak: number;
+  isCompleted: boolean;
+  isFailed: boolean;
+  lastCheckDate?: string;
+  createdAt: string;
+  challenge?: Challenge;
+}

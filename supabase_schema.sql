@@ -66,6 +66,50 @@ create table public.members (
 );
 
 -- ─────────────────────────────────────────────────────────────
+-- CHALLENGES
+-- ─────────────────────────────────────────────────────────────
+create table public.challenges (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  description text,
+  duration    int not null default 75,
+  habits      jsonb not null, -- Array of { name: string, category: string }
+  created_at  timestamp with time zone default now()
+);
+
+insert into public.challenges (name, description, duration, habits)
+values (
+  '75 Hard',
+  'A tactical guide to winning the war with yourself. 75 days of discipline.',
+  75,
+  '[
+    {"name": "Workout 1 (45 min)", "category": "Health"},
+    {"name": "Workout 2 (45 min, outdoor)", "category": "Health"},
+    {"name": "Follow Diet", "category": "Diet"},
+    {"name": "No Alcohol/Cheat Meals", "category": "Diet"},
+    {"name": "Drink 1 Gallon Water", "category": "Health"},
+    {"name": "Read 10 Pages", "category": "Upskill"},
+    {"name": "Progress Photo", "category": "Health"}
+  ]'::jsonb
+);
+
+-- ─────────────────────────────────────────────────────────────
+-- USER CHALLENGES (participation and streaks)
+-- ─────────────────────────────────────────────────────────────
+create table public.user_challenges (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid references public.users(id) on delete cascade,
+  challenge_id   uuid references public.challenges(id) on delete cascade,
+  start_date     date not null,
+  current_streak int default 0,
+  is_completed   boolean default false,
+  is_failed      boolean default false,
+  last_check_date date,
+  created_at     timestamp with time zone default now(),
+  unique (user_id, challenge_id)
+);
+
+-- ─────────────────────────────────────────────────────────────
 -- HABITS
 -- Each habit is scoped to a specific user + group.
 -- category FK → categories.label; ON UPDATE CASCADE means renaming
@@ -75,6 +119,7 @@ create table public.habits (
   id       uuid primary key default gen_random_uuid(),
   user_id  uuid references public.users(id),
   group_id uuid references public.groups(id) on delete cascade,
+  challenge_id uuid references public.challenges(id) on delete cascade,
   category   text not null references public.categories(label) on update cascade on delete restrict,
   name       text not null,
   deleted_at timestamp with time zone

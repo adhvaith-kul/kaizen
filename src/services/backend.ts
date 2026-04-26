@@ -242,19 +242,26 @@ class Backend {
     return data.map(h => ({ id: h.id, userId: h.user_id, groupId: h.group_id, category: h.category, name: h.name }));
   }
 
-  async getTodayLog(userId: string, groupId: string): Promise<DailyLog[]> {
+  async getTodayLog(userId: string, groupId?: string | null): Promise<DailyLog[]> {
     const d = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     const istDateObj = new Date(d.getTime() + istOffset);
     const date = istDateObj.toISOString().split('T')[0];
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('logs')
       .select('*')
       .eq('user_id', userId)
-      .eq('group_id', groupId)
       .eq('date', date)
       .is('deleted_at', null);
+
+    if (groupId) {
+      query = query.eq('group_id', groupId);
+    } else {
+      query = query.is('group_id', null);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw new Error(error.message);
     return (data || []).map(d => ({
@@ -288,7 +295,7 @@ class Backend {
 
   async toggleHabitCompletion(
     userId: string,
-    groupId: string,
+    groupId: string | null,
     habitId: string,
     imageUri?: string,
     caption?: string
@@ -326,7 +333,9 @@ class Backend {
     }
 
     // Update points
-    await this.recalculateUserPoints(userId, groupId);
+    if (groupId) {
+      await this.recalculateUserPoints(userId, groupId);
+    }
     return this.getTodayLog(userId, groupId);
   }
 
@@ -882,6 +891,249 @@ class Backend {
       message,
       title: `Join ${group.name} on KAIZEN`,
     });
+  }
+
+  // ── CHALLENGES ──────────────────────────────────────────────────
+
+  async getChallenges(): Promise<Challenge[]> {
+    const { data, error } = await supabase.from('challenges').select('*');
+    if (error) throw new Error(error.message);
+    return data.map(c => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      duration: c.duration,
+      habits: c.habits,
+      createdAt: c.created_at,
+    }));
+  }
+
+  async getUserChallenge(userId: string, challengeId: string): Promise<UserChallenge | null> {
+    const { data, error } = await supabase
+      .from('user_challenges')
+      .select('*, challenges(*)')
+      .eq('user_id', userId)
+      .eq('challenge_id', challengeId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      challengeId: data.challenge_id,
+      startDate: data.start_date,
+      currentStreak: data.current_streak,
+      isCompleted: data.is_completed,
+      isFailed: data.is_failed,
+      lastCheckDate: data.last_check_date,
+      createdAt: data.created_at,
+      challenge: {
+        id: data.challenges.id,
+        name: data.challenges.name,
+        description: data.challenges.description,
+        duration: data.challenges.duration,
+        habits: data.challenges.habits,
+        createdAt: data.challenges.created_at,
+      },
+    };
+  }
+
+  async joinChallenge(userId: string, challengeId: string): Promise<UserChallenge> {
+    const { data: challenge } = await supabase.from('challenges').select('*').eq('id', challengeId).single();
+    if (!challenge) throw new Error('Challenge not found');
+
+    const d = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDateObj = new Date(d.getTime() + istOffset);
+    const date = istDateObj.toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+      .from('user_challenges')
+      .insert({
+        user_id: userId,
+        challenge_id: challengeId,
+        start_date: date,
+        current_streak: 0,
+      })
+      .select('*, challenges(*)')
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    // Create habits for this challenge
+    const habitsToCreate = challenge.habits.map((h: any) => ({
+      user_id: userId,
+      group_id: null,
+      challenge_id: challengeId,
+      category: h.category,
+      name: h.name,
+    }));
+
+    const { error: habitErr } = await supabase.from('habits').insert(habitsToCreate);
+    if (habitErr) throw new Error(habitErr.message);
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      challengeId: data.challenge_id,
+      startDate: data.start_date,
+      currentStreak: data.current_streak,
+      isCompleted: data.is_completed,
+      isFailed: data.is_failed,
+      createdAt: data.created_at,
+      challenge: {
+        id: data.challenges.id,
+        name: data.challenges.name,
+        description: data.challenges.description,
+        duration: data.challenges.duration,
+        habits: data.challenges.habits,
+        createdAt: data.challenges.created_at,
+      },
+    };
+  }
+
+  async getChallengeHabits(userId: string, challengeId: string): Promise<Habit[]> {
+    const { data, error } = await supabase
+      .from('habits')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('challenge_id', challengeId)
+      .is('deleted_at', null);
+    if (error) throw new Error(error.message);
+    return data.map(h => ({ id: h.id, userId: h.user_id, groupId: h.group_id, category: h.category, name: h.name }));
+  }
+
+  async getChallengeLogs(userId: string, challengeId: string, date: string): Promise<DailyLog[]> {
+    const { data: habits } = await supabase
+      .from('habits')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('challenge_id', challengeId);
+    
+    if (!habits || habits.length === 0) return [];
+    const habitIds = habits.map(h => h.id);
+
+    const { data, error } = await supabase
+      .from('logs')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .in('habit_id', habitIds)
+      .is('deleted_at', null);
+
+    if (error) throw new Error(error.message);
+    return (data || []).map(d => ({
+      id: d.id,
+      userId: d.user_id,
+      groupId: d.group_id,
+      habitId: d.habit_id,
+      date: d.date,
+      imageUrl: d.image_url,
+      createdAt: d.created_at,
+    }));
+  }
+
+  async syncChallengeStreak(userId: string, challengeId: string): Promise<UserChallenge> {
+    const userChallenge = await this.getUserChallenge(userId, challengeId);
+    if (!userChallenge || userChallenge.isCompleted || userChallenge.isFailed) {
+      if (!userChallenge) throw new Error('Challenge not found');
+      return userChallenge;
+    }
+
+    const d = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDateObj = new Date(d.getTime() + istOffset);
+    const today = istDateObj.toISOString().split('T')[0];
+
+    // If already checked today, just return
+    if (userChallenge.lastCheckDate === today) return userChallenge;
+
+    // Check yesterday
+    const yesterdayObj = new Date(istDateObj.getTime() - 24 * 60 * 60 * 1000);
+    const yesterday = yesterdayObj.toISOString().split('T')[0];
+
+    const habits = await this.getChallengeHabits(userId, challengeId);
+    const yesterdayLogs = await this.getChallengeLogs(userId, challengeId, yesterday);
+
+    const isYesterdayComplete = habits.length > 0 && yesterdayLogs.length === habits.length;
+
+    let newStreak = userChallenge.currentStreak;
+    let isFailed = false;
+
+    // If yesterday was missed and it's not the start date, reset streak
+    if (!isYesterdayComplete && yesterday >= userChallenge.startDate) {
+      newStreak = 0;
+      // In 75 Hard, missing a day resets it. 
+      // Some people say it resets to day 1, others say you "fail".
+      // User says "streak is reset".
+    }
+
+    // Check today too for display purposes? 
+    // Actually streak should only increment when today is complete.
+    const todayLogs = await this.getChallengeLogs(userId, challengeId, today);
+    const isTodayComplete = habits.length > 0 && todayLogs.length === habits.length;
+
+    // Calculate actual streak: count back from today/yesterday
+    // But let's keep it simple: if yesterday was complete, streak is preserved.
+    // If today is complete, streak = streak_up_to_yesterday + 1.
+    
+    // Let's re-calculate from scratch for robustness
+    let calcStreak = 0;
+    let checkDate = istDateObj;
+    while (true) {
+      const dateStr = checkDate.toISOString().split('T')[0];
+      if (dateStr < userChallenge.startDate) break;
+      
+      const logs = await this.getChallengeLogs(userId, challengeId, dateStr);
+      if (logs.length === habits.length && habits.length > 0) {
+        calcStreak++;
+        checkDate = new Date(checkDate.getTime() - 24 * 60 * 60 * 1000);
+      } else {
+        // If it's today and not yet complete, it doesn't break the streak yet, but doesn't count.
+        if (dateStr === today) {
+           checkDate = new Date(checkDate.getTime() - 24 * 60 * 60 * 1000);
+           continue;
+        }
+        break;
+      }
+    }
+    
+    newStreak = calcStreak;
+    const isCompleted = newStreak >= 75;
+
+    const { data, error } = await supabase
+      .from('user_challenges')
+      .update({
+        current_streak: newStreak,
+        last_check_date: today,
+        is_completed: isCompleted,
+      })
+      .eq('id', userChallenge.id)
+      .select('*, challenges(*)')
+      .single();
+
+    if (error) throw new Error(error.message);
+    return {
+      id: data.id,
+      userId: data.user_id,
+      challengeId: data.challenge_id,
+      startDate: data.start_date,
+      currentStreak: data.current_streak,
+      isCompleted: data.is_completed,
+      isFailed: data.is_failed,
+      lastCheckDate: data.last_check_date,
+      createdAt: data.created_at,
+      challenge: {
+        id: data.challenges.id,
+        name: data.challenges.name,
+        description: data.challenges.description,
+        duration: data.challenges.duration,
+        habits: data.challenges.habits,
+        createdAt: data.challenges.created_at,
+      },
+    };
   }
 }
 
