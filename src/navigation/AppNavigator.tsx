@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
   },
   navItem: { flex: 1, alignItems: 'center' },
-  navLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1, marginTop: 4 },
+  navLabel: { fontSize: 9, fontWeight: '900', marginTop: 4 },
 });
 
 const VibeTheme = {

@@ -83,11 +83,10 @@ values (
   'A tactical guide to winning the war with yourself. 75 days of discipline.',
   75,
   '[
-    {"name": "Workout 1 (45 min)", "category": "Health"},
-    {"name": "Workout 2 (45 min, outdoor)", "category": "Health"},
+    {"name": "1 Hour Workout", "category": "Health"},
     {"name": "Follow Diet", "category": "Diet"},
     {"name": "No Alcohol/Cheat Meals", "category": "Diet"},
-    {"name": "Drink 1 Gallon Water", "category": "Health"},
+    {"name": "Drink 4L Water", "category": "Health"},
     {"name": "Read 10 Pages", "category": "Upskill"},
     {"name": "Progress Photo", "category": "Health"}
   ]'::jsonb

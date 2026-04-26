@@ -596,6 +596,14 @@ class Backend {
     if (!memberOf || memberOf.length === 0) return [];
     const groupIds = memberOf.map(m => m.group_id);
 
+    // Get all user IDs in the user's squads to include their challenge logs in the feed
+    const { data: squadMembers } = await supabase
+      .from('members')
+      .select('user_id')
+      .in('group_id', groupIds)
+      .is('deleted_at', null);
+    const squadMemberIds = Array.from(new Set((squadMembers || []).map(m => m.user_id)));
+
     const [logsResult, suspectsResult] = await Promise.all([
       supabase
         .from('logs')
@@ -609,7 +617,7 @@ class Backend {
           comments(id, text, user_id, created_at, deleted_at, users(username))
         `
         )
-        .in('group_id', groupIds)
+        .or(`group_id.in.(${groupIds.join(',')}),and(group_id.is.null,user_id.in.(${squadMemberIds.join(',')}))`)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(50),
