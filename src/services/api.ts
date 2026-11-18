@@ -77,6 +77,9 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        if (response.status === 401 && token) {
+          await this.setToken(null);
+        }
         let errorMessage = `HTTP error ${response.status}`;
         try {
           const errorData = await response.json();

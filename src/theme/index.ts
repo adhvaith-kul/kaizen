@@ -12,6 +12,9 @@ export interface ThemeConfig {
   textMuted?: string;        // Tertiary / hint text
   primary: string;          // Primary buttons, active tabs
   primaryText: string;      // Text on primary buttons
+  accentLavender?: string;  // Explicit pale lavender accent
+  accentSilver?: string;    // Explicit platinum silver accent
+  accentMocha?: string;     // Explicit mocha brown accent
   success?: string;
   danger?: string;
   warning?: string;
@@ -22,6 +25,9 @@ export function createTheme(config: ThemeConfig) {
   const surfaceElevated = config.surfaceElevated || config.surface;
   const borderSubtle = config.borderSubtle || config.border;
   const textMuted = config.textMuted || config.textSecondary;
+  const accentLavender = config.accentLavender || config.primary;
+  const accentSilver = config.accentSilver || config.textPrimary;
+  const accentMocha = config.accentMocha || config.border;
 
   return {
     // ── Semantic Design Tokens ─────────────────────────────────────────
@@ -64,26 +70,25 @@ export function createTheme(config: ThemeConfig) {
     infoSubtle: 'rgba(140, 170, 217, 0.12)',
 
     // ── Compatibility Aliases ──────────────────────────────────────────
-    // Allows seamless drop-in adaptation across all existing components
-    mocha: config.primary,
-    mochaDark: config.border,
-    mochaLight: config.primary,
+    mocha: accentMocha,
+    mochaDark: config.background,
+    mochaLight: accentMocha,
     mochaMuted: config.surface,
-    mochaSurface: config.surfaceElevated,
+    mochaSurface: surfaceElevated,
     mochaBorder: config.border,
 
-    silver: config.textPrimary,
-    platinum: config.primaryText,
+    silver: accentSilver,
+    platinum: accentSilver,
     silverLight: config.textPrimary,
     silverMuted: config.textSecondary,
     silverDark: textMuted,
 
-    lavender: config.primary,
-    lavenderText: config.primary,
-    lavenderLight: config.primary,
+    lavender: accentLavender,
+    lavenderText: accentLavender,
+    lavenderLight: accentLavender,
     lavenderMuted: config.textSecondary,
     lavenderDark: config.border,
-    lavenderSubtle: 'rgba(255, 140, 178, 0.12)',
+    lavenderSubtle: 'rgba(230, 224, 240, 0.14)',
     lavenderBorder: config.border,
   };
 }
@@ -91,7 +96,31 @@ export function createTheme(config: ThemeConfig) {
 // ── AVAILABLE THEME PRESETS ────────────────────────────────────────────
 export const themes = {
   /**
-   * Strawberry Espresso (ACTIVE)
+   * Mocha Lavender & Silver (ACTIVE - from Reference Palette)
+   * Mocha Brown:     #6F4E37 (rich mocha borders & card highlights)
+   * Platinum Silver: #E5E4E2 (crisp platinum typography & metallic sheen)
+   * Pale Lavender:   #E6E0F0 (ethereal lavender buttons, tabs & accents)
+   * App Background:  #251914 (deep espresso foundation)
+   * Surface Cards:   #38261F (warm mocha cocoa sheets)
+   */
+  mochaLavenderSilver: createTheme({
+    background: '#251914',
+    surface: '#38261F',
+    surfaceElevated: '#4A332A',
+    border: '#6F4E37',        // Exact swatch: #6F4E37
+    borderSubtle: '#4A332A',
+    textPrimary: '#E5E4E2',     // Exact swatch: #E5E4E2
+    textSecondary: '#C5C1BA',
+    textMuted: '#8F8780',
+    primary: '#E6E0F0',         // Exact swatch: #E6E0F0
+    primaryText: '#251914',     // High-contrast deep mocha on lavender
+    accentLavender: '#E6E0F0',
+    accentSilver: '#E5E4E2',
+    accentMocha: '#6F4E37',
+  }),
+
+  /**
+   * Strawberry Espresso
    * App background:       Espresso         #211613
    * Cards and sheets:     Warm cocoa       #30201D
    * Borders and dividers: Dark mocha       #513731
@@ -112,27 +141,11 @@ export const themes = {
     primary: '#FF8CB2',
     primaryText: '#211613',
   }),
-
-  /**
-   * Mocha Lavender (Previous Reference)
-   */
-  mochaLavender: createTheme({
-    background: '#130E0B',
-    surface: '#1E1612',
-    surfaceElevated: '#281F1A',
-    border: '#32261F',
-    borderSubtle: '#241B16',
-    textPrimary: '#E5E4E2',
-    textSecondary: '#C5C1BA',
-    textMuted: '#8A827B',
-    primary: '#6F4E37',
-    primaryText: '#E5E4E2',
-  }),
 };
 
 // ── ACTIVE THEME SELECTION ─────────────────────────────────────────────
-// To switch themes at any time, just change ACTIVE_THEME name below!
-export const ACTIVE_THEME: keyof typeof themes = 'strawberryEspresso';
+// Switch between 'mochaLavenderSilver' and 'strawberryEspresso' with one edit:
+export const ACTIVE_THEME: keyof typeof themes = 'mochaLavenderSilver';
 
 export const colors = themes[ACTIVE_THEME];
 

@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { User, Group } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { backend } from '../services/backend';
+import api from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -23,17 +24,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [groups, setGroups] = useState<Group[]>([]);
 
   useEffect(() => {
-    AsyncStorage.getItem('currentUser').then(id => {
-      if (id) {
-        backend.getUser(id).then(u => {
-          if (u) {
-            setUser(u);
-            backend.getUserGroup(u.id).then(g => setGroup(g));
-            backend.getUserGroups(u.id).then(gs => setGroups(gs));
-          }
-        });
+    const initAuth = async () => {
+      const token = await api.getToken();
+      if (token) {
+        const currentUser = await backend.getMe();
+        if (currentUser) {
+          setUser(currentUser);
+          await AsyncStorage.setItem('currentUser', currentUser.id);
+          const [g, gs] = await Promise.all([
+            backend.getUserGroup(currentUser.id),
+            backend.getUserGroups(currentUser.id),
+          ]);
+          setGroup(g);
+          setGroups(gs);
+          return;
+        } else {
+          await api.setToken(null);
+          await AsyncStorage.removeItem('currentUser');
+        }
       }
-    });
+
+      const id = await AsyncStorage.getItem('currentUser');
+      if (id) {
+        const u = await backend.getUser(id);
+        if (u) {
+          setUser(u);
+          const [g, gs] = await Promise.all([
+            backend.getUserGroup(u.id),
+            backend.getUserGroups(u.id),
+          ]);
+          setGroup(g);
+          setGroups(gs);
+        }
+      }
+    };
+    initAuth();
   }, []);
 
   const login = async (email: string, pass: string) => {
@@ -60,6 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setGroup(null);
     setGroups([]);
+    await api.setToken(null);
     await AsyncStorage.removeItem('currentUser');
   };
 

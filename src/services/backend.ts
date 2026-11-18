@@ -33,6 +33,15 @@ class Backend {
     return res.user;
   }
 
+  async getMe(): Promise<User | null> {
+    try {
+      const res = await api.get('/api/auth/me');
+      return res.user || null;
+    } catch {
+      return null;
+    }
+  }
+
   async getUser(id: string): Promise<User | null> {
     try {
       return await api.get(`/api/users/${id}`);
