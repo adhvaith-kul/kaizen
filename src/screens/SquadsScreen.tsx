@@ -190,17 +190,15 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   createBtn: {
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.mochaLight,
   },
   createBtnText: {
-    color: colors.silver,
+    color: colors.primaryText,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   groupCard: {
     backgroundColor: colors.surface,

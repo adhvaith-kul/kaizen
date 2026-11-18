@@ -144,14 +144,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   button: {
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.md,
     width: '100%',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.mochaLight,
+    borderColor: colors.primary,
   },
   cancelBtn: {
     backgroundColor: colors.surface,
@@ -162,9 +162,9 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   buttonText: {
-    color: colors.silver,
+    color: colors.primaryText,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   cancelBtnText: {

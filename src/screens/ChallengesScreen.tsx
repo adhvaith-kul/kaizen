@@ -267,7 +267,7 @@ export default function ChallengesScreen() {
 
                 <TouchableOpacity onPress={() => toggleHabit(habit.id)} activeOpacity={0.7}>
                   <View style={[styles.checkbox, isDone && styles.checkboxChecked]}>
-                    {isDone && <Ionicons name="checkmark" size={16} color={colors.silver} />}
+                    {isDone && <Ionicons name="checkmark" size={16} color={colors.primaryText} />}
                   </View>
                 </TouchableOpacity>
               </View>
@@ -663,16 +663,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   captionPostBtn: {
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.mochaLight,
   },
   captionPostText: {
-    color: colors.silver,
+    color: colors.primaryText,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

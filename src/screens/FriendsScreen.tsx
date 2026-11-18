@@ -371,21 +371,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   followBtn: {
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs + 2,
     borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.mochaLight,
   },
   followingBtn: {
     backgroundColor: colors.surfaceElevated,
     borderColor: colors.border,
   },
   followBtnText: {
-    color: colors.silver,
+    color: colors.primaryText,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   followingBtnText: {
     color: colors.textMuted,

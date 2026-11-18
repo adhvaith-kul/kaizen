@@ -119,20 +119,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   btn: {
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xxl,
     borderRadius: radii.md,
     width: '100%',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.mochaLight,
     marginBottom: spacing.md,
   },
   btnText: {
-    color: colors.silver,
+    color: colors.primaryText,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   hint: {

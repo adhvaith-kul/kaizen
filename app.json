@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#130E0B",
+        "backgroundColor": "#211613",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -28,7 +28,7 @@
       "icon": "./assets/icon.png",
       "config": {
         "description": "Kaizen - Build better habits",
-        "themeColor": "#130E0B"
+        "themeColor": "#211613"
       }
     },
     "extra": {
@@ -47,7 +47,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#130E0B",
+          "backgroundColor": "#211613",
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain"
         }

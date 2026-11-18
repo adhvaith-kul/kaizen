@@ -62,7 +62,7 @@ export default function Loader({ style, fullScreen = false }: LoaderProps) {
 const styles = StyleSheet.create({
   fullScreenOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(19, 14, 11, 0.92)',
+    backgroundColor: 'rgba(33, 22, 19, 0.94)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,

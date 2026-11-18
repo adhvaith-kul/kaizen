@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   indicatorActive: {
-    backgroundColor: colors.lavender,
+    backgroundColor: colors.tabIndicator,
   },
   navLabel: {
     fontSize: 11,
@@ -256,10 +256,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   navLabelActive: {
-    color: colors.silver,
+    color: colors.tabActive,
   },
   navLabelInactive: {
-    color: colors.textMuted,
+    color: colors.tabInactive,
   },
 });
 
@@ -269,7 +269,7 @@ const KaizenTheme = {
     ...DefaultTheme.colors,
     background: colors.background,
     card: colors.surface,
-    text: colors.silver,
+    text: colors.textPrimary,
     border: colors.border,
   },
 };

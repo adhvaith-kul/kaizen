@@ -323,16 +323,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   squadBtn: {
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.mochaLight,
   },
   squadBtnText: {
-    color: colors.silver,
-    fontWeight: '600',
+    color: colors.primaryText,
+    fontWeight: '700',
     fontSize: 13,
     letterSpacing: 0.5,
   },
@@ -417,13 +415,13 @@ const styles = StyleSheet.create({
   postCommentBtn: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     borderRadius: radii.sm,
     marginLeft: spacing.sm,
   },
   postCommentBtnText: {
-    color: colors.silver,
-    fontWeight: '600',
+    color: colors.primaryText,
+    fontWeight: '700',
     fontSize: 12,
   },
 });

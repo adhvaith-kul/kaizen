@@ -343,13 +343,13 @@ const styles = StyleSheet.create({
   postCommentBtn: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     borderRadius: radii.sm,
     marginLeft: spacing.sm,
   },
   postCommentBtnText: {
-    color: colors.silver,
-    fontWeight: '600',
+    color: colors.primaryText,
+    fontWeight: '700',
     fontSize: 12,
   },
 });

@@ -276,12 +276,10 @@ const styles = StyleSheet.create({
     right: spacing.lg,
   },
   trackBtn: {
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     paddingVertical: spacing.lg,
     borderRadius: radii.md,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.mochaLight,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
@@ -289,9 +287,9 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   trackBtnText: {
-    color: colors.silver,
+    color: colors.primaryText,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
 });

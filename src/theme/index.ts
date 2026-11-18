@@ -1,59 +1,140 @@
-// Kaizen Design System — Mocha Brown, Platinum Silver & Pale Lavender Theme
+// Kaizen Design System — Theme Engine & Palettes
+// Designed for instant theme switching and custom palette adaptation.
 
-export const colors = {
-  // Brand Anchors (From Reference: Mocha Brown, Platinum Silver, Pale Lavender)
-  mocha: '#6F4E37',
-  mochaDark: '#4A3324',
-  mochaLight: '#8C674B',
-  mochaMuted: '#584030',
-  mochaSurface: 'rgba(111, 78, 55, 0.15)',
-  mochaBorder: 'rgba(111, 78, 55, 0.35)',
+export interface ThemeConfig {
+  background: string;       // App background
+  surface: string;          // Cards and sheets
+  surfaceElevated?: string;  // Elevated cards, modals, inputs
+  border: string;           // Borders and dividers
+  borderSubtle?: string;     // Subtle / secondary borders
+  textPrimary: string;      // Primary text
+  textSecondary: string;    // Secondary text
+  textMuted?: string;        // Tertiary / hint text
+  primary: string;          // Primary buttons, active tabs
+  primaryText: string;      // Text on primary buttons
+  success?: string;
+  danger?: string;
+  warning?: string;
+  info?: string;
+}
 
-  silver: '#E5E4E2',
-  platinum: '#E5E4E2',
-  silverLight: '#F5F5F3',
-  silverMuted: '#A8A6A1',
-  silverDark: '#6B6864',
+export function createTheme(config: ThemeConfig) {
+  const surfaceElevated = config.surfaceElevated || config.surface;
+  const borderSubtle = config.borderSubtle || config.border;
+  const textMuted = config.textMuted || config.textSecondary;
 
-  lavender: '#E6E0F0',
-  lavenderText: '#E6E0F0',
-  lavenderLight: '#F2EDFA',
-  lavenderMuted: '#C2B8D9',
-  lavenderDark: '#8F7EA8',
-  lavenderSubtle: 'rgba(230, 224, 240, 0.08)',
-  lavenderBorder: 'rgba(230, 224, 240, 0.2)',
+  return {
+    // ── Semantic Design Tokens ─────────────────────────────────────────
+    background: config.background,
+    backgroundSecondary: config.background,
+    surface: config.surface,
+    surfaceElevated,
+    surfaceHover: config.surface,
+    surfaceSelected: surfaceElevated,
 
-  // Surfaces & Backgrounds (Rich Espresso & Obsidian)
-  background: '#130E0B',
-  backgroundSecondary: '#19130F',
-  surface: '#1E1612',
-  surfaceElevated: '#281F1A',
-  surfaceHover: '#322721',
-  surfaceSelected: '#3D2F28',
+    border: config.border,
+    borderSubtle,
+    borderActive: config.primary,
+    borderFocus: config.primary,
 
-  // Borders
-  border: '#32261F',
-  borderSubtle: '#241B16',
-  borderActive: '#E6E0F0',
-  borderFocus: '#8C674B',
+    textPrimary: config.textPrimary,
+    textSecondary: config.textSecondary,
+    textMuted,
+    textInverse: config.background,
+    textAccent: config.primary,
 
-  // Text Hierarchy
-  textPrimary: '#E5E4E2',
-  textSecondary: '#C5C1BA',
-  textMuted: '#8A827B',
-  textInverse: '#130E0B',
-  textAccent: '#E6E0F0',
+    primary: config.primary,
+    primaryText: config.primaryText,
+    primarySurface: config.surface,
+    primaryBorder: config.border,
+    buttonText: config.primaryText,
 
-  // Semantic Status (Sophisticated & Muted)
-  success: '#8EAA90',
-  successSubtle: 'rgba(142, 170, 144, 0.12)',
-  danger: '#BD6D6D',
-  dangerSubtle: 'rgba(189, 109, 109, 0.12)',
-  warning: '#CCA470',
-  warningSubtle: 'rgba(204, 164, 112, 0.12)',
-  info: '#9AA7BF',
-  infoSubtle: 'rgba(154, 167, 191, 0.12)',
+    tabActive: config.primary,
+    tabInactive: textMuted,
+    tabIndicator: config.primary,
+
+    // Status
+    success: config.success || '#8EAA90',
+    successSubtle: 'rgba(142, 170, 144, 0.12)',
+    danger: config.danger || '#D95C5C',
+    dangerSubtle: 'rgba(217, 92, 92, 0.12)',
+    warning: config.warning || '#E5A955',
+    warningSubtle: 'rgba(229, 169, 85, 0.12)',
+    info: config.info || '#8CAAD9',
+    infoSubtle: 'rgba(140, 170, 217, 0.12)',
+
+    // ── Compatibility Aliases ──────────────────────────────────────────
+    // Allows seamless drop-in adaptation across all existing components
+    mocha: config.primary,
+    mochaDark: config.border,
+    mochaLight: config.primary,
+    mochaMuted: config.surface,
+    mochaSurface: config.surfaceElevated,
+    mochaBorder: config.border,
+
+    silver: config.textPrimary,
+    platinum: config.primaryText,
+    silverLight: config.textPrimary,
+    silverMuted: config.textSecondary,
+    silverDark: textMuted,
+
+    lavender: config.primary,
+    lavenderText: config.primary,
+    lavenderLight: config.primary,
+    lavenderMuted: config.textSecondary,
+    lavenderDark: config.border,
+    lavenderSubtle: 'rgba(255, 140, 178, 0.12)',
+    lavenderBorder: config.border,
+  };
+}
+
+// ── AVAILABLE THEME PRESETS ────────────────────────────────────────────
+export const themes = {
+  /**
+   * Strawberry Espresso (ACTIVE)
+   * App background:       Espresso         #211613
+   * Cards and sheets:     Warm cocoa       #30201D
+   * Borders and dividers: Dark mocha       #513731
+   * Primary text:         Warm cream       #FFF1E8
+   * Secondary text:       Rose taupe       #C7AAA0
+   * Primary buttons:      Strawberry pink  #FF8CB2
+   * Text on pink buttons: Espresso         #211613
+   */
+  strawberryEspresso: createTheme({
+    background: '#211613',
+    surface: '#30201D',
+    surfaceElevated: '#3D2A26',
+    border: '#513731',
+    borderSubtle: '#432E28',
+    textPrimary: '#FFF1E8',
+    textSecondary: '#C7AAA0',
+    textMuted: '#9E837A',
+    primary: '#FF8CB2',
+    primaryText: '#211613',
+  }),
+
+  /**
+   * Mocha Lavender (Previous Reference)
+   */
+  mochaLavender: createTheme({
+    background: '#130E0B',
+    surface: '#1E1612',
+    surfaceElevated: '#281F1A',
+    border: '#32261F',
+    borderSubtle: '#241B16',
+    textPrimary: '#E5E4E2',
+    textSecondary: '#C5C1BA',
+    textMuted: '#8A827B',
+    primary: '#6F4E37',
+    primaryText: '#E5E4E2',
+  }),
 };
+
+// ── ACTIVE THEME SELECTION ─────────────────────────────────────────────
+// To switch themes at any time, just change ACTIVE_THEME name below!
+export const ACTIVE_THEME: keyof typeof themes = 'strawberryEspresso';
+
+export const colors = themes[ACTIVE_THEME];
 
 export const spacing = {
   xs: 4,
@@ -88,6 +169,8 @@ export const theme = {
   spacing,
   radii,
   typography,
+  themes,
+  ACTIVE_THEME,
 };
 
 export default theme;

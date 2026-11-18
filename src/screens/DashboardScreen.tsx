@@ -243,7 +243,7 @@ export default function DashboardScreen({ navigation }: any) {
                   )}
                   <TouchableOpacity onPress={() => toggle(h.id)} activeOpacity={0.8}>
                     <View style={[styles.checkbox, isCompleted && styles.checkboxDone]}>
-                      {isCompleted && <Ionicons name="checkmark" size={18} color={colors.silver} />}
+                      {isCompleted && <Ionicons name="checkmark" size={18} color={colors.primaryText} />}
                     </View>
                   </TouchableOpacity>
                 </View>
@@ -404,23 +404,21 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     borderRadius: radii.lg,
-    backgroundColor: colors.mocha,
-    borderWidth: 1,
-    borderColor: colors.mochaLight,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statLabelPrimary: {
     fontSize: 10,
     fontWeight: '700',
-    color: colors.lavenderLight,
+    color: colors.primaryText,
     marginBottom: spacing.xs,
     letterSpacing: 1,
   },
   statValuePrimary: {
     fontSize: 32,
     fontWeight: '700',
-    color: colors.silverLight,
+    color: colors.primaryText,
     letterSpacing: -1,
   },
   statBoxSecondary: {
@@ -623,16 +621,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   captionPostBtn: {
-    backgroundColor: colors.mocha,
+    backgroundColor: colors.primary,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.mochaLight,
   },
   captionPostText: {
-    color: colors.silver,
+    color: colors.primaryText,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
