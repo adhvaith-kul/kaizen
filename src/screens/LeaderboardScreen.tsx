@@ -63,7 +63,7 @@ export default function LeaderboardScreen({ navigation }: any) {
     <SafeAreaView style={styles.safeArea}>
       {initialLoad && <Loader fullScreen />}
 
-      <GlassView variant="dock" intensity={70} tint="dark" style={styles.topBar}>
+      <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
           <Text style={styles.backBtnText}>Squads</Text>

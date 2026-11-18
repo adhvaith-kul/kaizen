@@ -238,7 +238,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <GlassView variant="dock" intensity={75} tint="dark" style={styles.fixedHeader}>
+      <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.fixedHeader}>
         <View style={styles.headerLeftContainer}>
           <Animated.View style={[styles.stickyLeft, { opacity: stickyOpacity, position: 'absolute', left: 0 }]}>
             <Text style={styles.stickyUsername} numberOfLines={1}>
@@ -534,9 +534,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     height: 56,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
     zIndex: 10,
   },
   headerLeftContainer: {

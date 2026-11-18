@@ -114,7 +114,7 @@ export default function UserLogsScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <GlassView variant="dock" intensity={75} tint="dark" style={styles.topBar}>
+      <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
           <Text style={styles.backBtnText}>Back</Text>
@@ -187,9 +187,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
-    backgroundColor: colors.background,
+    borderBottomWidth: 0,
+    backgroundColor: 'transparent',
   },
   backBtn: {
     flexDirection: 'row',

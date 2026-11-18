@@ -37,7 +37,7 @@ export default function SquadsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <GlassView variant="dock" intensity={75} tint="dark" style={styles.fixedHeader}>
+      <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.fixedHeader}>
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>KAIZEN</Text>
           <Text style={styles.motto}>SQUAD DIRECTORY</Text>
@@ -125,9 +125,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     height: 56,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
     zIndex: 10,
   },
   logoContainer: {

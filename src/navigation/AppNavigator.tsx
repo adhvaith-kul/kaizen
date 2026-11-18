@@ -11,7 +11,8 @@ import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import * as Linking from 'expo-linking';
 import { backend } from '../services/backend';
-import { StatusBar, Text, View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { StatusBar, Text, View, StyleSheet, TouchableOpacity, Platform, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GlassView from '../components/GlassView';
 import { colors, radii, spacing, theme } from '../theme';
@@ -107,18 +108,23 @@ interface TabItemConfig {
   key: string;
   route: string;
   label: string;
+  iconActive: keyof typeof Ionicons.glyphMap;
+  iconInactive: keyof typeof Ionicons.glyphMap;
+  isAvatar?: boolean;
 }
 
 const TABS: TabItemConfig[] = [
-  { key: 'HomeTab', route: 'FeedTab', label: 'Feed' },
-  { key: 'SquadsTab', route: 'SquadsTab', label: 'Squads' },
-  { key: 'ChallengesTab', route: 'ChallengesTab', label: 'Challenges' },
-  { key: 'FriendsTab', route: 'FriendsTab', label: 'Network' },
-  { key: 'ProfileTab', route: 'ProfileTab', label: 'Profile' },
+  { key: 'HomeTab', route: 'FeedTab', label: 'Feed', iconActive: 'home', iconInactive: 'home-outline' },
+  { key: 'SquadsTab', route: 'SquadsTab', label: 'Squads', iconActive: 'people', iconInactive: 'people-outline' },
+  { key: 'ChallengesTab', route: 'ChallengesTab', label: 'Challenges', iconActive: 'trophy', iconInactive: 'trophy-outline' },
+  { key: 'FriendsTab', route: 'FriendsTab', label: 'Network', iconActive: 'search', iconInactive: 'search-outline' },
+  { key: 'ProfileTab', route: 'ProfileTab', label: 'Profile', iconActive: 'person', iconInactive: 'person-outline', isAvatar: true },
 ];
 
 function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+
   const getTabKey = (name: string) => {
     return state.routes.find((r: any) => r.name === name)?.key;
   };
@@ -135,31 +141,42 @@ function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
     onTabPress(tabName);
   };
 
-  const bottomInset = Math.max(insets.bottom, 12);
-  const barHeight = 56 + bottomInset;
+  const bottomOffset = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) : 20;
+  const avatarUri =
+    user?.avatarUrl ||
+    `https://api.dicebear.com/9.x/micah/png?seed=${user?.username || 'user'}&backgroundColor=6F4E37&radius=50`;
 
   return (
-    <View style={[styles.navContainer, { height: barHeight }]} pointerEvents="box-none">
+    <View style={[styles.floatingNavContainer, { bottom: bottomOffset }]} pointerEvents="box-none">
       <GlassView
-        variant="dock"
+        variant="capsule"
         intensity={85}
         tint="dark"
+        borderRadius={30}
         specularBorder={true}
-        specularColor="rgba(255, 255, 255, 0.14)"
-        style={[styles.navBar, { height: barHeight, paddingBottom: bottomInset }]}>
+        specularColor="rgba(255, 255, 255, 0.16)"
+        tintColor="rgba(25, 17, 13, 0.78)"
+        style={styles.floatingNavBar}>
         <View style={styles.navRow}>
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
               <TouchableOpacity
                 key={tab.key}
-                style={[styles.navItem, isActive && styles.navItemActive]}
+                style={[styles.navItem, isActive && !tab.isAvatar && styles.navItemActive]}
                 activeOpacity={0.7}
                 onPress={() => handlePress(tab.key, tab.route)}>
-                <View style={[styles.indicator, isActive && styles.indicatorActive]} />
-                <Text style={[styles.navLabel, isActive ? styles.navLabelActive : styles.navLabelInactive]}>
-                  {tab.label}
-                </Text>
+                {tab.isAvatar ? (
+                  <View style={[styles.avatarRing, isActive && styles.avatarRingActive]}>
+                    <Image source={{ uri: avatarUri }} style={styles.tabAvatar} />
+                  </View>
+                ) : (
+                  <Ionicons
+                    name={isActive ? tab.iconActive : tab.iconInactive}
+                    size={22}
+                    color={isActive ? colors.primary : colors.textSecondary}
+                  />
+                )}
               </TouchableOpacity>
             );
           })}
@@ -234,62 +251,58 @@ function MainTabs() {
 }
 
 const styles = StyleSheet.create({
-  navContainer: {
+  floatingNavContainer: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-    zIndex: 20,
+    alignItems: 'center',
+    zIndex: 99,
   },
-  navBar: {
-    width: '100%',
-    backgroundColor: 'transparent',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.14)',
+  floatingNavBar: {
+    width: '90%',
+    maxWidth: 350,
+    height: 58,
+    borderRadius: 29,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 16,
   },
   navRow: {
-    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingTop: 4,
+    height: '100%',
+    paddingHorizontal: 8,
   },
   navItem: {
-    flex: 1,
+    width: 52,
+    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 4,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    borderRadius: 21,
   },
   navItemActive: {
-    backgroundColor: 'rgba(230, 224, 240, 0.12)',
-    borderColor: 'rgba(230, 224, 240, 0.22)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
-  indicator: {
-    width: 14,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: 'transparent',
-    marginBottom: 4,
+  avatarRing: {
+    width: 27,
+    height: 27,
+    borderRadius: 13.5,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  indicatorActive: {
-    backgroundColor: colors.tabIndicator,
+  avatarRingActive: {
+    borderColor: colors.primary,
   },
-  navLabel: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-  },
-  navLabelActive: {
-    color: colors.tabActive,
-    fontWeight: '700',
-  },
-  navLabelInactive: {
-    color: colors.tabInactive,
+  tabAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
   },
 });
 

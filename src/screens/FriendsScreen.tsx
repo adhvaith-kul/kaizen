@@ -137,7 +137,7 @@ export default function FriendsScreen({ navigation, route }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       {isTabBarPage ? (
-        <GlassView variant="dock" intensity={75} tint="dark" style={styles.mainHeader}>
+        <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.mainHeader}>
           <View style={styles.logoContainer}>
             <Text style={styles.logo}>KAIZEN</Text>
             <Text style={styles.motto}>DISCIPLINE NETWORK</Text>
@@ -154,7 +154,7 @@ export default function FriendsScreen({ navigation, route }: any) {
           </TouchableOpacity>
         </GlassView>
       ) : (
-        <GlassView variant="dock" intensity={75} tint="dark" style={styles.header}>
+        <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
             <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
             <Text style={styles.backBtnText}>Back</Text>
@@ -249,8 +249,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
   },
   backBtn: {
     flexDirection: 'row',
@@ -268,9 +268,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
     zIndex: 10,
   },
   logoContainer: {

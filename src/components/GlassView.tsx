@@ -70,7 +70,7 @@ export default function GlassView({
     variant === 'card' && styles.card,
     variant === 'modal' && styles.modal,
     { borderRadius: resolvedRadius, overflow },
-    specularBorder && {
+    specularBorder && variant !== 'raw' && {
       borderColor: defaultSpecular,
       borderTopColor: defaultTopRim,
     },

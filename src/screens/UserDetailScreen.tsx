@@ -130,7 +130,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <GlassView variant="dock" intensity={75} tint="dark" style={styles.topBar}>
+      <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
           <Text style={styles.backBtnText}>Back</Text>
@@ -263,10 +263,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomWidth: 0,
     zIndex: 10,
-    backgroundColor: colors.surface,
+    backgroundColor: 'transparent',
   },
   backBtn: {
     flexDirection: 'row',
