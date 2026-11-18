@@ -141,7 +141,7 @@ function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
     onTabPress(tabName);
   };
 
-  const bottomOffset = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) : 20;
+  const bottomOffset = Platform.OS === 'ios' ? (insets.bottom > 0 ? insets.bottom - 16 : 14) : 14;
   const avatarUri =
     user?.avatarUrl ||
     `https://api.dicebear.com/9.x/micah/png?seed=${user?.username || 'user'}&backgroundColor=6F4E37&radius=50`;
@@ -150,12 +150,12 @@ function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
     <View style={[styles.floatingNavContainer, { bottom: bottomOffset }]} pointerEvents="box-none">
       <GlassView
         variant="capsule"
-        intensity={85}
+        intensity={55}
         tint="dark"
         borderRadius={30}
         specularBorder={true}
-        specularColor="rgba(255, 255, 255, 0.16)"
-        tintColor="rgba(25, 17, 13, 0.78)"
+        specularColor="rgba(255, 255, 255, 0.22)"
+        tintColor="rgba(25, 17, 13, 0.38)"
         style={styles.floatingNavBar}>
         <View style={styles.navRow}>
           {TABS.map((tab) => {
@@ -238,7 +238,16 @@ function MainTabs() {
             tabNavRef.current = props.navigation;
             return <CustomTabBar {...props} activeTab={activeTab} onTabPress={handleTabPress} />;
           }}
-          screenOptions={{ headerShown: false }}>
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: {
+              position: 'absolute',
+              backgroundColor: 'transparent',
+              borderTopWidth: 0,
+              elevation: 0,
+              height: 0,
+            },
+          }}>
           <Tab.Screen name="FeedTab" component={FeedStackScreen} />
           <Tab.Screen name="SquadsTab" component={SquadsStackScreen} />
           <Tab.Screen name="ChallengesTab" component={ChallengesStackScreen} />
@@ -257,18 +266,19 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     zIndex: 99,
+    backgroundColor: 'transparent',
   },
   floatingNavBar: {
-    width: '90%',
-    maxWidth: 350,
-    height: 58,
-    borderRadius: 29,
+    width: '88%',
+    maxWidth: 340,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 12,
   },
   navRow: {
     flexDirection: 'row',

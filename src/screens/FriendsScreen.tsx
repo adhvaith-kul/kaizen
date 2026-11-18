@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   TextInput,
   FlatList,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { backend } from '../services/backend';
@@ -135,7 +135,7 @@ export default function FriendsScreen({ navigation, route }: any) {
   const currentData = activeTab === 'following' ? following : activeTab === 'followers' ? followers : searchResults;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       {isTabBarPage ? (
         <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.mainHeader}>
           <View style={styles.logoContainer}>

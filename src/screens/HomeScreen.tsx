@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   Image,
   RefreshControl,
   Modal,
@@ -14,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useScrollToTop, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -143,7 +143,7 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.header}>
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>KAIZEN</Text>

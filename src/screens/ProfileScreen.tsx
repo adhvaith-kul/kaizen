@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Image,
   ActivityIndicator,
   Modal,
@@ -14,6 +13,7 @@ import {
   FlatList,
   Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -237,7 +237,7 @@ export default function ProfileScreen({ navigation }: any) {
   const avatarUri = user?.avatarUrl || dicebearUri(user?.username || 'user');
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.fixedHeader}>
         <View style={styles.headerLeftContainer}>
           <Animated.View style={[styles.stickyLeft, { opacity: stickyOpacity, position: 'absolute', left: 0 }]}>
