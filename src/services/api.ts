@@ -1,6 +1,32 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+const resolveBaseUrl = (): string => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+
+  // If envUrl is explicitly provided and is a specific remote/LAN host (not localhost), use it
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl;
+  }
+
+  // When running on a physical device or emulator where 'localhost' refers to the phone,
+  // automatically extract the development machine's IP address from Expo's hostUri
+  if (Platform.OS !== 'web') {
+    const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoClient?.hostUri;
+    if (hostUri) {
+      const hostIp = hostUri.split(':')[0];
+      if (hostIp && hostIp !== 'localhost' && hostIp !== '127.0.0.1') {
+        return `http://${hostIp}:8000`;
+      }
+    }
+  }
+
+  return envUrl || 'http://localhost:8000';
+};
+
+export const API_BASE_URL = resolveBaseUrl();
+console.log('[Kaizen API] Configured Base URL:', API_BASE_URL);
 
 class ApiClient {
   private token: string | null = null;
@@ -43,23 +69,33 @@ class ApiClient {
     }
 
     const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
 
-    if (!response.ok) {
-      let errorMessage = `HTTP error ${response.status}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorData.message || errorMessage;
-      } catch {
-        // use fallback status message
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP error ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // use fallback status message
+        }
+        throw new Error(errorMessage);
       }
-      throw new Error(errorMessage);
-    }
 
-    return response.json();
+      return response.json();
+    } catch (err: any) {
+      if (err.message === 'Network request failed' || err.name === 'TypeError') {
+        throw new Error(
+          `Cannot reach API server at ${API_BASE_URL}. Ensure the backend is running and on the same Wi-Fi network.`
+        );
+      }
+      throw err;
+    }
   }
 
   get<T = any>(endpoint: string, options?: RequestInit): Promise<T> {
