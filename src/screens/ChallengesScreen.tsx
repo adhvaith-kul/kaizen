@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   overlayLoader: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(19, 14, 11, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',

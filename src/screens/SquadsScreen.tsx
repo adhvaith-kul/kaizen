@@ -19,7 +19,7 @@ export default function SquadsScreen({ navigation }: any) {
   const { user, groups, setActiveGroup, refreshGroup } = useAuth();
   const { setActiveTab } = useTabNavigation();
   const [loading, setLoading] = useState(false);
-  const scrollRef = React.useRef<ScrollView>(null);
+  const scrollRef = React.useRef<any>(null);
   useScrollToTop(scrollRef);
 
   const handleRefresh = async () => {

@@ -27,7 +27,7 @@ import { colors, radii, spacing } from '../theme';
 export default function HomeScreen({ navigation }: any) {
   const { user } = useAuth();
   const { setActiveTab } = useTabNavigation();
-  const scrollRef = React.useRef<ScrollView>(null);
+  const scrollRef = React.useRef<any>(null);
   useScrollToTop(scrollRef);
 
   const [feed, setFeed] = useState<any[]>([]);

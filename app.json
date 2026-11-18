@@ -7,31 +7,28 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0E0E11"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.adhvaithkul.kaizen"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0E0E11",
+        "backgroundColor": "#130E0B",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.RECORD_AUDIO"]
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "icon": "./assets/icon.png",
       "config": {
         "description": "Kaizen - Build better habits",
-        "themeColor": "#0E0E11"
+        "themeColor": "#130E0B"
       }
     },
     "extra": {
@@ -46,7 +43,18 @@
         {
           "cameraPermission": "Allow Kaizen to use the camera because you need a photo to prove your habit completion."
         }
-      ]
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#130E0B",
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-asset",
+      "expo-status-bar",
+      "expo-font"
     ]
   }
 }
