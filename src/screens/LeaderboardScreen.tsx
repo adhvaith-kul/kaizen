@@ -6,6 +6,7 @@ import { backend } from '../services/backend';
 import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import HabitGateOverlay from '../components/HabitGateOverlay';
+import { SkeletonLeaderboardRow } from '../components/Skeleton';
 import { Habit } from '../types';
 import { colors, radii, spacing } from '../theme';
 
@@ -87,7 +88,14 @@ export default function LeaderboardScreen({ navigation }: any) {
         <Text style={styles.subtitle}>PERFORMANCE STANDINGS</Text>
       </View>
 
-      {!initialLoad && missingHabits.length > 0 ? (
+      {initialLoad ? (
+        <View style={styles.container}>
+          <SkeletonLeaderboardRow />
+          <SkeletonLeaderboardRow />
+          <SkeletonLeaderboardRow />
+          <SkeletonLeaderboardRow />
+        </View>
+      ) : missingHabits.length > 0 ? (
         <HabitGateOverlay missing={missingHabits} onFix={() => navigation.navigate('HabitSetup')} />
       ) : (
         <>

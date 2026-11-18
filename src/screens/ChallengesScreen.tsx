@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
 import { Challenge, UserChallenge, Habit, DailyLog } from '../types';
+import { SkeletonChallengeCard } from '../components/Skeleton';
 import { colors, radii, spacing } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -183,9 +184,11 @@ export default function ChallengesScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="small" color={colors.lavender} />
-      </View>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>CHALLENGES</Text>
+        <SkeletonChallengeCard />
+        <SkeletonChallengeCard />
+      </ScrollView>
     );
   }
 

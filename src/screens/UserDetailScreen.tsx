@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import PostCard from '../components/PostCard';
+import { SkeletonPostCard } from '../components/Skeleton';
 import { colors, radii, spacing } from '../theme';
 
 export default function UserDetailScreen({ route, navigation }: any) {
@@ -146,7 +147,10 @@ export default function UserDetailScreen({ route, navigation }: any) {
 
       <View style={styles.container}>
         {loading ? (
-          <Loader style={{ marginTop: 40 }} />
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+            <SkeletonPostCard />
+            <SkeletonPostCard />
+          </View>
         ) : (
           <Animated.FlatList
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {

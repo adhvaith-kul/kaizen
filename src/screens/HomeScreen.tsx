@@ -22,6 +22,7 @@ import Loader from '../components/Loader';
 import { useTabNavigation } from '../context/TabNavigationContext';
 import { HabitComment as Comment } from '../types';
 import PostCard from '../components/PostCard';
+import { SkeletonPostCard } from '../components/Skeleton';
 import { colors, radii, spacing } from '../theme';
 
 export default function HomeScreen({ navigation }: any) {
@@ -139,10 +140,6 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
-  if (loading && !refreshing) {
-    return <Loader fullScreen />;
-  }
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -177,7 +174,13 @@ export default function HomeScreen({ navigation }: any) {
           />
         }
         contentContainerStyle={{ padding: spacing.lg, paddingBottom: 110, flexGrow: 1 }}>
-        {feed.length === 0 ? (
+        {loading && !refreshing ? (
+          <>
+            <SkeletonPostCard />
+            <SkeletonPostCard />
+            <SkeletonPostCard />
+          </>
+        ) : feed.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>Feed is quiet.</Text>
             <Text style={styles.emptySubtext}>Join a squad or add habits to begin tracking collective discipline.</Text>

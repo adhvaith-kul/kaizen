@@ -15,6 +15,7 @@ import { backend } from '../services/backend';
 import { User } from '../types';
 import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
+import { SkeletonUserRow } from '../components/Skeleton';
 import { useTabNavigation } from '../context/TabNavigationContext';
 import { colors, radii, spacing } from '../theme';
 
@@ -206,7 +207,12 @@ export default function FriendsScreen({ navigation, route }: any) {
         )}
 
         {loading && currentData.length === 0 ? (
-          <Loader style={{ marginTop: 40 }} />
+          <View style={{ paddingTop: spacing.sm }}>
+            <SkeletonUserRow />
+            <SkeletonUserRow />
+            <SkeletonUserRow />
+            <SkeletonUserRow />
+          </View>
         ) : (
           <FlatList
             data={currentData}

@@ -23,6 +23,7 @@ import { backend } from '../services/backend';
 import { HabitComment as Comment } from '../types';
 import Loader from '../components/Loader';
 import PostCard from '../components/PostCard';
+import { Skeleton } from '../components/Skeleton';
 import { colors, radii, spacing } from '../theme';
 
 const SQUAD_COLORS = [colors.mocha, colors.lavender, colors.silver, colors.mochaLight, colors.lavenderMuted];
@@ -307,7 +308,20 @@ export default function ProfileScreen({ navigation }: any) {
             <Text style={styles.sectionTitle}>LIFETIME METRICS</Text>
 
             {loading ? (
-              <Loader style={{ marginVertical: 20 }} />
+              <View style={styles.statsGrid}>
+                <View style={styles.statBox}>
+                  <Skeleton width={50} height={24} style={{ marginBottom: 6 }} />
+                  <Skeleton width={70} height={10} />
+                </View>
+                <View style={styles.statBox}>
+                  <Skeleton width={50} height={24} style={{ marginBottom: 6 }} />
+                  <Skeleton width={70} height={10} />
+                </View>
+                <View style={styles.statBox}>
+                  <Skeleton width={50} height={24} style={{ marginBottom: 6 }} />
+                  <Skeleton width={70} height={10} />
+                </View>
+              </View>
             ) : (
               <View style={styles.statsGrid}>
                 <View style={styles.statBox}>
@@ -330,7 +344,14 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={styles.graphSection}>
             <Text style={styles.sectionTitle}>7-DAY CONSISTENCY</Text>
             {loading ? (
-              <Loader style={{ marginVertical: 30 }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: spacing.lg, height: 130, alignItems: 'flex-end' }}>
+                {[50, 85, 40, 110, 75, 95, 60].map((h, i) => (
+                  <View key={i} style={{ alignItems: 'center', width: 32 }}>
+                    <Skeleton width={18} height={h} borderRadius={radii.sm} style={{ marginBottom: 8 }} />
+                    <Skeleton width={18} height={10} borderRadius={radii.sm} />
+                  </View>
+                ))}
+              </View>
             ) : (
               <>
                 <View style={styles.chartRow}>

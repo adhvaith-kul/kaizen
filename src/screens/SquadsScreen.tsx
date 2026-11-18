@@ -13,6 +13,7 @@ import { useScrollToTop } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTabNavigation } from '../context/TabNavigationContext';
+import { SkeletonSquadCard } from '../components/Skeleton';
 import { colors, radii, spacing } from '../theme';
 
 export default function SquadsScreen({ navigation }: any) {
@@ -75,7 +76,12 @@ export default function SquadsScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          {groups.length === 0 ? (
+          {loading && groups.length === 0 ? (
+            <>
+              <SkeletonSquadCard />
+              <SkeletonSquadCard />
+            </>
+          ) : groups.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No Active Squads</Text>
               <Text style={styles.emptySubtext}>

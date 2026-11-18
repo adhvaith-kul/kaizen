@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import PostCard from '../components/PostCard';
+import { SkeletonPostCard } from '../components/Skeleton';
 import { useTabNavigation } from '../context/TabNavigationContext';
 import { colors, radii, spacing } from '../theme';
 
@@ -131,7 +132,10 @@ export default function UserLogsScreen({ route, navigation }: any) {
 
       <View style={styles.container}>
         {loading ? (
-          <Loader style={{ marginTop: 50 }} />
+          <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.md }}>
+            <SkeletonPostCard />
+            <SkeletonPostCard />
+          </View>
         ) : (
           <Animated.SectionList
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {

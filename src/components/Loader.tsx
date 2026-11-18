@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, Easing, StyleSheet, Text } from 'react-native';
+import { View, Animated, Easing, StyleSheet, Text, Image } from 'react-native';
 import { colors, radii, spacing } from '../theme';
 
 interface LoaderProps {
@@ -7,9 +7,10 @@ interface LoaderProps {
   color?: string;
   style?: any;
   fullScreen?: boolean;
+  message?: string;
 }
 
-export default function Loader({ style, fullScreen = false }: LoaderProps) {
+export default function Loader({ size = 72, style, fullScreen = false, message }: LoaderProps) {
   const pulseValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -17,13 +18,13 @@ export default function Loader({ style, fullScreen = false }: LoaderProps) {
       Animated.sequence([
         Animated.timing(pulseValue, {
           toValue: 1,
-          duration: 900,
+          duration: 1000,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(pulseValue, {
           toValue: 0,
-          duration: 900,
+          duration: 1000,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
@@ -33,21 +34,30 @@ export default function Loader({ style, fullScreen = false }: LoaderProps) {
 
   const opacity = pulseValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.55, 1],
+    outputRange: [0.7, 1],
   });
 
   const scale = pulseValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.97, 1.01],
+    outputRange: [0.95, 1.05],
   });
 
   const loaderContent = (
-    <View style={[{ justifyContent: 'center', alignItems: 'center' }, style]}>
+    <View style={[styles.centerContainer, style]}>
       <Animated.View style={{ opacity, transform: [{ scale }], alignItems: 'center' }}>
+        <Image
+          source={require('../../assets/logo.png')}
+          style={{ width: size, height: size, borderRadius: size * 0.22 }}
+          resizeMode="cover"
+        />
         <Text style={styles.brandTitle}>KAIZEN</Text>
-        <View style={styles.subBadge}>
-          <Text style={styles.subText}>DISCIPLINE & CONTINUOUS IMPROVEMENT</Text>
-        </View>
+        {message ? (
+          <Text style={styles.messageText}>{message}</Text>
+        ) : (
+          <View style={styles.subBadge}>
+            <Text style={styles.subText}>CONTINUOUS IMPROVEMENT</Text>
+          </View>
+        )}
       </Animated.View>
     </View>
   );
@@ -60,6 +70,11 @@ export default function Loader({ style, fullScreen = false }: LoaderProps) {
 }
 
 const styles = StyleSheet.create({
+  centerContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
   fullScreenOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(33, 22, 19, 0.94)',
@@ -68,24 +83,32 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   brandTitle: {
-    color: colors.silver,
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: 8,
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 6,
+    marginTop: spacing.md,
+  },
+  messageText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: spacing.sm,
+    letterSpacing: 0.5,
   },
   subBadge: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: 3,
     borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     backgroundColor: colors.surface,
   },
   subText: {
-    color: colors.lavenderMuted,
+    color: colors.textSecondary,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 2,
   },
 });
