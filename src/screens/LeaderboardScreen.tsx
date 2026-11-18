@@ -150,15 +150,6 @@ export default function LeaderboardScreen({ navigation }: any) {
               }}
             />
           </View>
-
-          <GlassView variant="capsule" intensity={70} tint="dark" style={styles.bottomBar}>
-            <TouchableOpacity
-              style={styles.trackBtn}
-              onPress={() => navigation.navigate('Dashboard')}
-              activeOpacity={0.85}>
-              <Text style={styles.trackBtnText}>Record Daily Habits</Text>
-            </TouchableOpacity>
-          </GlassView>
         </>
       )}
     </SafeAreaView>
@@ -281,28 +272,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.lavender,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 24,
-    left: spacing.lg,
-    right: spacing.lg,
-  },
-  trackBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.lg,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  trackBtnText: {
-    color: colors.primaryText,
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
 });

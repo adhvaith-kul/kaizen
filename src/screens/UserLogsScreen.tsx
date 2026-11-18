@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Animated, LayoutAnimation } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, LayoutAnimation } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { backend } from '../services/backend';
 import { useAuth } from '../context/AuthContext';
@@ -108,12 +109,13 @@ export default function UserLogsScreen({ route, navigation }: any) {
     });
     return Object.keys(sections).map(key => ({
       title: key,
+      count: sections[key].length,
       data: collapsedDates[key] ? [] : sections[key],
     }));
   }, [feed, collapsedDates]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
       <GlassView variant="raw" intensity={50} tint="dark" specularBorder={false} style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
@@ -150,12 +152,45 @@ export default function UserLogsScreen({ route, navigation }: any) {
                 <Text style={styles.sectionTitle}>ACTIVITY HISTORY</Text>
               </View>
             )}
-            renderSectionHeader={({ section: { title } }) => (
-              <TouchableOpacity activeOpacity={0.7} onPress={() => toggleCollapsed(title)} style={styles.dateHeader}>
-                <Text style={styles.dateHeaderText}>{title}</Text>
-                <Ionicons name={collapsedDates[title] ? 'chevron-down' : 'chevron-up'} size={14} color={colors.textMuted} />
-              </TouchableOpacity>
-            )}
+            renderSectionHeader={({ section }: any) => {
+              const isCollapsed = !!collapsedDates[section.title];
+              return (
+                <View style={styles.dateHeaderContainer}>
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => toggleCollapsed(section.title)}
+                    style={[styles.dateHeaderCard, !isCollapsed && styles.dateHeaderCardExpanded]}>
+                    <View style={styles.dateHeaderLeft}>
+                      <View style={[styles.calendarIconBubble, !isCollapsed && styles.calendarIconBubbleActive]}>
+                        <Ionicons
+                          name="calendar-outline"
+                          size={14}
+                          color={!isCollapsed ? colors.lavender : colors.textMuted}
+                        />
+                      </View>
+                      <Text style={[styles.dateHeaderText, !isCollapsed && styles.dateHeaderTextActive]}>
+                        {section.title}
+                      </Text>
+                    </View>
+
+                    <View style={styles.dateHeaderRight}>
+                      <View style={styles.logCountBadge}>
+                        <Text style={styles.logCountText}>
+                          {section.count} {section.count === 1 ? 'log' : 'logs'}
+                        </Text>
+                      </View>
+                      <View style={styles.chevronCircle}>
+                        <Ionicons
+                          name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+                          size={14}
+                          color={!isCollapsed ? colors.lavender : colors.textMuted}
+                        />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              );
+            }}
             renderItem={({ item }) => (
               <PostCard
                 post={item as any}
@@ -235,21 +270,73 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 14,
   },
-  dateHeader: {
+  dateHeaderContainer: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
+    paddingVertical: 5,
+    backgroundColor: colors.background,
+  },
+  dateHeaderCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: colors.surface,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  dateHeaderCardExpanded: {
+    borderColor: colors.lavenderBorder,
+    backgroundColor: colors.surfaceElevated,
+  },
+  dateHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  calendarIconBubble: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  calendarIconBubbleActive: {
+    backgroundColor: 'rgba(230, 224, 240, 0.15)',
   },
   dateHeaderText: {
-    color: colors.textSecondary,
-    fontSize: 11,
+    color: colors.silver,
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.5,
+    letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  dateHeaderTextActive: {
+    color: colors.silverLight,
+  },
+  dateHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  logCountBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  logCountText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.lavenderMuted,
+  },
+  chevronCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

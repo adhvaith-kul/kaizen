@@ -199,7 +199,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
                         </TouchableOpacity>
                       )}
                     </View>
-                    <GlassView variant="capsule" intensity={50} tint="dark" style={styles.miniStats}>
+                    <GlassView variant="card" intensity={50} tint="dark" borderRadius={14} style={styles.miniStats}>
                       <View style={styles.miniStatItem}>
                         <Text style={styles.miniStatValue}>{stats.totalHabits}</Text>
                         <Text style={styles.miniStatLabel}>HABITS</Text>
@@ -346,27 +346,34 @@ const styles = StyleSheet.create({
   miniStats: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    marginTop: spacing.xs,
   },
   miniStatItem: {
     alignItems: 'center',
-    marginRight: spacing.md,
+    justifyContent: 'center',
+    flex: 1,
   },
   miniStatValue: {
     color: colors.silver,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
+    lineHeight: 18,
   },
   miniStatLabel: {
     color: colors.textMuted,
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
+    marginTop: 2,
+    lineHeight: 12,
   },
   miniStatDivider: {
     width: 1,
-    height: 12,
+    height: 18,
     backgroundColor: colors.borderSubtle,
-    marginRight: spacing.md,
   },
   sectionTitle: {
     fontSize: 11,

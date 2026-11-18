@@ -234,19 +234,50 @@ export default function ChallengesScreen() {
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.lavender} />}>
         <View style={styles.header}>
-          <Text style={styles.title}>75 HARD</Text>
-          <GlassView variant="capsule" intensity={70} tint="dark" style={styles.streakBadge}>
+          <View>
+            <Text style={styles.title}>75 HARD</Text>
+            <Text style={styles.headerSubtitle}>MENTAL TOUGHNESS PROTOCOL</Text>
+          </View>
+          <GlassView variant="capsule" intensity={70} tint="dark" borderRadius={16} style={styles.streakBadge}>
+            <Ionicons name="flame" size={14} color={colors.lavender} style={{ marginRight: 4 }} />
             <Text style={styles.streakText}>DAY {userChallenge.currentStreak}</Text>
           </GlassView>
         </View>
 
-        <GlassView variant="card" intensity={60} tint="dark" style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${Math.max(4, progress)}%` }]} />
+        <GlassView variant="card" intensity={65} tint="dark" style={styles.dayTrackerCard}>
+          <View style={styles.dayTrackerTop}>
+            <View>
+              <Text style={styles.dayTrackerTitle}>Day {userChallenge.currentStreak} of 75</Text>
+              <Text style={styles.dayTrackerSub}>
+                {userChallenge.currentStreak === 0
+                  ? 'Ready to embark on Day 1'
+                  : `${Math.max(0, 75 - userChallenge.currentStreak)} days remaining to victory`}
+              </Text>
+            </View>
+            <View style={styles.percentagePill}>
+              <Text style={styles.percentageText}>{Math.round(progress)}%</Text>
+            </View>
           </View>
-          <View style={styles.progressLabels}>
-            <Text style={styles.progressLabel}>Day 01</Text>
-            <Text style={styles.progressLabel}>Day 75</Text>
+
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${Math.max(4, Math.min(100, progress))}%` }]} />
+          </View>
+
+          <View style={styles.trackerStatsRow}>
+            <View style={styles.trackerStat}>
+              <Text style={styles.trackerStatValue}>Day {userChallenge.currentStreak}</Text>
+              <Text style={styles.trackerStatLabel}>CURRENT</Text>
+            </View>
+            <View style={styles.trackerDivider} />
+            <View style={styles.trackerStat}>
+              <Text style={styles.trackerStatValue}>{Math.max(0, 75 - userChallenge.currentStreak)}</Text>
+              <Text style={styles.trackerStatLabel}>REMAINING</Text>
+            </View>
+            <View style={styles.trackerDivider} />
+            <View style={styles.trackerStat}>
+              <Text style={styles.trackerStatValue}>75</Text>
+              <Text style={styles.trackerStatLabel}>TARGET</Text>
+            </View>
           </View>
         </GlassView>
 
@@ -406,19 +437,103 @@ const styles = StyleSheet.create({
     color: colors.silver,
     letterSpacing: -0.3,
   },
+  headerSubtitle: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.lavenderMuted,
+    letterSpacing: 1.5,
+    marginTop: 2,
+  },
   streakBadge: {
-    backgroundColor: colors.surfaceElevated,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.lavenderBorder,
+    paddingVertical: 6,
   },
   streakText: {
     color: colors.lavender,
     fontWeight: '700',
     fontSize: 12,
     letterSpacing: 1,
+  },
+  dayTrackerCard: {
+    padding: spacing.lg,
+    marginBottom: spacing.xxl,
+  },
+  dayTrackerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  dayTrackerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.silver,
+    letterSpacing: -0.2,
+  },
+  dayTrackerSub: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  percentagePill: {
+    backgroundColor: 'rgba(230, 224, 240, 0.12)',
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 4,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 224, 240, 0.22)',
+  },
+  percentageText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.lavender,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    marginBottom: spacing.md,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.lavender,
+    borderRadius: 4,
+  },
+  trackerStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  trackerStat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  trackerStatValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.silver,
+    lineHeight: 18,
+  },
+  trackerStatLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  trackerDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: colors.borderSubtle,
   },
   challengeCard: {
     backgroundColor: colors.surface,
@@ -474,31 +589,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
     letterSpacing: 0.5,
-  },
-  progressContainer: {
-    marginBottom: spacing.xxl,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: colors.surface,
-    borderRadius: 4,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.mocha,
-  },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.xs,
-  },
-  progressLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-    fontWeight: '500',
   },
   sectionTitle: {
     fontSize: 11,
