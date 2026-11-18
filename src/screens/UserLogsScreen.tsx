@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import PostCard from '../components/PostCard';
 import { useTabNavigation } from '../context/TabNavigationContext';
+import { colors, radii, spacing } from '../theme';
 
 export default function UserLogsScreen({ route, navigation }: any) {
   const { userId, username, groupId, groupName } = route.params;
@@ -24,12 +25,6 @@ export default function UserLogsScreen({ route, navigation }: any) {
       [dateStr]: !prev[dateStr],
     }));
   };
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [50, 100],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
 
   useFocusEffect(
     useCallback(() => {
@@ -105,7 +100,6 @@ export default function UserLogsScreen({ route, navigation }: any) {
     const sections: { [key: string]: any[] } = {};
     feed.forEach(log => {
       const dateObj = new Date(log.timestamp);
-      // Format: "March 8, 2026"
       const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       if (!sections[dateStr]) sections[dateStr] = [];
       sections[dateStr].push(log);
@@ -119,20 +113,20 @@ export default function UserLogsScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color="#FFF" />
-          <Text style={styles.backBtnText}>BACK</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+          <Text style={styles.backBtnText}>Back</Text>
         </TouchableOpacity>
 
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>LOGS</Text>
           <Text style={styles.headerSubtitle}>
             @{username}
-            {groupName ? ` | ${groupName}` : ''}
+            {groupName ? ` · ${groupName}` : ''}
           </Text>
         </View>
 
-        <View style={{ width: 80 }} />
+        <View style={{ width: 60 }} />
       </View>
 
       <View style={styles.container}>
@@ -154,7 +148,7 @@ export default function UserLogsScreen({ route, navigation }: any) {
             renderSectionHeader={({ section: { title } }) => (
               <TouchableOpacity activeOpacity={0.7} onPress={() => toggleCollapsed(title)} style={styles.dateHeader}>
                 <Text style={styles.dateHeaderText}>{title}</Text>
-                <Ionicons name={collapsedDates[title] ? 'chevron-down' : 'chevron-up'} size={16} color="#A0A0B0" />
+                <Ionicons name={collapsedDates[title] ? 'chevron-down' : 'chevron-up'} size={14} color={colors.textMuted} />
               </TouchableOpacity>
             )}
             renderItem={({ item }) => (
@@ -168,7 +162,7 @@ export default function UserLogsScreen({ route, navigation }: any) {
             )}
             ListEmptyComponent={() => (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No logs found for this user. 🍃</Text>
+                <Text style={styles.emptyText}>No logs found for this user.</Text>
               </View>
             )}
             contentContainerStyle={{ paddingBottom: 100 }}
@@ -180,75 +174,78 @@ export default function UserLogsScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E0E11' },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1 },
   topBar: {
-    height: 60,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A24',
-    zIndex: 10,
+    borderBottomColor: colors.borderSubtle,
+    backgroundColor: colors.background,
   },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 80,
+    width: 60,
   },
-  backBtnText: { color: '#FFF', fontWeight: '800', fontSize: 12, letterSpacing: 1, marginLeft: -4 },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 2,
+  },
   headerContent: {
     alignItems: 'center',
     flex: 1,
   },
   headerTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '900',
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
     letterSpacing: 2,
   },
   headerSubtitle: {
-    color: '#C2FF05',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
+    color: colors.lavenderText,
+    fontSize: 11,
+    fontWeight: '500',
     marginTop: 2,
   },
   listHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 25,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#444',
-    letterSpacing: 3,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 2,
   },
   emptyState: {
-    paddingTop: 100,
+    paddingTop: 80,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#888',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.textMuted,
+    fontSize: 14,
   },
   dateHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#15151A',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A24',
+    borderBottomColor: colors.borderSubtle,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   dateHeaderText: {
-    color: '#888',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 2,
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
 });

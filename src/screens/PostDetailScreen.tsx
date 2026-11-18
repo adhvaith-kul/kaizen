@@ -20,6 +20,7 @@ import Loader from '../components/Loader';
 import { HabitComment as Comment } from '../types';
 import PostCard from '../components/PostCard';
 import { useTabNavigation } from '../context/TabNavigationContext';
+import { colors, radii, spacing } from '../theme';
 
 export default function PostDetailScreen({ route, navigation }: any) {
   const { logId } = route.params;
@@ -65,7 +66,6 @@ export default function PostDetailScreen({ route, navigation }: any) {
       } else {
         await backend.likeLog(user.id, item.id);
       }
-      // Optimistic Update
       setPost((prev: any) => ({
         ...prev,
         isLiked: !prev.isLiked,
@@ -84,7 +84,6 @@ export default function PostDetailScreen({ route, navigation }: any) {
       } else {
         await backend.suspectLog(user.id, item.id);
       }
-      // Refresh post detail
       const updatedPost = await backend.getPostDetail(user.id, item.id);
       setPost(updatedPost);
     } catch (e) {
@@ -108,10 +107,8 @@ export default function PostDetailScreen({ route, navigation }: any) {
     try {
       await backend.addComment(user.id, post.id, newComment);
       setNewComment('');
-      // Refresh comments
       const data = await backend.getComments(post.id);
       setComments(data);
-      // Update post detail
       const updatedPost = await backend.getPostDetail(user.id, post.id);
       setPost(updatedPost);
     } catch (e) {
@@ -137,14 +134,15 @@ export default function PostDetailScreen({ route, navigation }: any) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+            <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Post</Text>
-          <View style={{ width: 40 }} />
+          <Text style={styles.headerTitle}>Verification</Text>
+          <View style={{ width: 60 }} />
         </View>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Post not found or has been deleted.</Text>
+          <Text style={styles.errorText}>Record not found or has been removed.</Text>
         </View>
       </SafeAreaView>
     );
@@ -153,17 +151,18 @@ export default function PostDetailScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+          <Text style={styles.backBtnText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post</Text>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>Verification</Text>
+        <View style={{ width: 60 }} />
       </View>
 
       <ScrollView
         style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C2FF05" />}
-        contentContainerStyle={{ paddingBottom: 100 }}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.lavender} />}
+        contentContainerStyle={{ padding: spacing.lg, paddingBottom: 110 }}>
         <PostCard
           post={post}
           onLike={handleLike}
@@ -173,7 +172,7 @@ export default function PostDetailScreen({ route, navigation }: any) {
         />
       </ScrollView>
 
-      {/* Comments Modal */}
+      {/* Comments Drawer */}
       <Modal
         visible={commentsVisible}
         animationType="slide"
@@ -185,17 +184,16 @@ export default function PostDetailScreen({ route, navigation }: any) {
               <View style={styles.modalHandle} />
               <Text style={styles.modalTitle}>Comments</Text>
               <TouchableOpacity onPress={() => setCommentsVisible(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={24} color="#C2FF05" />
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <FlatList
               data={comments}
-              keyExtractor={c => c.id}
-              contentContainerStyle={{ paddingVertical: 20, paddingHorizontal: 16 }}
+              keyExtractor={(c) => c.id}
+              contentContainerStyle={{ paddingVertical: spacing.lg, paddingHorizontal: spacing.lg }}
               renderItem={({ item }) => (
                 <View style={styles.commentItem}>
-                  <PostIcon item={item} />
                   <View style={styles.commentInfo}>
                     <Text style={styles.commentUser}>{item.username}</Text>
                     <Text style={styles.commentText}>{item.text}</Text>
@@ -203,8 +201,8 @@ export default function PostDetailScreen({ route, navigation }: any) {
                 </View>
               )}
               ListEmptyComponent={() => (
-                <Text style={{ color: '#666', textAlign: 'center', marginTop: 50 }}>
-                  No comments yet. Be the first!
+                <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 13 }}>
+                  No comments yet.
                 </Text>
               )}
             />
@@ -213,7 +211,7 @@ export default function PostDetailScreen({ route, navigation }: any) {
               <TextInput
                 style={styles.commentInput}
                 placeholder="Add a comment..."
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 value={newComment}
                 onChangeText={setNewComment}
                 multiline
@@ -221,7 +219,7 @@ export default function PostDetailScreen({ route, navigation }: any) {
               <TouchableOpacity
                 onPress={postComment}
                 disabled={commenting || !newComment.trim()}
-                style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.5 }]}>
+                style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.4 }]}>
                 <Text style={styles.postCommentBtnText}>{commenting ? '...' : 'Post'}</Text>
               </TouchableOpacity>
             </View>
@@ -232,105 +230,126 @@ export default function PostDetailScreen({ route, navigation }: any) {
   );
 }
 
-function PostIcon({ item }: any) {
-  return (
-    <View style={styles.commentAvatarContainer}>
-      <Ionicons name="person-circle" size={32} color="#444" />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E0E11' },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 15,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A24',
+    borderBottomColor: colors.border,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.silver,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    width: 60,
+  },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
   },
   container: { flex: 1 },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   errorText: {
-    color: '#666',
-    fontSize: 16,
+    color: colors.textMuted,
+    fontSize: 14,
     textAlign: 'center',
   },
-  // Modal Styles
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(19, 14, 11, 0.75)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#121217',
-    height: '75%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 20,
+    backgroundColor: colors.surfaceElevated,
+    height: '70%',
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    paddingBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalHeader: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A35',
+    borderBottomColor: colors.borderSubtle,
   },
   modalHandle: {
-    width: 40,
+    width: 36,
     height: 4,
-    backgroundColor: '#333',
+    backgroundColor: colors.border,
     borderRadius: 2,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
-  modalTitle: { color: '#FFF', fontWeight: '800', fontSize: 16 },
-  closeBtn: { position: 'absolute', right: 20, top: 15 },
-  commentItem: { flexDirection: 'row', marginBottom: 20 },
-  commentAvatarContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+  modalTitle: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  closeBtn: {
+    position: 'absolute',
+    right: spacing.lg,
+    top: spacing.md,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    marginBottom: spacing.lg,
   },
   commentInfo: { flex: 1 },
-  commentUser: { color: '#FFF', fontWeight: '700', fontSize: 13, marginBottom: 2 },
-  commentText: { color: '#CCC', fontSize: 14, lineHeight: 18 },
+  commentUser: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  commentText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   commentInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#2A2A35',
-    backgroundColor: '#1A1A24',
+    borderTopColor: colors.borderSubtle,
+    backgroundColor: colors.surface,
   },
   commentInput: {
     flex: 1,
-    color: '#FFF',
+    color: colors.silver,
     fontSize: 14,
-    maxHeight: 100,
-    paddingTop: 10,
-    paddingBottom: 10,
+    maxHeight: 90,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
-  postCommentBtn: { marginLeft: 10, paddingHorizontal: 15 },
-  postCommentBtnText: { color: '#C2FF05', fontWeight: '900', fontSize: 14 },
+  postCommentBtn: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.mocha,
+    borderRadius: radii.sm,
+    marginLeft: spacing.sm,
+  },
+  postCommentBtnText: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 12,
+  },
 });

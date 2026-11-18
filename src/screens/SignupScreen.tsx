@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import Loader from '../components/Loader';
+import { colors, radii, spacing } from '../theme';
 
 export default function SignupScreen({ navigation }: any) {
   const [username, setUsername] = useState('');
@@ -23,15 +24,19 @@ export default function SignupScreen({ navigation }: any) {
   const { showAlert } = useGlobalAlert();
 
   const handleSignup = async () => {
+    if (!username.trim() || !email.trim()) {
+      showAlert('Notice', 'Please provide a username and email address.');
+      return;
+    }
     if (password.length < 6) {
-      showAlert('💀 Bruh', 'Password needs to be at least 6 characters.');
+      showAlert('Notice', 'Password must be at least 6 characters.');
       return;
     }
     setLoading(true);
     try {
-      await signup(username, email, password);
+      await signup(username.trim(), email.trim(), password);
     } catch (e: any) {
-      showAlert('💀 Bruh', e.message);
+      showAlert('Error', e.message);
     } finally {
       setLoading(false);
     }
@@ -43,43 +48,62 @@ export default function SignupScreen({ navigation }: any) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" bounces={false}>
           <View style={styles.header}>
-            <Text style={styles.logo}>
-              Join the <Text style={styles.logoAccent}>cult</Text> 👽
+            <Text style={styles.brandSubtitle}>NEW ACCOUNT</Text>
+            <Text style={styles.logo}>Create Account</Text>
+            <Text style={styles.subtitle}>Commit to daily accountability with your squad.</Text>
+          </View>
+
+          <View style={styles.formCard}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>USERNAME</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Choose username"
+                placeholderTextColor={colors.textMuted}
+                onChangeText={setUsername}
+                value={username}
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>EMAIL</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="name@example.com"
+                placeholderTextColor={colors.textMuted}
+                onChangeText={setEmail}
+                value={email}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>PASSWORD</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Min. 6 characters"
+                placeholderTextColor={colors.textMuted}
+                onChangeText={setPassword}
+                value={password}
+                secureTextEntry
+              />
+            </View>
+
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleSignup} activeOpacity={0.8}>
+              <Text style={styles.primaryBtnText}>Register</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.7}>
+            <Text style={styles.secondaryBtnText}>
+              Already registered? <Text style={styles.secondaryBtnLink}>Sign in</Text>
             </Text>
-            <Text style={styles.subtitle}>Main character energy only.</Text>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Username (make it fire)"
-              placeholderTextColor="#888"
-              onChangeText={setUsername}
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email address (@)"
-              placeholderTextColor="#888"
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password (shh...)"
-              placeholderTextColor="#888"
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-          </View>
-
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleSignup}>
-            <Text style={styles.primaryBtnText}>VIBE CHECK PASSED</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.secondaryBtn} onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.secondaryBtnText}>Already a member? Log in 🤝</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -88,36 +112,80 @@ export default function SignupScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0E0E11' },
-  content: { flexGrow: 1, padding: 24, justifyContent: 'center' },
-  header: { marginBottom: 40, alignItems: 'center' },
-  logo: { fontSize: 40, fontWeight: '900', color: '#FFF', letterSpacing: -1.5, textAlign: 'center' },
-  logoAccent: { color: '#B388FF' },
-  subtitle: { fontSize: 16, color: '#A0A0B0', marginTop: 8, fontWeight: '600' },
-  inputContainer: { marginBottom: 30 },
-  input: {
-    backgroundColor: '#1A1A24',
-    color: '#FFF',
-    fontSize: 16,
-    padding: 18,
-    marginBottom: 16,
-    borderRadius: 16,
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { flexGrow: 1, padding: spacing.xl, justifyContent: 'center' },
+  header: { marginBottom: spacing.xxl, alignItems: 'center' },
+  brandSubtitle: {
+    color: colors.lavenderText,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 3,
+    marginBottom: 6,
+  },
+  logo: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  formCard: {
+    backgroundColor: colors.surface,
+    padding: spacing.xl,
+    borderRadius: radii.xl,
     borderWidth: 1,
-    borderColor: '#2A2A35',
-    fontWeight: '500',
+    borderColor: colors.borderSubtle,
+  },
+  inputGroup: {
+    marginBottom: spacing.lg,
+  },
+  inputLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: colors.surfaceElevated,
+    color: colors.textPrimary,
+    fontSize: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   primaryBtn: {
-    backgroundColor: '#B388FF',
-    padding: 18,
-    borderRadius: 16,
+    backgroundColor: colors.mocha,
+    paddingVertical: 14,
+    borderRadius: radii.md,
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#B388FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    marginTop: spacing.xs,
   },
-  primaryBtnText: { color: '#000', fontSize: 16, fontWeight: '800', letterSpacing: 1 },
-  secondaryBtn: { padding: 18, alignItems: 'center' },
-  secondaryBtnText: { color: '#C2FF05', fontSize: 14, fontWeight: '700' },
+  primaryBtnText: {
+    color: colors.platinum,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  secondaryBtn: {
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  secondaryBtnText: {
+    color: colors.textMuted,
+    fontSize: 13,
+  },
+  secondaryBtnLink: {
+    color: colors.lavenderText,
+    fontWeight: '600',
+  },
 });

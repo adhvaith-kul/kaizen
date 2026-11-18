@@ -8,7 +8,6 @@ import {
   TextInput,
   FlatList,
   Image,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -17,9 +16,10 @@ import { User } from '../types';
 import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import { useTabNavigation } from '../context/TabNavigationContext';
+import { colors, radii, spacing } from '../theme';
 
 const dicebearUri = (seed: string) =>
-  `https://api.dicebear.com/9.x/micah/png?seed=${seed}&backgroundColor=C2FF05&radius=50`;
+  `https://api.dicebear.com/9.x/micah/png?seed=${seed}&backgroundColor=6F4E37&radius=50`;
 
 export default function FriendsScreen({ navigation, route }: any) {
   const isTabBarPage = route.params?.isTab;
@@ -43,7 +43,7 @@ export default function FriendsScreen({ navigation, route }: any) {
       setFollowing(followingData);
       setFollowers(followersData);
     } catch (e) {
-      console.error('Failed to fetch friends data:', e);
+      console.error('Failed to fetch network data:', e);
     } finally {
       setLoading(false);
     }
@@ -80,14 +80,14 @@ export default function FriendsScreen({ navigation, route }: any) {
 
   const handleFollowToggle = async (targetUser: User) => {
     if (!user) return;
-    const isCurrentlyFollowing = following.some(u => u.id === targetUser.id);
+    const isCurrentlyFollowing = following.some((u) => u.id === targetUser.id);
     try {
       if (isCurrentlyFollowing) {
         await backend.unfollowUser(user.id, targetUser.id);
-        setFollowing(prev => prev.filter(u => u.id !== targetUser.id));
+        setFollowing((prev) => prev.filter((u) => u.id !== targetUser.id));
       } else {
         await backend.followUser(user.id, targetUser.id);
-        setFollowing(prev => [...prev, targetUser]);
+        setFollowing((prev) => [...prev, targetUser]);
       }
     } catch (e) {
       console.error('Follow toggle failed:', e);
@@ -95,12 +95,13 @@ export default function FriendsScreen({ navigation, route }: any) {
   };
 
   const renderUserItem = ({ item }: { item: User }) => {
-    const isFollowing = following.some(u => u.id === item.id);
+    const isFollowing = following.some((u) => u.id === item.id);
     const isMe = user?.id === item.id;
 
     return (
       <TouchableOpacity
         style={styles.userCard}
+        activeOpacity={0.75}
         onPress={() => {
           if (isMe) {
             setGlobalActiveTab('ProfileTab');
@@ -118,9 +119,10 @@ export default function FriendsScreen({ navigation, route }: any) {
         {!isMe && (
           <TouchableOpacity
             style={[styles.followBtn, isFollowing && styles.followingBtn]}
-            onPress={() => handleFollowToggle(item)}>
+            onPress={() => handleFollowToggle(item)}
+            activeOpacity={0.8}>
             <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
-              {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+              {isFollowing ? 'Following' : 'Follow'}
             </Text>
           </TouchableOpacity>
         )}
@@ -136,14 +138,14 @@ export default function FriendsScreen({ navigation, route }: any) {
         <View style={styles.mainHeader}>
           <View style={styles.logoContainer}>
             <Text style={styles.logo}>KAIZEN</Text>
-            <Text style={styles.motto}>SELF-IMPROVEMENT. GAMIFIED.</Text>
+            <Text style={styles.motto}>DISCIPLINE NETWORK</Text>
           </View>
           <TouchableOpacity onPress={() => setGlobalActiveTab('ProfileTab')}>
             <Image
               source={{
                 uri:
                   user?.avatarUrl ||
-                  `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
+                  `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=6F4E37&radius=50`,
               }}
               style={styles.headerAvatar}
             />
@@ -151,28 +153,29 @@ export default function FriendsScreen({ navigation, route }: any) {
         </View>
       ) : (
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={24} color="#FFF" />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+            <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+            <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>FRIENDS</Text>
+          <Text style={styles.headerTitle}>Network</Text>
           <View style={{ width: 40 }} />
         </View>
       )}
 
       <View style={styles.container}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <Ionicons name="search" size={16} color={colors.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder={isTabBarPage ? 'Search friends...' : 'Search users...'}
-            placeholderTextColor="#666"
+            placeholder={isTabBarPage ? 'Search members...' : 'Search members...'}
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoCapitalize="none"
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#666" />
+              <Ionicons name="close-circle" size={16} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -186,7 +189,7 @@ export default function FriendsScreen({ navigation, route }: any) {
                 setSearchQuery('');
               }}>
               <Text style={[styles.tabText, activeTab === 'following' && styles.activeTabText]}>
-                FOLLOWING ({following.length})
+                Following ({following.length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -196,31 +199,32 @@ export default function FriendsScreen({ navigation, route }: any) {
                 setSearchQuery('');
               }}>
               <Text style={[styles.tabText, activeTab === 'followers' && styles.activeTabText]}>
-                FOLLOWERS ({followers.length})
+                Followers ({followers.length})
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
         {loading && currentData.length === 0 ? (
-          <Loader style={{ marginTop: 50 }} />
+          <Loader style={{ marginTop: 40 }} />
         ) : (
           <FlatList
             data={currentData}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             renderItem={renderUserItem}
             contentContainerStyle={{ paddingBottom: 100 }}
             ListEmptyComponent={() => (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyEmoji}>{activeTab === 'search' ? '🔍' : '🍃'}</Text>
                 <Text style={styles.emptyText}>
                   {activeTab === 'search'
-                    ? 'No users found'
+                    ? 'No members matching query'
                     : activeTab === 'following'
-                      ? "You aren't following anyone yet"
-                      : 'No one is following you yet'}
+                    ? 'You are not following any members yet'
+                    : 'No members following you yet'}
                 </Text>
-                {activeTab !== 'search' && <Text style={styles.emptySubtext}>Search for friends to get started!</Text>}
+                {activeTab !== 'search' && (
+                  <Text style={styles.emptySubtext}>Search for teammates to expand your network.</Text>
+                )}
               </View>
             )}
           />
@@ -231,25 +235,35 @@ export default function FriendsScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E0E11' },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomColor: '#1A1A24',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center' },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
   mainHeader: {
-    height: 60,
+    height: 56,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    backgroundColor: '#0E0E11',
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A24',
+    borderBottomColor: colors.border,
     zIndex: 10,
   },
   logoContainer: {
@@ -257,114 +271,141 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   logo: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFF',
-    letterSpacing: 1.5,
-    fontStyle: 'italic',
-    lineHeight: 26,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.silver,
+    letterSpacing: 3,
   },
   motto: {
     fontSize: 8,
-    fontWeight: '900',
-    color: '#C2FF05',
-    letterSpacing: 0.5,
-    marginTop: -2,
+    fontWeight: '600',
+    color: colors.lavenderMuted,
+    letterSpacing: 1,
+    marginTop: 2,
   },
   headerAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#C2FF05',
+    borderColor: colors.borderSubtle,
   },
-  headerTitle: { fontSize: 20, fontWeight: '900', color: '#FFF', letterSpacing: 1 },
-  container: { flex: 1, padding: 16 },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.silver,
+  },
+  container: { flex: 1, padding: spacing.lg },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A24',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    height: 50,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    height: 44,
     borderWidth: 1,
-    borderColor: '#2A2A35',
-    marginBottom: 20,
+    borderColor: colors.border,
+    marginBottom: spacing.lg,
   },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, color: '#FFF', fontSize: 16, fontWeight: '600' },
+  searchIcon: { marginRight: spacing.sm },
+  searchInput: {
+    flex: 1,
+    color: colors.silver,
+    fontSize: 14,
+    fontWeight: '400',
+  },
   tabContainer: {
     flexDirection: 'row',
-    marginBottom: 20,
-    backgroundColor: '#15151A',
-    borderRadius: 12,
-    padding: 4,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: radii.sm,
   },
   activeTab: {
-    backgroundColor: '#2A2A35',
+    backgroundColor: colors.surfaceElevated,
   },
   tabText: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#666',
-    letterSpacing: 1,
+    fontWeight: '500',
+    color: colors.textMuted,
   },
   activeTabText: {
-    color: '#C2FF05',
+    color: colors.silver,
+    fontWeight: '600',
   },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A24',
-    padding: 12,
-    borderRadius: 20,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: radii.lg,
+    marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.border,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#C2FF05',
-    marginRight: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    marginRight: spacing.md,
   },
   userInfo: { flex: 1 },
-  username: { fontSize: 16, fontWeight: '900', color: '#FFF' },
-  email: { fontSize: 12, color: '#666', marginTop: 2 },
+  username: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.silver,
+  },
+  email: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
   followBtn: {
-    backgroundColor: '#C2FF05',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
+    backgroundColor: colors.mocha,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.mochaLight,
   },
   followingBtn: {
-    backgroundColor: '#2A2A35',
-    borderWidth: 1,
-    borderColor: '#3A3A45',
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.border,
   },
   followBtnText: {
-    color: '#000',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+    color: colors.silver,
+    fontSize: 12,
+    fontWeight: '600',
   },
   followingBtnText: {
-    color: '#888',
+    color: colors.textMuted,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 60,
+    paddingHorizontal: spacing.xl,
   },
-  emptyEmoji: { fontSize: 40, marginBottom: 16 },
-  emptyText: { color: '#FFF', fontSize: 18, fontWeight: '800', textAlign: 'center' },
-  emptySubtext: { color: '#666', fontSize: 14, marginTop: 8, textAlign: 'center' },
+  emptyText: {
+    color: colors.silver,
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: spacing.xs,
+    textAlign: 'center',
+  },
 });

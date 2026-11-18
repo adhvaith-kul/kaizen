@@ -22,6 +22,7 @@ import Loader from '../components/Loader';
 import { useTabNavigation } from '../context/TabNavigationContext';
 import { HabitComment as Comment } from '../types';
 import PostCard from '../components/PostCard';
+import { colors, radii, spacing } from '../theme';
 
 export default function HomeScreen({ navigation }: any) {
   const { user } = useAuth();
@@ -55,8 +56,6 @@ export default function HomeScreen({ navigation }: any) {
 
   useFocusEffect(
     useCallback(() => {
-      // Only show full-screen loader on the very first load
-      // Subsequent tab focuses do a silent background refresh
       fetchFeed();
     }, [fetchFeed])
   );
@@ -74,9 +73,8 @@ export default function HomeScreen({ navigation }: any) {
       } else {
         await backend.likeLog(user.id, post.id);
       }
-      // Optimistic Update
-      setFeed(prev =>
-        prev.map(p =>
+      setFeed((prev) =>
+        prev.map((p) =>
           p.id === post.id
             ? { ...p, isLiked: !post.isLiked, likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1 }
             : p
@@ -96,10 +94,9 @@ export default function HomeScreen({ navigation }: any) {
         await backend.suspectLog(user.id, post.id);
       }
 
-      // Fetch fresh post data to handle complex disqualification logic
       const updatedPost = await backend.getPostDetail(user.id, post.id);
       if (updatedPost) {
-        setFeed(prev => prev.map(p => (p.id === post.id ? { ...p, ...updatedPost } : p)));
+        setFeed((prev) => prev.map((p) => (p.id === post.id ? { ...p, ...updatedPost } : p)));
       }
     } catch (e) {
       console.error('Suspect failed:', e);
@@ -123,10 +120,8 @@ export default function HomeScreen({ navigation }: any) {
     try {
       await backend.addComment(user.id, activePostId, newComment);
       setNewComment('');
-      // Refresh comments
       const data = await backend.getComments(activePostId);
       setComments(data);
-      // Update feed count & previews
       const updatedFeed = await backend.getFeed(user.id);
       setFeed(updatedFeed);
     } catch (e) {
@@ -153,14 +148,14 @@ export default function HomeScreen({ navigation }: any) {
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>KAIZEN</Text>
-          <Text style={styles.motto}>SELF-IMPROVEMENT. GAMIFIED.</Text>
+          <Text style={styles.motto}>DISCIPLINE & HABIT MASTERY</Text>
         </View>
         <TouchableOpacity onPress={() => setActiveTab('ProfileTab')}>
           <Image
             source={{
               uri:
                 user?.avatarUrl ||
-                `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
+                `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=6F4E37&radius=50`,
             }}
             style={styles.headerAvatar}
           />
@@ -173,27 +168,25 @@ export default function HomeScreen({ navigation }: any) {
         alwaysBounceVertical={true}
         refreshControl={
           <RefreshControl
-            style={{ zIndex: 10 }}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#C2FF05"
-            colors={['#C2FF05']}
-            progressBackgroundColor="#1A1A24"
+            tintColor={colors.lavender}
+            colors={[colors.mocha]}
+            progressBackgroundColor={colors.surfaceElevated}
             progressViewOffset={20}
           />
         }
-        contentContainerStyle={{ paddingBottom: 100, flexGrow: 1 }}>
+        contentContainerStyle={{ padding: spacing.lg, paddingBottom: 110, flexGrow: 1 }}>
         {feed.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📭</Text>
-            <Text style={styles.emptyText}>Feed is empty.</Text>
-            <Text style={styles.emptySubtext}>Join a squad and start your grind to see updates here!</Text>
+            <Text style={styles.emptyText}>Feed is quiet.</Text>
+            <Text style={styles.emptySubtext}>Join a squad or add habits to begin tracking collective discipline.</Text>
             <TouchableOpacity style={styles.squadBtn} onPress={() => setActiveTab('SquadsTab')}>
-              <Text style={styles.squadBtnText}>FIND A SQUAD</Text>
+              <Text style={styles.squadBtnText}>Explore Squads</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          feed.map(item => (
+          feed.map((item) => (
             <PostCard
               key={item.id}
               post={item}
@@ -206,7 +199,7 @@ export default function HomeScreen({ navigation }: any) {
         )}
       </ScrollView>
 
-      {/* Comments Modal */}
+      {/* Comments Drawer */}
       <Modal
         visible={commentsVisible}
         animationType="slide"
@@ -218,21 +211,21 @@ export default function HomeScreen({ navigation }: any) {
               <View style={styles.modalHandle} />
               <Text style={styles.modalTitle}>Comments</Text>
               <TouchableOpacity onPress={() => setCommentsVisible(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={24} color="#C2FF05" />
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <FlatList
               data={comments}
-              keyExtractor={c => c.id}
-              contentContainerStyle={{ paddingVertical: 20, paddingHorizontal: 16 }}
+              keyExtractor={(c) => c.id}
+              contentContainerStyle={{ paddingVertical: spacing.lg, paddingHorizontal: spacing.lg }}
               renderItem={({ item }) => (
                 <View style={styles.commentItem}>
                   <Image
                     source={{
                       uri:
                         item.avatarUrl ||
-                        `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=C2FF05&radius=50`,
+                        `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=6F4E37&radius=50`,
                     }}
                     style={styles.commentAvatar}
                   />
@@ -243,8 +236,8 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
               )}
               ListEmptyComponent={() => (
-                <Text style={{ color: '#666', textAlign: 'center', marginTop: 50 }}>
-                  No comments yet. Be the first!
+                <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 13 }}>
+                  No comments yet.
                 </Text>
               )}
             />
@@ -253,7 +246,7 @@ export default function HomeScreen({ navigation }: any) {
               <TextInput
                 style={styles.commentInput}
                 placeholder="Add a comment..."
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 value={newComment}
                 onChangeText={setNewComment}
                 multiline
@@ -261,7 +254,7 @@ export default function HomeScreen({ navigation }: any) {
               <TouchableOpacity
                 onPress={postComment}
                 disabled={commenting || !newComment.trim()}
-                style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.5 }]}>
+                style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.4 }]}>
                 <Text style={styles.postCommentBtnText}>{commenting ? '...' : 'Post'}</Text>
               </TouchableOpacity>
             </View>
@@ -273,112 +266,164 @@ export default function HomeScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E0E11' },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    height: 60,
-    backgroundColor: '#0E0E11',
+    paddingHorizontal: spacing.lg,
+    height: 56,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A24',
+    borderBottomColor: colors.border,
   },
   logoContainer: {
     flexDirection: 'column',
     alignItems: 'flex-start',
   },
   logo: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFF',
-    letterSpacing: 1.5,
-    fontStyle: 'italic',
-    lineHeight: 26,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.silver,
+    letterSpacing: 3,
   },
   motto: {
     fontSize: 8,
-    fontWeight: '900',
-    color: '#C2FF05',
-    letterSpacing: 0.5,
-    marginTop: -2,
+    fontWeight: '600',
+    color: colors.lavenderMuted,
+    letterSpacing: 1,
+    marginTop: 2,
   },
   headerAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#C2FF05',
+    borderColor: colors.borderSubtle,
   },
   container: { flex: 1 },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 100,
-    paddingHorizontal: 40,
+    paddingTop: 80,
+    paddingHorizontal: spacing.xxl,
   },
-  emptyIcon: { fontSize: 60, marginBottom: 20 },
-  emptyText: { fontSize: 22, fontWeight: '800', color: '#FFF', marginBottom: 10 },
-  emptySubtext: { fontSize: 14, color: '#888', textAlign: 'center', marginBottom: 30, lineHeight: 20 },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.silver,
+    marginBottom: spacing.xs,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.xxl,
+    lineHeight: 20,
+  },
   squadBtn: {
-    backgroundColor: '#C2FF05',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 30,
+    backgroundColor: colors.mocha,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.mochaLight,
   },
-  squadBtnText: { color: '#000', fontWeight: '900', fontSize: 14, letterSpacing: 1 },
+  squadBtnText: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 13,
+    letterSpacing: 0.5,
+  },
 
   // Modal Styles
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(19, 14, 11, 0.75)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#121217',
-    height: '75%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 20,
+    backgroundColor: colors.surfaceElevated,
+    height: '70%',
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    paddingBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalHeader: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A35',
+    borderBottomColor: colors.borderSubtle,
   },
   modalHandle: {
-    width: 40,
+    width: 36,
     height: 4,
-    backgroundColor: '#333',
+    backgroundColor: colors.border,
     borderRadius: 2,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
-  modalTitle: { color: '#FFF', fontWeight: '800', fontSize: 16 },
-  closeBtn: { position: 'absolute', right: 16, top: 15 },
-  commentItem: { flexDirection: 'row', marginBottom: 20 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
+  modalTitle: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  closeBtn: {
+    position: 'absolute',
+    right: spacing.lg,
+    top: spacing.md,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    marginBottom: spacing.lg,
+  },
+  commentAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: spacing.md,
+  },
   commentInfo: { flex: 1 },
-  commentUser: { color: '#FFF', fontWeight: '700', fontSize: 13, marginBottom: 2 },
-  commentText: { color: '#CCC', fontSize: 14, lineHeight: 18 },
+  commentUser: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  commentText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   commentInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#2A2A35',
-    backgroundColor: '#1A1A24',
+    borderTopColor: colors.borderSubtle,
+    backgroundColor: colors.surface,
   },
   commentInput: {
     flex: 1,
-    color: '#FFF',
+    color: colors.silver,
     fontSize: 14,
-    maxHeight: 100,
-    paddingTop: 10,
-    paddingBottom: 10,
+    maxHeight: 90,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
-  postCommentBtn: { marginLeft: 10, paddingHorizontal: 15 },
-  postCommentBtnText: { color: '#C2FF05', fontWeight: '900', fontSize: 14 },
+  postCommentBtn: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.mocha,
+    borderRadius: radii.sm,
+    marginLeft: spacing.sm,
+  },
+  postCommentBtnText: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 12,
+  },
 });

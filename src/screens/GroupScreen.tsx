@@ -10,11 +10,13 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
 import Loader from '../components/Loader';
 import { Category } from '../types';
+import { colors, radii, spacing } from '../theme';
 
 export default function GroupScreen({ navigation }: any) {
   const [groupName, setGroupName] = useState('');
@@ -26,7 +28,7 @@ export default function GroupScreen({ navigation }: any) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [habitsPerCat, setHabitsPerCat] = useState<Partial<Record<Category, string>>>({});
   const [pointsPerCat, setPointsPerCat] = useState<Partial<Record<Category, string>>>({});
-  const { user, refreshGroup, logout, setActiveGroup } = useAuth();
+  const { user, refreshGroup, setActiveGroup } = useAuth();
   const { showAlert } = useGlobalAlert();
 
   // Fetch categories from DB on mount
@@ -69,16 +71,16 @@ export default function GroupScreen({ navigation }: any) {
       await refreshGroup();
       setActiveGroup(newGroup);
 
-      showAlert('Success', "Squad created! Let's set up your goals first. 🔒", [
+      showAlert('Squad Created', 'Your squad has been created. Set up your habits to begin.', [
         {
-          text: 'LFG',
+          text: 'Continue',
           onPress: () => {
             navigation.replace('HabitSetup', { fromCreateGroup: true });
           },
         },
       ]);
     } catch (e: any) {
-      showAlert('💀 Yikes', e.message);
+      showAlert('Notice', e.message);
     } finally {
       setLoading(false);
     }
@@ -89,11 +91,9 @@ export default function GroupScreen({ navigation }: any) {
     setLoading(true);
     try {
       const groupToJoin = await backend.getGroupByCode(groupCode);
-
-      // Navigate to HabitSetup with this pending group
       navigation.navigate('HabitSetup', { pendingGroupJoin: groupToJoin });
     } catch (e: any) {
-      showAlert('💀 Yikes', e.message);
+      showAlert('Notice', e.message);
     } finally {
       setLoading(false);
     }
@@ -103,8 +103,9 @@ export default function GroupScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {loading && <Loader fullScreen />}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← BACK</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+          <Text style={styles.backBtnText}>Back</Text>
         </TouchableOpacity>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -112,25 +113,30 @@ export default function GroupScreen({ navigation }: any) {
           style={styles.content}
           contentContainerStyle={{ paddingBottom: 60, flexGrow: 1, justifyContent: 'center' }}
           showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>Squad Goals 🤝</Text>
-          <Text style={styles.desc}>Either start a new wave or ride one.</Text>
+          <Text style={styles.title}>Squads</Text>
+          <Text style={styles.desc}>Form a high-standard squad or join with an invite code.</Text>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>START A SQUAD</Text>
+            <Text style={styles.cardTitle}>CREATE A SQUAD</Text>
             <TextInput
               style={styles.input}
-              placeholder="Squad name. Be creative."
-              placeholderTextColor="#888"
+              placeholder="Squad name"
+              placeholderTextColor={colors.textMuted}
               onChangeText={setGroupName}
             />
 
-            <TouchableOpacity onPress={() => setShowSettings(!showSettings)} style={styles.settingsToggle}>
-              <Text style={styles.settingsToggleText}>{showSettings ? '− Hide Settings' : '+ Advanced Settings'}</Text>
+            <TouchableOpacity
+              onPress={() => setShowSettings(!showSettings)}
+              style={styles.settingsToggle}
+              activeOpacity={0.7}>
+              <Text style={styles.settingsToggleText}>
+                {showSettings ? '− Hide Settings' : '+ Configure Habit Rules'}
+              </Text>
             </TouchableOpacity>
 
             {showSettings && (
               <View style={styles.settingsContainer}>
-                <Text style={styles.settingsLabel}>ALLOWED CATEGORIES</Text>
+                <Text style={styles.settingsLabel}>ACTIVE CATEGORIES</Text>
                 <View style={styles.badgesWrapper}>
                   {allCategories.map(cat => {
                     const isActive = categories.includes(cat);
@@ -152,8 +158,8 @@ export default function GroupScreen({ navigation }: any) {
                 <View style={styles.newCatRow}>
                   <TextInput
                     style={styles.newCatInput}
-                    placeholder="Add custom category..."
-                    placeholderTextColor="#666"
+                    placeholder="Custom category..."
+                    placeholderTextColor={colors.textMuted}
                     value={newCategory}
                     onChangeText={setNewCategory}
                   />
@@ -169,13 +175,13 @@ export default function GroupScreen({ navigation }: any) {
                         setNewCategory('');
                       }
                     }}>
-                    <Text style={styles.newCatBtnText}>ADD +</Text>
+                    <Text style={styles.newCatBtnText}>Add</Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.settingsLabel}>HABITS & POINTS LIMITS</Text>
+                <Text style={styles.settingsLabel}>REQUIREMENTS & POINTS</Text>
                 {categories.length === 0 ? (
-                  <Text style={{ color: '#666', fontSize: 12, fontStyle: 'italic' }}>Select a category first</Text>
+                  <Text style={styles.subtleNote}>Select a category first</Text>
                 ) : (
                   categories.map(cat => (
                     <View key={`hpc-${cat}`} style={styles.hpcRow}>
@@ -210,26 +216,28 @@ export default function GroupScreen({ navigation }: any) {
               </View>
             )}
 
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleCreate}>
-              <Text style={styles.primaryBtnText}>CREATE 🔥</Text>
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleCreate} activeOpacity={0.8}>
+              <Text style={styles.primaryBtnText}>Create Squad</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.orText}>--- or literally just ---</Text>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.orText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>JOIN THE BOYS / GIRLS</Text>
+            <Text style={styles.cardTitle}>JOIN EXISTING SQUAD</Text>
             <TextInput
               style={styles.input}
-              placeholder="Secret code here 👀"
-              placeholderTextColor="#888"
+              placeholder="Invite code"
+              placeholderTextColor={colors.textMuted}
               onChangeText={setGroupCode}
               autoCapitalize="characters"
             />
-            <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: '#FF3366', shadowColor: '#FF3366' }]}
-              onPress={handleJoin}>
-              <Text style={styles.primaryBtnText}>JOIN 🚀</Text>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={handleJoin} activeOpacity={0.8}>
+              <Text style={styles.secondaryBtnText}>Join Squad</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -239,103 +247,226 @@ export default function GroupScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0E0E11' },
-  topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
-  backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
-  backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
-  content: { flex: 1, paddingHorizontal: 24 },
-  title: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: -1, textAlign: 'center', marginTop: 10 },
-  desc: { fontSize: 16, color: '#A0A0B0', textAlign: 'center', marginBottom: 40, fontWeight: '500' },
-  card: {
-    backgroundColor: '#1A1A24',
-    padding: 20,
-    borderRadius: 24,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#2A2A35',
+  container: { flex: 1, backgroundColor: colors.background },
+  topBar: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
   },
-  cardTitle: { color: '#B388FF', fontSize: 14, fontWeight: '800', marginBottom: 16, letterSpacing: 1 },
-  input: {
-    backgroundColor: '#0E0E11',
-    color: '#FFF',
-    fontSize: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#333',
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+  },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontSize: 14,
     fontWeight: '500',
+    marginLeft: 2,
+  },
+  content: { flex: 1, paddingHorizontal: spacing.lg },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+  },
+  desc: {
+    fontSize: 14,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.xl,
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  cardTitle: {
+    color: colors.lavenderText,
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: spacing.md,
+    letterSpacing: 1.5,
+  },
+  input: {
+    backgroundColor: colors.surfaceElevated,
+    color: colors.textPrimary,
+    fontSize: 15,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   primaryBtn: {
-    backgroundColor: '#C2FF05',
-    padding: 18,
-    borderRadius: 16,
+    backgroundColor: colors.mocha,
+    paddingVertical: 14,
+    borderRadius: radii.md,
     alignItems: 'center',
-    shadowColor: '#C2FF05',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
   },
-  primaryBtnText: { color: '#000', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
-  orText: { textAlign: 'center', marginVertical: 20, fontWeight: '800', color: '#666', fontSize: 12, letterSpacing: 2 },
-  settingsToggle: { marginBottom: 15 },
-  settingsToggleText: { color: '#B388FF', fontSize: 14, fontWeight: '800' },
-  settingsContainer: {
-    marginBottom: 15,
-    padding: 15,
-    backgroundColor: '#0E0E11',
-    borderRadius: 16,
+  primaryBtnText: {
+    color: colors.platinum,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.borderSubtle,
+  },
+  orText: {
+    marginHorizontal: spacing.md,
+    fontWeight: '700',
+    color: colors.textMuted,
+    fontSize: 11,
+    letterSpacing: 2,
+  },
+  secondaryBtn: {
+    backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
+    paddingVertical: 14,
+    borderRadius: radii.md,
+    alignItems: 'center',
   },
-  settingsLabel: { color: '#666', fontSize: 10, fontWeight: '800', marginBottom: 10, letterSpacing: 1 },
-  badgesWrapper: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  secondaryBtnText: {
+    color: colors.lavenderText,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  settingsToggle: { marginBottom: spacing.md },
+  settingsToggleText: {
+    color: colors.lavenderText,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  settingsContainer: {
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  settingsLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+    letterSpacing: 1.2,
+  },
+  subtleNote: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  badgesWrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: spacing.md,
+  },
   badge: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#1A1A24',
+    paddingVertical: 6,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.borderSubtle,
   },
-  badgeActive: { backgroundColor: '#C2FF05', borderColor: '#C2FF05' },
-  badgeText: { color: '#A0A0B0', fontSize: 12, fontWeight: '700' },
-  badgeTextActive: { color: '#000', fontWeight: '800' },
-  newCatRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
+  badgeActive: {
+    backgroundColor: colors.mocha,
+    borderColor: colors.mochaLight,
+  },
+  badgeText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  badgeTextActive: {
+    color: colors.platinum,
+    fontWeight: '700',
+  },
+  newCatRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+    gap: 8,
+  },
   newCatInput: {
     flex: 1,
-    backgroundColor: '#1A1A24',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 12,
-    color: '#FFF',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    fontSize: 14,
+    borderColor: colors.borderSubtle,
+    borderRadius: radii.sm,
+    color: colors.textPrimary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
   },
   newCatBtn: {
-    backgroundColor: '#333',
-    justifyContent: 'center',
-    paddingHorizontal: 15,
-    borderRadius: 12,
-  },
-  newCatBtnText: { color: '#FFF', fontWeight: '800', fontSize: 12 },
-  hpcRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  hpcLabel: { color: '#FFF', fontSize: 14, fontWeight: '700', flex: 1, paddingRight: 10 },
-  hpcInputs: { flexDirection: 'row', gap: 10 },
-  smallInputGroup: { alignItems: 'center' },
-  smallInputLabel: { color: '#666', fontSize: 10, fontWeight: '800', marginBottom: 4 },
-  hpcInput: {
-    backgroundColor: '#0E0E11',
-    color: '#FFF',
-    fontSize: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    backgroundColor: colors.mochaSurface,
     borderWidth: 1,
-    borderColor: '#333',
-    width: 60,
-    textAlign: 'center',
+    borderColor: colors.mochaBorder,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: radii.sm,
+  },
+  newCatBtnText: {
+    color: colors.lavenderText,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  hpcRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  hpcLabel: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+    paddingRight: 8,
+  },
+  hpcInputs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  smallInputGroup: { alignItems: 'center' },
+  smallInputLabel: {
+    color: colors.textMuted,
+    fontSize: 9,
     fontWeight: '700',
+    marginBottom: 2,
+    letterSpacing: 0.5,
+  },
+  hpcInput: {
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
+    fontSize: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    width: 52,
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });

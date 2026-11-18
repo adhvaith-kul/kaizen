@@ -10,12 +10,14 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
 import Loader from '../components/Loader';
 import { Category } from '../types';
-import { DEFAULT_CATEGORY_LABELS, CATEGORY_EMOJI_MAP } from '../config/categories';
+import { DEFAULT_CATEGORY_LABELS } from '../config/categories';
+import { colors, radii, spacing } from '../theme';
 
 export default function HabitSetupScreen({ route, navigation }: any) {
   const { user, group, refreshGroup, setActiveGroup } = useAuth();
@@ -33,14 +35,6 @@ export default function HabitSetupScreen({ route, navigation }: any) {
 
   const [habits, setHabits] = useState<Record<Category, string>>({});
   const [saving, setSaving] = useState(false);
-  const [dbEmojiMap, setDbEmojiMap] = useState<Record<string, string>>(CATEGORY_EMOJI_MAP);
-
-  // Load categories and their emojis from DB
-  useEffect(() => {
-    backend.getCategories().then(cats => {
-      setDbEmojiMap(Object.fromEntries(cats.map(c => [c.label, c.emoji])));
-    });
-  }, []);
 
   useEffect(() => {
     if (user && group && !isPending) {
@@ -69,7 +63,8 @@ export default function HabitSetupScreen({ route, navigation }: any) {
       .filter(h => h.name.trim() !== '');
 
     if (payload.length === 0) {
-      showAlert('💀 Bruh', 'You gotta enter at least one habit.');
+      showAlert('Notice', 'Please specify at least one habit.');
+      setSaving(false);
       return;
     }
 
@@ -82,14 +77,14 @@ export default function HabitSetupScreen({ route, navigation }: any) {
         await backend.saveHabits(user.id, targetGroupId, payload);
         await refreshGroup();
         setActiveGroup(joinedGroup);
-        showAlert('W', 'You joined the squad and habits are locked in 🔒');
+        showAlert('Success', 'Squad joined and daily habits confirmed.');
         navigation.reset({
           index: 2,
           routes: [{ name: 'SquadsRoot' }, { name: 'Leaderboard' }, { name: 'Dashboard' }],
         });
       } else if (group) {
         await backend.saveHabits(user.id, group.id, payload);
-        showAlert('W', 'Habits updated 🔒');
+        showAlert('Success', 'Habits saved.');
         if (route.params?.fromCreateGroup) {
           navigation.reset({
             index: 2,
@@ -102,7 +97,7 @@ export default function HabitSetupScreen({ route, navigation }: any) {
         }
       }
     } catch (e: any) {
-      showAlert('💀 Yikes', e.message);
+      showAlert('Notice', e.message);
     } finally {
       setSaving(false);
     }
@@ -112,37 +107,35 @@ export default function HabitSetupScreen({ route, navigation }: any) {
     <SafeAreaView style={styles.safeArea}>
       {saving && <Loader fullScreen />}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← BACK</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+          <Text style={styles.backBtnText}>Back</Text>
         </TouchableOpacity>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }}>
-          <Text style={styles.title}>
-            Choose your <Text style={{ color: '#B388FF' }}>weapons</Text>
-          </Text>
+          <Text style={styles.title}>Define Habits</Text>
           <Text style={styles.desc}>
-            Lock in one daily habit per category. Keep it realistic. Don't worry, this can be edited later
+            Set one clear habit for each active category. You can update these at any time.
           </Text>
 
           {activeCategories.map((cat: string) => (
             <View key={cat} style={styles.field}>
               <View style={styles.labelContainer}>
-                <Text style={styles.labelEmoji}>{dbEmojiMap[cat] || '✨'}</Text>
                 <Text style={styles.label}>{cat.toUpperCase()}</Text>
               </View>
               <TextInput
                 style={styles.input}
-                placeholder={`e.g., what's your ${cat.toLowerCase()} move?`}
-                placeholderTextColor="#666"
+                placeholder={`Action for ${cat.toLowerCase()}`}
+                placeholderTextColor={colors.textMuted}
                 value={habits[cat]}
                 onChangeText={val => setHabits({ ...habits, [cat]: val })}
               />
             </View>
           ))}
 
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleSave}>
-            <Text style={styles.primaryBtnText}>LOCK IN 🔒</Text>
+          <TouchableOpacity style={styles.primaryBtn} onPress={handleSave} activeOpacity={0.8}>
+            <Text style={styles.primaryBtnText}>Save Habits</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -151,37 +144,71 @@ export default function HabitSetupScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E0E11' },
-  container: { flex: 1, paddingHorizontal: 20 },
-  topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
-  backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
-  backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
-  title: { fontSize: 32, fontWeight: '900', color: '#FFF', letterSpacing: -1, marginBottom: 8, marginTop: 10 },
-  desc: { fontSize: 16, color: '#A0A0B0', marginBottom: 30, fontWeight: '500' },
-  field: { marginBottom: 20 },
-  labelContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  labelEmoji: { fontSize: 18, marginRight: 8 },
-  label: { fontSize: 14, fontWeight: '800', color: '#FFF', letterSpacing: 1 },
-  input: {
-    backgroundColor: '#1A1A24',
-    color: '#FFF',
-    fontSize: 16,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#2A2A35',
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, paddingHorizontal: spacing.lg },
+  topBar: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+  },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontSize: 14,
     fontWeight: '500',
+    marginLeft: 2,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
+    marginBottom: 6,
+    marginTop: spacing.xs,
+  },
+  desc: {
+    fontSize: 14,
+    color: colors.textMuted,
+    marginBottom: spacing.xl,
+    lineHeight: 20,
+  },
+  field: { marginBottom: spacing.lg },
+  labelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.lavenderText,
+    letterSpacing: 1.5,
+  },
+  input: {
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
+    fontSize: 15,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   primaryBtn: {
-    backgroundColor: '#B388FF',
-    padding: 18,
-    borderRadius: 16,
+    backgroundColor: colors.mocha,
+    paddingVertical: 14,
+    borderRadius: radii.md,
     alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#B388FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    marginTop: spacing.md,
   },
-  primaryBtnText: { color: '#000', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  primaryBtnText: {
+    color: colors.platinum,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
 });

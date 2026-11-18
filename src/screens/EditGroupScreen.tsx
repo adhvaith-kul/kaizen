@@ -10,11 +10,13 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
 import Loader from '../components/Loader';
 import { Category, GroupSettings } from '../types';
+import { colors, radii, spacing } from '../theme';
 
 export default function EditGroupScreen({ navigation, route }: any) {
   const { group } = route.params || {};
@@ -36,7 +38,6 @@ export default function EditGroupScreen({ navigation, route }: any) {
     backend.getCategories().then(cats => {
       const labels = cats.map(c => c.label);
       setAllCategories(labels);
-      // Ensure current categories are in allCategories
       const current = group?.settings?.allowedCategories || [];
       const combined = Array.from(new Set([...labels, ...current]));
       setAllCategories(combined);
@@ -72,25 +73,24 @@ export default function EditGroupScreen({ navigation, route }: any) {
       await backend.updateGroup(group.id, groupName, settings);
       await refreshGroup();
 
-      // Update the active group in context if it was updated
       const updatedGroups = await backend.getUserGroups(user.id);
       const updatedGroup = updatedGroups.find(g => g.id === group.id);
       if (updatedGroup) setActiveGroup(updatedGroup);
 
-      showAlert('Success', 'Squad settings updated! 🚀');
+      showAlert('Success', 'Squad settings updated.');
       navigation.goBack();
     } catch (e: any) {
-      showAlert('💀 Yikes', e.message);
+      showAlert('Notice', e.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = () => {
-    showAlert('DELETE SQUAD?', 'This will delete the squad and all logs for everyone. This cannot be undone. 💀', [
+    showAlert('Delete Squad', 'This will delete the squad and all logs permanently. This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'DELETE',
+        text: 'Delete',
         style: 'destructive',
         onPress: async () => {
           setLoading(true);
@@ -103,7 +103,7 @@ export default function EditGroupScreen({ navigation, route }: any) {
               routes: [{ name: 'SquadsRoot' }],
             });
           } catch (e: any) {
-            showAlert('Error', e.message);
+            showAlert('Notice', e.message);
           } finally {
             setLoading(false);
           }
@@ -116,8 +116,9 @@ export default function EditGroupScreen({ navigation, route }: any) {
     <SafeAreaView style={styles.container}>
       {loading && <Loader fullScreen />}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← BACK</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+          <Text style={styles.backBtnText}>Back</Text>
         </TouchableOpacity>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -125,22 +126,24 @@ export default function EditGroupScreen({ navigation, route }: any) {
           style={styles.content}
           contentContainerStyle={{ paddingBottom: 60, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>Squad Settings ⚙️</Text>
-          <Text style={styles.desc}>Customise your domain.</Text>
+          <Text style={styles.title}>Squad Settings</Text>
+          <Text style={styles.desc}>Manage squad structure and category requirements.</Text>
 
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>SQUAD NAME</Text>
               <TouchableOpacity
                 style={styles.shareBtnInline}
-                onPress={() => backend.shareSquadInvite(group)}>
-                <Text style={styles.shareBtnTextInline}>📤 SHARE INVITE</Text>
+                onPress={() => backend.shareSquadInvite(group)}
+                activeOpacity={0.7}>
+                <Ionicons name="share-outline" size={13} color={colors.lavenderText} style={{ marginRight: 4 }} />
+                <Text style={styles.shareBtnTextInline}>Share Invite</Text>
               </TouchableOpacity>
             </View>
             <TextInput
               style={styles.input}
               placeholder="Squad name"
-              placeholderTextColor="#888"
+              placeholderTextColor={colors.textMuted}
               value={groupName}
               onChangeText={setGroupName}
             />
@@ -168,8 +171,8 @@ export default function EditGroupScreen({ navigation, route }: any) {
               <View style={styles.newCatRow}>
                 <TextInput
                   style={styles.newCatInput}
-                  placeholder="Add custom category..."
-                  placeholderTextColor="#666"
+                  placeholder="Custom category..."
+                  placeholderTextColor={colors.textMuted}
                   value={newCategory}
                   onChangeText={setNewCategory}
                 />
@@ -185,13 +188,13 @@ export default function EditGroupScreen({ navigation, route }: any) {
                       setNewCategory('');
                     }
                   }}>
-                  <Text style={styles.newCatBtnText}>ADD +</Text>
+                  <Text style={styles.newCatBtnText}>Add</Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.settingsLabel}>HABITS & POINTS LIMITS</Text>
+              <Text style={styles.settingsLabel}>REQUIREMENTS & POINTS</Text>
               {categories.length === 0 ? (
-                <Text style={{ color: '#666', fontSize: 12, fontStyle: 'italic' }}>Select a category first</Text>
+                <Text style={styles.subtleNote}>Select a category first</Text>
               ) : (
                 categories.map(cat => (
                   <View key={`hpc-${cat}`} style={styles.hpcRow}>
@@ -225,13 +228,13 @@ export default function EditGroupScreen({ navigation, route }: any) {
               )}
             </View>
 
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleUpdate}>
-              <Text style={styles.primaryBtnText}>SAVE CHANGES ✅</Text>
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleUpdate} activeOpacity={0.8}>
+              <Text style={styles.primaryBtnText}>Save Changes</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-            <Text style={styles.deleteBtnText}>DELETE SQUAD 💀</Text>
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} activeOpacity={0.7}>
+            <Text style={styles.deleteBtnText}>Delete Squad</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -240,123 +243,222 @@ export default function EditGroupScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0E0E11' },
-  topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
-  backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
-  backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
-  content: { flex: 1, paddingHorizontal: 24 },
-  title: { fontSize: 36, fontWeight: '900', color: '#FFF', letterSpacing: -1, marginTop: 10 },
-  desc: { fontSize: 16, color: '#A0A0B0', marginBottom: 40, fontWeight: '500' },
+  container: { flex: 1, backgroundColor: colors.background },
+  topBar: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+  },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 2,
+  },
+  content: { flex: 1, paddingHorizontal: spacing.lg },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
+    marginTop: spacing.xs,
+  },
+  desc: {
+    fontSize: 14,
+    color: colors.textMuted,
+    marginBottom: spacing.xl,
+    marginTop: 4,
+  },
   card: {
-    backgroundColor: '#1A1A24',
-    padding: 20,
-    borderRadius: 24,
-    marginBottom: 20,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.borderSubtle,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
-  cardTitle: { color: '#B388FF', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
+  cardTitle: {
+    color: colors.lavenderText,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
   shareBtnInline: {
-    backgroundColor: '#C2FF05',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  shareBtnTextInline: { color: '#000', fontWeight: '900', fontSize: 10, letterSpacing: 0.5 },
-  input: {
-    backgroundColor: '#0E0E11',
-    color: '#FFF',
-    fontSize: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.mochaSurface,
     borderWidth: 1,
-    borderColor: '#333',
-    fontWeight: '500',
+    borderColor: colors.mochaBorder,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.sm,
+  },
+  shareBtnTextInline: {
+    color: colors.lavenderText,
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  input: {
+    backgroundColor: colors.surfaceElevated,
+    color: colors.textPrimary,
+    fontSize: 15,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   primaryBtn: {
-    backgroundColor: '#C2FF05',
-    padding: 18,
-    borderRadius: 16,
+    backgroundColor: colors.mocha,
+    paddingVertical: 14,
+    borderRadius: radii.md,
     alignItems: 'center',
-    shadowColor: '#C2FF05',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    marginTop: 10,
+    marginTop: spacing.sm,
   },
-  primaryBtnText: { color: '#000', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  primaryBtnText: {
+    color: colors.platinum,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   settingsContainer: {
-    marginBottom: 15,
-    padding: 15,
-    backgroundColor: '#0E0E11',
-    borderRadius: 16,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
-  settingsLabel: { color: '#666', fontSize: 10, fontWeight: '800', marginBottom: 10, letterSpacing: 1 },
-  badgesWrapper: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  settingsLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+    letterSpacing: 1.2,
+  },
+  subtleNote: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  badgesWrapper: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: spacing.md,
+  },
   badge: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: '#1A1A24',
+    paddingVertical: 6,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.borderSubtle,
   },
-  badgeActive: { backgroundColor: '#C2FF05', borderColor: '#C2FF05' },
-  badgeText: { color: '#A0A0B0', fontSize: 12, fontWeight: '700' },
-  badgeTextActive: { color: '#000', fontWeight: '800' },
-  newCatRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
-  newCatInput: {
-    flex: 1,
-    backgroundColor: '#1A1A24',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 12,
-    color: '#FFF',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    fontSize: 14,
+  badgeActive: {
+    backgroundColor: colors.mocha,
+    borderColor: colors.mochaLight,
   },
-  newCatBtn: {
-    backgroundColor: '#333',
-    justifyContent: 'center',
-    paddingHorizontal: 15,
-    borderRadius: 12,
+  badgeText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
   },
-  newCatBtnText: { color: '#FFF', fontWeight: '800', fontSize: 12 },
-  hpcRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  hpcLabel: { color: '#FFF', fontSize: 14, fontWeight: '700', flex: 1, paddingRight: 10 },
-  hpcInputs: { flexDirection: 'row', gap: 10 },
-  smallInputGroup: { alignItems: 'center' },
-  smallInputLabel: { color: '#666', fontSize: 10, fontWeight: '800', marginBottom: 4 },
-  hpcInput: {
-    backgroundColor: '#0E0E11',
-    color: '#FFF',
-    fontSize: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-    width: 60,
-    textAlign: 'center',
+  badgeTextActive: {
+    color: colors.platinum,
     fontWeight: '700',
   },
+  newCatRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+    gap: 8,
+  },
+  newCatInput: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: radii.sm,
+    color: colors.textPrimary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+  },
+  newCatBtn: {
+    backgroundColor: colors.mochaSurface,
+    borderWidth: 1,
+    borderColor: colors.mochaBorder,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: radii.sm,
+  },
+  newCatBtnText: {
+    color: colors.lavenderText,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  hpcRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  hpcLabel: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+    paddingRight: 8,
+  },
+  hpcInputs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  smallInputGroup: { alignItems: 'center' },
+  smallInputLabel: {
+    color: colors.textMuted,
+    fontSize: 9,
+    fontWeight: '700',
+    marginBottom: 2,
+    letterSpacing: 0.5,
+  },
+  hpcInput: {
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
+    fontSize: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    width: 52,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
   deleteBtn: {
-    padding: 18,
-    borderRadius: 16,
+    paddingVertical: 14,
+    borderRadius: radii.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FF3366',
-    marginTop: 10,
+    borderColor: colors.danger,
+    marginTop: spacing.xs,
   },
-  deleteBtnText: { color: '#FF3366', fontSize: 14, fontWeight: '800', letterSpacing: 1 },
+  deleteBtnText: {
+    color: colors.danger,
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
 });

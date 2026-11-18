@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, Easing, StyleSheet, Text } from 'react-native';
+import { colors, radii, spacing } from '../theme';
 
 interface LoaderProps {
   size?: number;
@@ -8,59 +9,44 @@ interface LoaderProps {
   fullScreen?: boolean;
 }
 
-export default function Loader({ size = 48, color = '#C2FF05', style, fullScreen = false }: LoaderProps) {
-  const spinValue = useRef(new Animated.Value(0)).current;
+export default function Loader({ style, fullScreen = false }: LoaderProps) {
   const pulseValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
-      Animated.timing(spinValue, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ).start();
-
-    Animated.loop(
       Animated.sequence([
         Animated.timing(pulseValue, {
           toValue: 1,
-          duration: 600,
+          duration: 900,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(pulseValue, {
           toValue: 0,
-          duration: 600,
+          duration: 900,
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
       ])
     ).start();
-  }, [spinValue, pulseValue]);
+  }, [pulseValue]);
 
-  const spin = spinValue.interpolate({
+  const opacity = pulseValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: [0.55, 1],
   });
 
   const scale = pulseValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.85, 1.15],
-  });
-
-  const opacity = pulseValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.4, 1],
+    outputRange: [0.97, 1.01],
   });
 
   const loaderContent = (
     <View style={[{ justifyContent: 'center', alignItems: 'center' }, style]}>
-      <Animated.View style={{ transform: [{ scale }], alignItems: 'center' }}>
-        <Text style={styles.logoLabel}>KAIZEN</Text>
-        <View style={styles.mottoBadge}>
-          <Text style={styles.mottoText}>SELF-IMPROVEMENT. GAMIFIED.</Text>
+      <Animated.View style={{ opacity, transform: [{ scale }], alignItems: 'center' }}>
+        <Text style={styles.brandTitle}>KAIZEN</Text>
+        <View style={styles.subBadge}>
+          <Text style={styles.subText}>DISCIPLINE & CONTINUOUS IMPROVEMENT</Text>
         </View>
       </Animated.View>
     </View>
@@ -76,29 +62,30 @@ export default function Loader({ size = 48, color = '#C2FF05', style, fullScreen
 const styles = StyleSheet.create({
   fullScreenOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(14, 14, 17, 0.85)',
+    backgroundColor: 'rgba(19, 14, 11, 0.92)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
   },
-  logoLabel: {
-    color: '#FFF',
-    fontSize: 42,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    letterSpacing: 4,
+  brandTitle: {
+    color: colors.silver,
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: 8,
   },
-  mottoBadge: {
-    marginTop: 8,
-    backgroundColor: '#C2FF05',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 4,
+  subBadge: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surface,
   },
-  mottoText: {
-    color: '#000',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1,
+  subText: {
+    color: colors.lavenderMuted,
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 2,
   },
 });

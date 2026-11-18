@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal } from 'react-native';
+import { colors, radii, spacing } from '../theme';
 
 interface AlertButton {
   text: string;
@@ -16,7 +17,7 @@ interface CustomAlertProps {
 }
 
 export default function CustomAlert({ visible, title, message, onClose, buttons }: CustomAlertProps) {
-  const [scaleAnim] = React.useState(new Animated.Value(0.88));
+  const [scaleAnim] = React.useState(new Animated.Value(0.92));
   const [opacityAnim] = React.useState(new Animated.Value(0));
 
   React.useEffect(() => {
@@ -25,8 +26,8 @@ export default function CustomAlert({ visible, title, message, onClose, buttons 
         Animated.spring(scaleAnim, {
           toValue: 1,
           useNativeDriver: true,
-          tension: 200,
-          friction: 18,
+          tension: 220,
+          friction: 20,
         }),
         Animated.timing(opacityAnim, {
           toValue: 1,
@@ -35,7 +36,7 @@ export default function CustomAlert({ visible, title, message, onClose, buttons 
         }),
       ]).start();
     } else {
-      scaleAnim.setValue(0.88);
+      scaleAnim.setValue(0.92);
       opacityAnim.setValue(0);
     }
   }, [visible]);
@@ -51,7 +52,7 @@ export default function CustomAlert({ visible, title, message, onClose, buttons 
     if (!buttons || buttons.length === 0) {
       return (
         <TouchableOpacity style={styles.button} onPress={() => handleButtonPress()}>
-          <Text style={styles.buttonText}>GOT IT</Text>
+          <Text style={styles.buttonText}>Acknowledge</Text>
         </TouchableOpacity>
       );
     }
@@ -67,16 +68,14 @@ export default function CustomAlert({ visible, title, message, onClose, buttons 
               btn.style === 'destructive' && styles.destructiveBtn,
               buttons.length > 1 && styles.flexBtn,
             ]}
-            onPress={() => handleButtonPress(btn.onPress)}
-          >
+            onPress={() => handleButtonPress(btn.onPress)}>
             <Text
               style={[
                 styles.buttonText,
                 btn.style === 'cancel' && styles.cancelBtnText,
                 btn.style === 'destructive' && styles.destructiveBtnText,
-              ]}
-            >
-              {btn.text.toUpperCase()}
+              ]}>
+              {btn.text}
             </Text>
           </TouchableOpacity>
         ))}
@@ -85,13 +84,7 @@ export default function CustomAlert({ visible, title, message, onClose, buttons 
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
         <Animated.View style={[styles.alertBox, { transform: [{ scale: scaleAnim }] }]}>
           <Text style={styles.title}>{title}</Text>
@@ -106,74 +99,78 @@ export default function CustomAlert({ visible, title, message, onClose, buttons 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(19, 14, 11, 0.82)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
   alertBox: {
-    backgroundColor: '#1A1A24',
-    borderRadius: 24,
-    padding: 28,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 360,
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.border,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.45,
+    shadowRadius: 28,
     elevation: 20,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#FFF',
-    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.silver,
+    marginBottom: spacing.sm,
     textAlign: 'center',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   message: {
-    fontSize: 15,
-    color: '#A0A0B0',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-    fontWeight: '500',
+    marginBottom: spacing.xl,
+    lineHeight: 20,
+    fontWeight: '400',
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing.sm,
     width: '100%',
   },
   flexBtn: {
     flex: 1,
   },
   button: {
-    backgroundColor: '#C2FF05',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 16,
+    backgroundColor: colors.mocha,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
     width: '100%',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.mochaLight,
   },
   cancelBtn: {
-    backgroundColor: '#2A2A35',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
   },
   destructiveBtn: {
-    backgroundColor: '#FF3366',
+    backgroundColor: colors.danger,
+    borderColor: 'transparent',
   },
   buttonText: {
-    color: '#000',
+    color: colors.silver,
     fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   cancelBtnText: {
-    color: '#FFF',
+    color: colors.textMuted,
   },
   destructiveBtnText: {
-    color: '#FFF',
+    color: colors.silverLight,
   },
 });

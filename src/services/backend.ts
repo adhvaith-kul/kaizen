@@ -275,7 +275,7 @@ class Backend {
     }
 
     const message =
-      `🏆 Join my squad "${group.name}" on KAIZEN!\n\n` +
+      `Join my squad "${group.name}" on KAIZEN.\n\n` +
       `Tap this link to join directly:\n${joinUrl}\n\n` +
       `Invite Code: ${group.code}`;
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, radii, spacing } from '../theme';
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
 
@@ -11,89 +12,93 @@ interface PostCardProps {
   onOpenComments: (postId: string) => void;
   onPressUser?: (userId: string, username: string) => void;
 }
+
 export default function PostCard({ post, onLike, onSuspect, onOpenComments, onPressUser }: PostCardProps) {
+  const formattedDate = new Date(post.date).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+
   return (
     <View style={styles.post}>
+      {/* Post Header */}
       <View style={styles.postHeader}>
         <TouchableOpacity onPress={() => onPressUser?.(post.userId, post.username)}>
           <Image
             source={{
               uri:
                 post.avatarUrl ||
-                `https://api.dicebear.com/9.x/micah/png?seed=${post.username}&backgroundColor=C2FF05&radius=50`,
+                `https://api.dicebear.com/9.x/micah/png?seed=${post.username}&backgroundColor=6F4E37&radius=50`,
             }}
             style={styles.postAvatar}
           />
         </TouchableOpacity>
         <TouchableOpacity style={styles.postHeaderInfo} onPress={() => onPressUser?.(post.userId, post.username)}>
           <Text style={styles.postUsername}>{post.username}</Text>
-          <Text style={styles.postSquadName}>{post.groupName}</Text>
+          {post.groupName ? <Text style={styles.postSquadName}>{post.groupName}</Text> : null}
         </TouchableOpacity>
-        <Text style={styles.postDate}>
-          {new Date(post.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
-        </Text>
+        <Text style={styles.postDate}>{formattedDate}</Text>
       </View>
 
+      {/* Main Proof Asset */}
       <View style={styles.imageContainer}>
         {post.imageUrl ? (
           <Image source={{ uri: post.imageUrl }} style={styles.postImage} resizeMode="cover" />
         ) : (
-          <View style={styles.imagePlaceholder}>
-            <Text style={styles.placeholderEmoji}>{getCategoryEmoji(post.category)}</Text>
-            <Text style={styles.placeholderText}>Logged Without Photo</Text>
+          <View style={styles.textProofContainer}>
+            <View style={styles.categoryPill}>
+              <Text style={styles.categoryPillText}>{post.category.toUpperCase()}</Text>
+            </View>
+            <Text style={styles.textProofHabit}>{post.habitName}</Text>
+            <Text style={styles.textProofNote}>Verified Completion</Text>
           </View>
         )}
       </View>
 
+      {/* Action Toolbar */}
       <View style={styles.socialBar}>
         <View style={styles.actionGroup}>
-          <TouchableOpacity style={styles.socialBtn} onPress={() => onLike(post)}>
+          <TouchableOpacity
+            style={[styles.actionBtn, post.isLiked && styles.actionBtnActive]}
+            onPress={() => onLike(post)}
+            activeOpacity={0.7}>
             <Ionicons
-              name={post.isLiked ? 'thumbs-up' : 'thumbs-up-outline'}
-              size={24}
-              color={post.isLiked ? '#C2FF05' : '#FFF'}
+              name={post.isLiked ? 'heart' : 'heart-outline'}
+              size={18}
+              color={post.isLiked ? colors.lavender : colors.textSecondary}
             />
+            <Text style={[styles.actionCount, post.isLiked && styles.actionCountActive]}>{post.likesCount || 0}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.socialBtn} onPress={() => onSuspect(post)}>
+          <TouchableOpacity
+            style={[styles.actionBtn, post.isSuspected && styles.actionBtnFlagged]}
+            onPress={() => onSuspect(post)}
+            activeOpacity={0.7}>
             <Ionicons
-              name={post.isSuspected ? 'thumbs-down' : 'thumbs-down-outline'}
-              size={24}
-              color={post.isSuspected ? '#FF3366' : '#888'}
+              name={post.isSuspected ? 'flag' : 'flag-outline'}
+              size={17}
+              color={post.isSuspected ? colors.danger : colors.textMuted}
             />
+            {post.suspectsCount > 0 && (
+              <Text style={[styles.actionCount, post.isSuspected && { color: colors.danger }]}>
+                {post.suspectsCount}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionBtn} onPress={() => onOpenComments(post.id)} activeOpacity={0.7}>
+            <Ionicons name="chatbubble-outline" size={17} color={colors.textSecondary} />
+            <Text style={styles.actionCount}>{post.commentsCount || 0}</Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.socialBtn} onPress={() => onOpenComments(post.id)}>
-          <Ionicons name="chatbubble-outline" size={24} color="#FFF" />
-        </TouchableOpacity>
       </View>
 
-      <View style={styles.statsBar}>
-        <Text style={styles.likesText}>
-          {post.likesCount} {post.likesCount === 1 ? 'like' : 'likes'}
-        </Text>
-        {post.suspectsCount > 0 && (
-          <>
-            <View style={styles.statDot} />
-            <Text style={[styles.suspectsText, post.isDisqualified && { color: '#FF3366' }]}>
-              {post.suspectsCount} {post.suspectsCount === 1 ? 'flag' : 'flags'}
-            </Text>
-          </>
-        )}
-      </View>
-
+      {/* Post Details & Narrative */}
       <View style={styles.postFooter}>
-        <View style={[styles.habitBadge, post.isDisqualified && styles.disqualifiedBadge]}>
-          <Text style={[styles.habitBadgeText, post.isDisqualified && styles.disqualifiedBadgeText]}>
-            {post.isDisqualified ? 'DISQUALIFIED' : post.category.toUpperCase()}
-          </Text>
-        </View>
-
         {post.isDisqualified && (
-          <View style={styles.disqualifiedWarning}>
-            <Ionicons name="warning" size={16} color="#FF3366" />
-            <Text style={styles.disqualifiedWarningText}>Flagged by squad as suspicious activity.</Text>
+          <View style={styles.disqualifiedBadge}>
+            <Text style={styles.disqualifiedBadgeText}>DISQUALIFIED BY SQUAD REVIEW</Text>
           </View>
         )}
 
@@ -101,28 +106,22 @@ export default function PostCard({ post, onLike, onSuspect, onOpenComments, onPr
           <Text style={styles.postUsernameSmall} onPress={() => onPressUser?.(post.userId, post.username)}>
             {post.username}
           </Text>{' '}
-          crushed their{' '}
-          <Text style={[styles.habitName, post.isDisqualified && styles.disqualifiedHabitName]}>{post.habitName}</Text>{' '}
-          goal! 🔥
+          completed <Text style={styles.habitName}>{post.habitName}</Text>
         </Text>
 
         {post.caption ? (
-          <Text style={[styles.captionText, post.isDisqualified && styles.disqualifiedText]}>
-            <Text style={styles.postUsernameSmall} onPress={() => onPressUser?.(post.userId, post.username)}>
-              {post.username}
-            </Text>{' '}
-            {post.caption}
-          </Text>
+          <Text style={[styles.captionText, post.isDisqualified && styles.disqualifiedText]}>{post.caption}</Text>
         ) : null}
 
-        {!post.isDisqualified && (
+        {/* Recent Comments Preview */}
+        {!post.isDisqualified && post.commentsPreview && post.commentsPreview.length > 0 && (
           <View style={styles.commentsPreview}>
             {post.commentsCount > 2 && (
               <TouchableOpacity onPress={() => onOpenComments(post.id)}>
                 <Text style={styles.viewAllComments}>View all {post.commentsCount} comments</Text>
               </TouchableOpacity>
             )}
-            {post.commentsPreview?.map((c: any, idx: number) => (
+            {post.commentsPreview.map((c: any, idx: number) => (
               <Text key={idx} style={styles.commentPreviewText}>
                 <Text style={styles.commentUsername}>{c.username}</Text> {c.text}
               </Text>
@@ -134,46 +133,52 @@ export default function PostCard({ post, onLike, onSuspect, onOpenComments, onPr
   );
 }
 
-function getCategoryEmoji(cat: string) {
-  const map: any = {
-    Health: '💪',
-    Productivity: '💼',
-    Sleep: '😴',
-    Diet: '🥗',
-    Finance: '💸',
-    Upskill: '🧠',
-    Chores: '🧹',
-  };
-  return map[cat] || '✨';
-}
-
 const styles = StyleSheet.create({
   post: {
-    marginBottom: 40,
-    backgroundColor: '#0E0E11',
+    marginBottom: spacing.xxxl,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
   },
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
   },
   postAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    marginRight: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: spacing.md,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   postHeaderInfo: { flex: 1 },
-  postUsername: { color: '#FFF', fontWeight: '800', fontSize: 14 },
-  postSquadName: { color: '#888', fontSize: 12, fontWeight: '500', marginTop: 1 },
-  postDate: { color: '#666', fontSize: 12, fontWeight: '500' },
+  postUsername: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  postSquadName: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '400',
+    marginTop: 1,
+  },
+  postDate: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '400',
+  },
   imageContainer: {
-    width: WINDOW_WIDTH,
-    height: WINDOW_WIDTH,
-    backgroundColor: '#1A1A24',
+    width: '100%',
+    height: WINDOW_WIDTH - 32,
+    backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -181,129 +186,143 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  imagePlaceholder: {
+  textProofContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    padding: spacing.xl,
   },
-  placeholderEmoji: { fontSize: 80, marginBottom: 10, opacity: 0.5 },
-  placeholderText: { color: '#444', fontSize: 14, fontWeight: '700', letterSpacing: 1 },
+  categoryPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    marginBottom: spacing.md,
+  },
+  categoryPillText: {
+    color: colors.lavenderMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+  textProofHabit: {
+    color: colors.silver,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  textProofNote: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '400',
+  },
   socialBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 13, // 16 - (30-24)/2 to align icons visually
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
   actionGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
   },
-  socialBtn: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statsBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    paddingHorizontal: 16,
-  },
-  statDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: '#666',
-    marginHorizontal: 10,
-    alignSelf: 'center',
-  },
-  likesText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  suspectsText: {
-    color: '#999',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  postFooter: {
-    paddingHorizontal: 16,
-  },
-  habitBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#1A1C12',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#C2FF0522',
-  },
-  habitBadgeText: {
-    color: '#C2FF05',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  postContent: {
-    color: '#EEE',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  postUsernameSmall: { fontWeight: '800', color: '#FFF' },
-  habitName: { fontWeight: '800', color: '#C2FF05' },
-  disqualifiedText: {
-    color: '#555',
-    textDecorationLine: 'line-through',
-  },
-  disqualifiedHabitName: {
-    color: '#555',
-  },
-  disqualifiedBadge: {
-    backgroundColor: '#241313',
-    borderColor: '#FF336644',
-  },
-  disqualifiedBadgeText: {
-    color: '#FF3366',
-  },
-  disqualifiedWarning: {
+  actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 8,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
-  disqualifiedWarningText: {
-    color: '#FF3366',
+  actionBtnActive: {
+    borderColor: colors.lavenderBorder,
+    backgroundColor: colors.lavenderSubtle,
+  },
+  actionBtnFlagged: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSubtle,
+  },
+  actionCount: {
+    color: colors.textSecondary,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
-  captionText: {
-    color: '#DDD',
+  actionCountActive: {
+    color: colors.lavender,
+  },
+  postFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  postContent: {
+    color: colors.textSecondary,
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
+  },
+  postUsernameSmall: {
+    fontWeight: '600',
+    color: colors.silver,
+  },
+  habitName: {
+    fontWeight: '600',
+    color: colors.lavender,
+  },
+  disqualifiedText: {
+    color: colors.textMuted,
+    textDecorationLine: 'line-through',
+  },
+  disqualifiedBadge: {
+    backgroundColor: colors.dangerSubtle,
+    borderColor: colors.danger,
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  disqualifiedBadgeText: {
+    color: colors.danger,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  captionText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 2,
+    marginBottom: spacing.xs,
   },
   commentsPreview: {
-    marginTop: 6,
+    marginTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    paddingTop: spacing.sm,
   },
   viewAllComments: {
-    color: '#888',
-    fontSize: 14,
-    marginBottom: 6,
+    color: colors.textMuted,
+    fontSize: 12,
+    marginBottom: spacing.xs,
     fontWeight: '500',
   },
   commentPreviewText: {
-    color: '#EEE',
-    fontSize: 14,
+    color: colors.textSecondary,
+    fontSize: 13,
     lineHeight: 18,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   commentUsername: {
-    fontWeight: '800',
-    color: '#FFF',
+    fontWeight: '600',
+    color: colors.silver,
   },
 });

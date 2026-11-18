@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
-  ScrollView,
   ActivityIndicator,
   Modal,
   Platform,
@@ -21,14 +20,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
-import { DailyLog, HabitComment as Comment } from '../types';
+import { HabitComment as Comment } from '../types';
 import Loader from '../components/Loader';
 import PostCard from '../components/PostCard';
+import { colors, radii, spacing } from '../theme';
 
-const SQUAD_COLORS = ['#C2FF05', '#FF3366', '#00E5FF', '#B388FF', '#FF9100'];
+const SQUAD_COLORS = [colors.mocha, colors.lavender, colors.silver, colors.mochaLight, colors.lavenderMuted];
 
 const dicebearUri = (seed: string) =>
-  `https://api.dicebear.com/9.x/micah/png?seed=${seed}&backgroundColor=C2FF05&radius=50`;
+  `https://api.dicebear.com/9.x/micah/png?seed=${seed}&backgroundColor=6F4E37&radius=50`;
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, groups, refreshUser, logout } = useAuth();
@@ -96,15 +96,15 @@ export default function ProfileScreen({ navigation }: any) {
         setFollowStats({ following: following.length, followers: followers.length });
 
         const dates = generateLast7Days();
-        logs.forEach(log => {
-          const day = dates.find(d => d.date === log.date);
+        logs.forEach((log) => {
+          const day = dates.find((d) => d.date === log.date);
           if (day) {
             day.squadData[log.groupId] = (day.squadData[log.groupId] || 0) + 1;
             day.total += 1;
           }
         });
 
-        const highestTotal = Math.max(...dates.map(d => d.total), 1);
+        const highestTotal = Math.max(...dates.map((d) => d.total), 1);
         setMaxTotal(highestTotal);
         setGraphData(dates);
         setLoading(false);
@@ -116,15 +116,13 @@ export default function ProfileScreen({ navigation }: any) {
     }, [user])
   );
 
-  // ── Avatar picking ────────────────────────────────────────────────────────────
-
   const handlePickImage = async (fromCamera: boolean) => {
     let result: ImagePicker.ImagePickerResult;
 
     if (fromCamera) {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        showAlert('Permission needed', 'Camera access is required to take a photo.');
+        showAlert('Permission Required', 'Camera access is required to take a photo.');
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -135,7 +133,7 @@ export default function ProfileScreen({ navigation }: any) {
     } else {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        showAlert('Permission needed', 'Photo library access is required to choose a photo.');
+        showAlert('Permission Required', 'Photo library access is required to choose an image.');
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -153,13 +151,13 @@ export default function ProfileScreen({ navigation }: any) {
 
     const uri = result.assets[0].uri;
     setUploading(true);
-    setPickerVisible(false); // Close modal before uploading starts
+    setPickerVisible(false);
     try {
       const publicUrl = await backend.uploadProfilePicture(uri, user.id);
       await backend.updateUserAvatar(user.id, publicUrl);
       await refreshUser();
     } catch (e: any) {
-      showAlert('Upload failed', e?.message || 'Something went wrong. Please try again.');
+      showAlert('Upload Failed', e?.message || 'Something went wrong. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -177,8 +175,8 @@ export default function ProfileScreen({ navigation }: any) {
       } else {
         await backend.likeLog(user.id, post.id);
       }
-      setFeed(prev =>
-        prev.map(p =>
+      setFeed((prev) =>
+        prev.map((p) =>
           p.id === post.id
             ? { ...p, isLiked: !post.isLiked, likesCount: post.isLiked ? p.likesCount - 1 : p.likesCount + 1 }
             : p
@@ -197,10 +195,9 @@ export default function ProfileScreen({ navigation }: any) {
       } else {
         await backend.suspectLog(user.id, post.id);
       }
-      // Fetch fresh post data
       const updatedPost = await backend.getPostDetail(user.id, post.id);
       if (updatedPost) {
-        setFeed(prev => prev.map(p => (p.id === post.id ? { ...p, ...updatedPost } : p)));
+        setFeed((prev) => prev.map((p) => (p.id === post.id ? { ...p, ...updatedPost } : p)));
       }
     } catch (e) {
       console.error('Suspect failed:', e);
@@ -239,7 +236,6 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* ── FIXED STICKY HEADER ── */}
       <View style={styles.fixedHeader}>
         <View style={styles.headerLeftContainer}>
           <Animated.View style={[styles.stickyLeft, { opacity: stickyOpacity, position: 'absolute', left: 0 }]}>
@@ -250,7 +246,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Animated.View style={{ opacity: logoOpacity }}>
             <View style={styles.logoContainer}>
               <Text style={styles.logo}>KAIZEN</Text>
-              <Text style={styles.motto}>SELF-IMPROVEMENT. GAMIFIED.</Text>
+              <Text style={styles.motto}>PROFILE & METRICS</Text>
             </View>
           </Animated.View>
         </View>
@@ -261,34 +257,31 @@ export default function ProfileScreen({ navigation }: any) {
             onPress={() => {
               logout().then(() => navigation.navigate('Login'));
             }}>
-            <Ionicons name="log-out-outline" size={18} color="#FF3366" />
-            <Text style={styles.logoutText}>LOGOUT</Text>
+            <Ionicons name="log-out-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <Animated.ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 110 }}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}>
         <View style={styles.topContent}>
           <View style={styles.profileSection}>
-            {/* Avatar with camera overlay */}
             <TouchableOpacity onPress={showAvatarOptions} activeOpacity={0.85} style={styles.avatarContainer}>
               <Image source={{ uri: avatarUri }} style={styles.avatar} />
 
-              {/* Dim overlay while uploading */}
               {uploading && (
                 <View style={styles.uploadingOverlay}>
-                  <ActivityIndicator color="#C2FF05" size="large" />
+                  <ActivityIndicator color={colors.lavender} size="small" />
                 </View>
               )}
 
-              {/* Camera badge */}
               {!uploading && (
                 <View style={styles.cameraBadge}>
-                  <Text style={styles.cameraIcon}>📷</Text>
+                  <Ionicons name="camera-outline" size={14} color={colors.silver} />
                 </View>
               )}
             </TouchableOpacity>
@@ -296,7 +289,7 @@ export default function ProfileScreen({ navigation }: any) {
             <Text style={styles.username}>@{user?.username}</Text>
             <Text style={styles.email}>{user?.email}</Text>
 
-            <TouchableOpacity style={styles.followStatsRow} onPress={() => navigation.navigate('Friends')}>
+            <TouchableOpacity style={styles.followStatsRow} onPress={() => navigation.navigate('Friends')} activeOpacity={0.75}>
               <View style={styles.followStatItem}>
                 <Text style={styles.followStatValue}>{followStats.following}</Text>
                 <Text style={styles.followStatLabel}>FOLLOWING</Text>
@@ -306,12 +299,12 @@ export default function ProfileScreen({ navigation }: any) {
                 <Text style={styles.followStatValue}>{followStats.followers}</Text>
                 <Text style={styles.followStatLabel}>FOLLOWERS</Text>
               </View>
-              <Ionicons name="chevron-forward" size={14} color="#666" style={{ marginLeft: 8 }} />
+              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} style={{ marginLeft: 6 }} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.statsCard}>
-            <Text style={styles.sectionTitle}>LIFETIME STATS</Text>
+            <Text style={styles.sectionTitle}>LIFETIME METRICS</Text>
 
             {loading ? (
               <Loader style={{ marginVertical: 20 }} />
@@ -319,11 +312,11 @@ export default function ProfileScreen({ navigation }: any) {
               <View style={styles.statsGrid}>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{stats.totalHabits}</Text>
-                  <Text style={styles.statLabel}>HABITS DONE</Text>
+                  <Text style={styles.statLabel}>COMPLETIONS</Text>
                 </View>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{stats.totalDaysLogged}</Text>
-                  <Text style={styles.statLabel}>DAYS LOGGED</Text>
+                  <Text style={styles.statLabel}>DAYS RECORDED</Text>
                 </View>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{groups.length}</Text>
@@ -333,11 +326,11 @@ export default function ProfileScreen({ navigation }: any) {
             )}
           </View>
 
-          {/* --- HABIT GRAPH --- */}
+          {/* Habit Consistency Graph */}
           <View style={styles.graphSection}>
-            <Text style={styles.sectionTitle}>LAST 7 DAYS</Text>
+            <Text style={styles.sectionTitle}>7-DAY CONSISTENCY</Text>
             {loading ? (
-              <Loader style={{ marginVertical: 40 }} />
+              <Loader style={{ marginVertical: 30 }} />
             ) : (
               <>
                 <View style={styles.chartRow}>
@@ -345,16 +338,14 @@ export default function ProfileScreen({ navigation }: any) {
                     <View key={idx} style={styles.barColumn}>
                       <Text style={styles.barValue}>{day.total > 0 ? day.total : ''}</Text>
                       <View style={styles.barWrapper}>
-                        {/* Empty state bar */}
                         {day.total === 0 && (
-                          <View style={[styles.barSegment, { height: '5%', backgroundColor: '#2A2A35' }]} />
+                          <View style={[styles.barSegment, { height: '6%', backgroundColor: colors.surfaceHover }]} />
                         )}
 
-                        {/* Stacked bars */}
                         {Object.entries(day.squadData).map(([groupId, count]: [string, any]) => {
                           const heightRatio = count / maxTotal;
-                          const groupIndex = groups.findIndex(g => g.id === groupId);
-                          const color = SQUAD_COLORS[groupIndex % SQUAD_COLORS.length] || '#FFF';
+                          const groupIndex = groups.findIndex((g) => g.id === groupId);
+                          const color = SQUAD_COLORS[groupIndex % SQUAD_COLORS.length] || colors.mocha;
                           return (
                             <View
                               key={groupId}
@@ -363,23 +354,25 @@ export default function ProfileScreen({ navigation }: any) {
                           );
                         })}
                       </View>
-                      <Text style={[styles.barLabel, idx === 6 && { color: '#C2FF05', fontWeight: '900' }]}>
+                      <Text style={[styles.barLabel, idx === 6 && { color: colors.lavender, fontWeight: '700' }]}>
                         {day.displayDate}
                       </Text>
                     </View>
                   ))}
                 </View>
 
-                <View style={styles.legendContainer}>
-                  {groups.map((g, idx) => (
-                    <View key={g.id} style={styles.legendItem}>
-                      <View
-                        style={[styles.legendColor, { backgroundColor: SQUAD_COLORS[idx % SQUAD_COLORS.length] }]}
-                      />
-                      <Text style={styles.legendText}>{g.name}</Text>
-                    </View>
-                  ))}
-                </View>
+                {groups.length > 0 && (
+                  <View style={styles.legendContainer}>
+                    {groups.map((g, idx) => (
+                      <View key={g.id} style={styles.legendItem}>
+                        <View
+                          style={[styles.legendColor, { backgroundColor: SQUAD_COLORS[idx % SQUAD_COLORS.length] }]}
+                        />
+                        <Text style={styles.legendText}>{g.name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </>
             )}
           </View>
@@ -387,8 +380,8 @@ export default function ProfileScreen({ navigation }: any) {
 
         {feed.length > 0 && (
           <View style={styles.feedSection}>
-            <Text style={[styles.sectionTitle, { paddingHorizontal: 16 }]}>YOUR ACTIVITY</Text>
-            {feed.map(item => (
+            <Text style={[styles.sectionTitle, { paddingHorizontal: spacing.lg }]}>PERSONAL ACTIVITY</Text>
+            {feed.map((item) => (
               <PostCard
                 key={item.id}
                 post={item}
@@ -401,12 +394,12 @@ export default function ProfileScreen({ navigation }: any) {
         )}
       </Animated.ScrollView>
 
-      {/* ── CUSTOM IMAGE PICKER MODAL ───────────────────────── */}
+      {/* Avatar Options Modal */}
       <Modal visible={pickerVisible} transparent animationType="fade" onRequestClose={() => setPickerVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPickerVisible(false)}>
           <View style={styles.pickerSheet}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>MANAGE PROFILE PHOTO</Text>
+            <Text style={styles.sheetTitle}>PROFILE PHOTO</Text>
 
             <TouchableOpacity
               style={styles.sheetOption}
@@ -414,38 +407,35 @@ export default function ProfileScreen({ navigation }: any) {
                 setPickerVisible(false);
                 setViewVisible(true);
               }}>
-              <Text style={styles.sheetOptionEmoji}>👁️</Text>
-              <Text style={styles.sheetOptionText}>View Profile Photo</Text>
+              <Text style={styles.sheetOptionText}>View Current Photo</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.sheetOption} onPress={() => handlePickImage(true)}>
-              <Text style={styles.sheetOptionEmoji}>📸</Text>
-              <Text style={styles.sheetOptionText}>Take a Photo</Text>
+              <Text style={styles.sheetOptionText}>Take Photo</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.sheetOption} onPress={() => handlePickImage(false)}>
-              <Text style={styles.sheetOptionEmoji}>🖼️</Text>
               <Text style={styles.sheetOptionText}>Choose from Library</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.sheetCancel} onPress={() => setPickerVisible(false)}>
-              <Text style={styles.sheetCancelText}>CANCEL</Text>
+              <Text style={styles.sheetCancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
-      {/* ── FULL SCREEN VIEW MODAL ─────────────────────────── */}
+      {/* Full Screen View Modal */}
       <Modal visible={viewVisible} transparent animationType="fade" onRequestClose={() => setViewVisible(false)}>
         <TouchableOpacity style={styles.viewOverlay} activeOpacity={1} onPress={() => setViewVisible(false)}>
           <Image source={{ uri: avatarUri }} style={styles.fullImage} resizeMode="contain" />
           <TouchableOpacity style={styles.closeViewBtn} onPress={() => setViewVisible(false)}>
-            <Text style={styles.closeViewText}>CLOSE</Text>
+            <Text style={styles.closeViewText}>Close</Text>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
-      {/* ── COMMENTS MODAL ───────────────────────── */}
+      {/* Comments Drawer */}
       <Modal
         visible={commentsVisible}
         animationType="slide"
@@ -459,21 +449,21 @@ export default function ProfileScreen({ navigation }: any) {
               <View style={styles.modalHandleComments} />
               <Text style={styles.modalTitleComments}>Comments</Text>
               <TouchableOpacity onPress={() => setCommentsVisible(false)} style={styles.closeBtnComments}>
-                <Ionicons name="close" size={24} color="#C2FF05" />
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <FlatList
               data={comments}
-              keyExtractor={c => c.id}
-              contentContainerStyle={{ paddingVertical: 20, paddingHorizontal: 16 }}
+              keyExtractor={(c) => c.id}
+              contentContainerStyle={{ paddingVertical: spacing.lg, paddingHorizontal: spacing.lg }}
               renderItem={({ item }) => (
                 <View style={styles.commentItem}>
                   <Image
                     source={{
                       uri:
                         item.avatarUrl ||
-                        `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=C2FF05&radius=50`,
+                        `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=6F4E37&radius=50`,
                     }}
                     style={styles.commentAvatar}
                   />
@@ -484,8 +474,8 @@ export default function ProfileScreen({ navigation }: any) {
                 </View>
               )}
               ListEmptyComponent={() => (
-                <Text style={{ color: '#666', textAlign: 'center', marginTop: 50 }}>
-                  No comments yet. Be the first!
+                <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 13 }}>
+                  No comments recorded yet.
                 </Text>
               )}
             />
@@ -494,7 +484,7 @@ export default function ProfileScreen({ navigation }: any) {
               <TextInput
                 style={styles.commentInput}
                 placeholder="Add a comment..."
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 value={newComment}
                 onChangeText={setNewComment}
                 multiline
@@ -502,7 +492,7 @@ export default function ProfileScreen({ navigation }: any) {
               <TouchableOpacity
                 onPress={postComment}
                 disabled={commenting || !newComment.trim()}
-                style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.5 }]}>
+                style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.4 }]}>
                 <Text style={styles.postCommentBtnText}>{commenting ? '...' : 'Post'}</Text>
               </TouchableOpacity>
             </View>
@@ -514,17 +504,17 @@ export default function ProfileScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E0E11' },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1 },
   fixedHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    height: 60,
-    backgroundColor: '#0E0E11',
+    paddingHorizontal: spacing.lg,
+    height: 56,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A24',
+    borderBottomColor: colors.border,
     zIndex: 10,
   },
   headerLeftContainer: {
@@ -538,19 +528,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   logo: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFF',
-    letterSpacing: 1.5,
-    fontStyle: 'italic',
-    lineHeight: 26,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.silver,
+    letterSpacing: 3,
   },
   motto: {
     fontSize: 8,
-    fontWeight: '900',
-    color: '#C2FF05',
-    letterSpacing: 0.5,
-    marginTop: -2,
+    fontWeight: '600',
+    color: colors.lavenderMuted,
+    letterSpacing: 1,
+    marginTop: 2,
   },
   stickyLeft: {
     zIndex: 2,
@@ -558,67 +546,67 @@ const styles = StyleSheet.create({
   fixedHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
   },
   stickyUsername: {
-    color: '#FFF',
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: -0.5,
+    color: colors.silver,
+    fontSize: 16,
+    fontWeight: '700',
   },
   topContent: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   headerLogoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A24',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    gap: 4,
+    backgroundColor: colors.surfaceElevated,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.border,
   },
   logoutText: {
-    color: '#FF3366',
-    fontWeight: '800',
+    color: colors.textSecondary,
+    fontWeight: '500',
     fontSize: 12,
-    marginLeft: 6,
-    letterSpacing: 1,
   },
-  feedSection: {},
+  feedSection: {
+    marginTop: spacing.md,
+  },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#888',
-    marginBottom: 20,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    marginBottom: spacing.md,
     letterSpacing: 1.5,
   },
   profileSection: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: spacing.xxl,
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#1A1A24',
-    borderWidth: 3,
-    borderColor: '#C2FF05',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   uploadingOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: 'rgba(19, 14, 11, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -626,44 +614,37 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#1A1A24',
-    borderRadius: 16,
-    width: 32,
-    height: 32,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: 14,
+    width: 28,
+    height: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#C2FF05',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-  },
-  cameraIcon: {
-    fontSize: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   username: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#FFF',
-    marginBottom: 4,
-    letterSpacing: -0.5,
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.silver,
+    marginBottom: 2,
+    letterSpacing: -0.3,
   },
   email: {
-    fontSize: 14,
-    color: '#888',
-    fontWeight: '600',
-    marginBottom: 16,
+    fontSize: 13,
+    color: colors.textMuted,
+    fontWeight: '400',
+    marginBottom: spacing.lg,
   },
   followStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A24',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.border,
   },
   followStatItem: {
     flexDirection: 'row',
@@ -671,27 +652,37 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   followStatValue: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '900',
+    color: colors.silver,
+    fontSize: 13,
+    fontWeight: '700',
   },
   followStatLabel: {
-    color: '#666',
+    color: colors.textMuted,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   followStatDivider: {
     width: 1,
     height: 12,
-    backgroundColor: '#2A2A35',
-    marginHorizontal: 12,
+    backgroundColor: colors.borderSubtle,
+    marginHorizontal: spacing.md,
   },
   statsCard: {
-    marginBottom: 40,
+    marginBottom: spacing.xxl,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   graphSection: {
-    marginBottom: 40,
+    marginBottom: spacing.xxl,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -702,23 +693,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#FFF',
-    marginBottom: 4,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.silver,
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#666',
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
     letterSpacing: 1,
   },
   chartRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    height: 180,
-    marginBottom: 20,
+    height: 140,
+    marginBottom: spacing.md,
   },
   barColumn: {
     alignItems: 'center',
@@ -727,42 +718,42 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   barWrapper: {
-    width: 12,
-    height: 120,
-    backgroundColor: '#121217',
-    borderRadius: 6,
+    width: 8,
+    height: 90,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: 4,
     justifyContent: 'flex-end',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#222',
-    marginVertical: 8,
+    borderColor: colors.borderSubtle,
+    marginVertical: spacing.xs,
   },
   barSegment: {
     width: '100%',
     minHeight: 2,
   },
   barValue: {
-    fontSize: 12,
-    color: '#FFF',
-    fontWeight: '800',
-    height: 16,
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    height: 14,
   },
   barLabel: {
     fontSize: 10,
-    color: '#888',
-    fontWeight: '700',
+    color: colors.textMuted,
+    fontWeight: '500',
   },
   legendContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: spacing.sm,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
-    marginBottom: 8,
+    marginRight: spacing.md,
+    marginBottom: spacing.xs,
   },
   legendColor: {
     width: 8,
@@ -771,164 +762,172 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   legendText: {
-    color: '#A0A0B0',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  spacer: {
-    height: 20,
-  },
-  logoutBtn: {
-    backgroundColor: '#FF3366',
-    padding: 18,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#FF3366',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-  logoutBtnText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 1,
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(19, 14, 11, 0.8)',
     justifyContent: 'flex-end',
   },
   pickerSheet: {
-    backgroundColor: '#1A1A24',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    paddingBottom: 40,
+    backgroundColor: colors.surfaceElevated,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    padding: spacing.xl,
+    paddingBottom: 36,
     borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: '#2A2A35',
+    borderColor: colors.border,
   },
   sheetHandle: {
-    width: 40,
+    width: 36,
     height: 4,
-    backgroundColor: '#333',
+    backgroundColor: colors.border,
     borderRadius: 2,
     alignSelf: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   sheetTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#666',
-    letterSpacing: 2,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1.5,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   sheetOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#22222E',
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: '#2A2A35',
-  },
-  sheetOptionEmoji: {
-    fontSize: 20,
-    marginRight: 16,
+    borderColor: colors.border,
+    alignItems: 'center',
   },
   sheetOptionText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.silver,
   },
   sheetCancel: {
-    marginTop: 8,
-    padding: 20,
+    marginTop: spacing.sm,
+    padding: spacing.md,
     alignItems: 'center',
   },
   sheetCancelText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#FF3366',
-    letterSpacing: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.textMuted,
   },
   viewOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
+    backgroundColor: 'rgba(19, 14, 11, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   fullImage: {
     width: '100%',
-    height: '80%',
+    height: '75%',
   },
   closeViewBtn: {
     position: 'absolute',
     top: 50,
-    right: 30,
-    padding: 10,
+    right: 24,
+    padding: spacing.sm,
   },
   closeViewText: {
-    color: '#FFF',
-    fontWeight: '900',
-    letterSpacing: 2,
-    fontSize: 12,
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 14,
   },
-  // Comments Modal Styles
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(19, 14, 11, 0.75)',
     justifyContent: 'flex-end',
   },
   modalContentComments: {
-    backgroundColor: '#121217',
-    height: '75%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 20,
+    backgroundColor: colors.surfaceElevated,
+    height: '70%',
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    paddingBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalHeaderComments: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#2A2A35',
+    borderBottomColor: colors.borderSubtle,
   },
   modalHandleComments: {
-    width: 40,
+    width: 36,
     height: 4,
-    backgroundColor: '#333',
+    backgroundColor: colors.border,
     borderRadius: 2,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
-  modalTitleComments: { color: '#FFF', fontWeight: '800', fontSize: 16 },
-  closeBtnComments: { position: 'absolute', right: 20, top: 15 },
-  commentItem: { flexDirection: 'row', marginBottom: 20 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
+  modalTitleComments: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  closeBtnComments: {
+    position: 'absolute',
+    right: spacing.lg,
+    top: spacing.md,
+  },
+  commentItem: {
+    flexDirection: 'row',
+    marginBottom: spacing.lg,
+  },
+  commentAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: spacing.md,
+  },
   commentInfo: { flex: 1 },
-  commentUser: { color: '#FFF', fontWeight: '700', fontSize: 13, marginBottom: 2 },
-  commentText: { color: '#CCC', fontSize: 14, lineHeight: 18 },
+  commentUser: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 13,
+    marginBottom: 2,
+  },
+  commentText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   commentInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#2A2A35',
-    backgroundColor: '#1A1A24',
+    borderTopColor: colors.borderSubtle,
+    backgroundColor: colors.surface,
   },
   commentInput: {
     flex: 1,
-    color: '#FFF',
+    color: colors.silver,
     fontSize: 14,
-    maxHeight: 100,
-    paddingTop: 10,
-    paddingBottom: 10,
+    maxHeight: 90,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
-  postCommentBtn: { marginLeft: 10, paddingHorizontal: 15 },
-  postCommentBtnText: { color: '#C2FF05', fontWeight: '900', fontSize: 14 },
+  postCommentBtn: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.mocha,
+    borderRadius: radii.sm,
+    marginLeft: spacing.sm,
+  },
+  postCommentBtnText: {
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 12,
+  },
 });

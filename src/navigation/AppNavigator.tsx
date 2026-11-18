@@ -4,7 +4,6 @@ import {
   DefaultTheme,
   useNavigation,
   StackActions,
-  CommonActions,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -12,7 +11,8 @@ import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import * as Linking from 'expo-linking';
 import { backend } from '../services/backend';
-import { StatusBar, Text, View, StyleSheet, Animated, Dimensions, TouchableOpacity, Platform } from 'react-native';
+import { StatusBar, Text, View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { colors, radii, spacing, theme } from '../theme';
 
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
@@ -31,8 +31,6 @@ import UserLogsScreen from '../screens/UserLogsScreen';
 import ChallengesScreen from '../screens/ChallengesScreen';
 
 import { TabNavigationContext } from '../context/TabNavigationContext';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // ── NAVIGATORS ──────────────────────────────────────────────────
 const Stack = createNativeStackNavigator();
@@ -103,6 +101,20 @@ function ChallengesStackScreen() {
   );
 }
 
+interface TabItemConfig {
+  key: string;
+  route: string;
+  label: string;
+}
+
+const TABS: TabItemConfig[] = [
+  { key: 'HomeTab', route: 'FeedTab', label: 'Feed' },
+  { key: 'SquadsTab', route: 'SquadsTab', label: 'Squads' },
+  { key: 'ChallengesTab', route: 'ChallengesTab', label: 'Challenges' },
+  { key: 'FriendsTab', route: 'FriendsTab', label: 'Network' },
+  { key: 'ProfileTab', route: 'ProfileTab', label: 'Profile' },
+];
+
 function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
   const getTabKey = (name: string) => {
     return state.routes.find((r: any) => r.name === name)?.key;
@@ -122,42 +134,21 @@ function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
 
   return (
     <View style={styles.navBar}>
-      <TouchableOpacity style={styles.navItem} activeOpacity={0.8} onPress={() => handlePress('HomeTab', 'FeedTab')}>
-        <Text style={{ fontSize: 20 }}>🔥</Text>
-        <Text style={[styles.navLabel, { color: activeTab === 'HomeTab' ? '#C2FF05' : '#888' }]}>HOME</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.navItem}
-        activeOpacity={0.8}
-        onPress={() => handlePress('SquadsTab', 'SquadsTab')}>
-        <Text style={{ fontSize: 20 }}>🤝</Text>
-        <Text style={[styles.navLabel, { color: activeTab === 'SquadsTab' ? '#C2FF05' : '#888' }]}>SQUADS</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.navItem}
-        activeOpacity={0.8}
-        onPress={() => handlePress('ChallengesTab', 'ChallengesTab')}>
-        <Text style={{ fontSize: 20 }}>🏆</Text>
-        <Text style={[styles.navLabel, { color: activeTab === 'ChallengesTab' ? '#C2FF05' : '#888' }]}>CHALLENGES</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.navItem}
-        activeOpacity={0.8}
-        onPress={() => handlePress('FriendsTab', 'FriendsTab')}>
-        <Text style={{ fontSize: 20 }}>👥</Text>
-        <Text style={[styles.navLabel, { color: activeTab === 'FriendsTab' ? '#C2FF05' : '#888' }]}>FRIENDS</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.navItem}
-        activeOpacity={0.8}
-        onPress={() => handlePress('ProfileTab', 'ProfileTab')}>
-        <Text style={{ fontSize: 20 }}>👤</Text>
-        <Text style={[styles.navLabel, { color: activeTab === 'ProfileTab' ? '#C2FF05' : '#888' }]}>PROFILE</Text>
-      </TouchableOpacity>
+      {TABS.map((tab) => {
+        const isActive = activeTab === tab.key;
+        return (
+          <TouchableOpacity
+            key={tab.key}
+            style={styles.navItem}
+            activeOpacity={0.7}
+            onPress={() => handlePress(tab.key, tab.route)}>
+            <View style={[styles.indicator, isActive && styles.indicatorActive]} />
+            <Text style={[styles.navLabel, isActive ? styles.navLabelActive : styles.navLabelInactive]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -183,7 +174,6 @@ function MainTabs() {
         }
       }
     } else {
-      // Switch to tab, preserving previous state/stack depth
       setActiveTab(tabName);
       let routeName = tabName;
       if (tabName === 'HomeTab') routeName = 'FeedTab';
@@ -209,9 +199,9 @@ function MainTabs() {
 
   return (
     <TabNavigationContext.Provider value={{ activeTab, setActiveTab: handleTabPress, resetStack }}>
-      <View style={{ flex: 1, backgroundColor: '#0E0E11' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <Tab.Navigator
-          tabBar={props => {
+          tabBar={(props) => {
             tabNavRef.current = props.navigation;
             return <CustomTabBar {...props} activeTab={activeTab} onTabPress={handleTabPress} />;
           }}
@@ -229,12 +219,12 @@ function MainTabs() {
 
 const styles = StyleSheet.create({
   navBar: {
-    backgroundColor: 'rgba(14, 14, 17, 0.95)',
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#2A2A35',
-    height: 85,
-    paddingBottom: 30,
-    paddingTop: 10,
+    borderTopColor: colors.border,
+    height: 80,
+    paddingBottom: 24,
+    paddingTop: 8,
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -242,22 +232,48 @@ const styles = StyleSheet.create({
     zIndex: 20,
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignItems: 'center',
   },
-  navItem: { flex: 1, alignItems: 'center' },
-  navLabel: { fontSize: 9, fontWeight: '900', marginTop: 4 },
+  navItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xs,
+  },
+  indicator: {
+    width: 16,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'transparent',
+    marginBottom: 6,
+  },
+  indicatorActive: {
+    backgroundColor: colors.lavender,
+  },
+  navLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  navLabelActive: {
+    color: colors.silver,
+  },
+  navLabelInactive: {
+    color: colors.textMuted,
+  },
 });
 
-const VibeTheme = {
+const KaizenTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: '#0E0E11',
+    background: colors.background,
+    card: colors.surface,
+    text: colors.silver,
+    border: colors.border,
   },
 };
 
-// ── PWA DEEP LINK INTERCEPT ───────────────────────────────────────
-// We intercept the link BEFORE React Navigation inits to avoid "Not Found"
-// errors if the user is not logged in / the screens aren't mounted.
 let initialWebUrl: string | null = null;
 if (Platform.OS === 'web' && typeof window !== 'undefined') {
   initialWebUrl = window.location.href;
@@ -265,15 +281,12 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
     window.history.replaceState({}, '', '/');
   }
 }
-// ──────────────────────────────────────────────────────────────────
 
 function DeepLinkHandler() {
   const { user, groups, setActiveGroup } = useAuth();
   const { showAlert } = useGlobalAlert();
   const navigation = useNavigation<any>();
 
-  // Use refs so async callbacks always read the latest values,
-  // avoiding stale-closure bugs when groups load after the timeout fires.
   const groupsRef = React.useRef(groups);
   groupsRef.current = groups;
   const processedRef = React.useRef(false);
@@ -284,7 +297,6 @@ function DeepLinkHandler() {
 
       let code = '';
 
-      // Fallback manual parse for web, as Linking.parse can strip paths in edge cases
       if (Platform.OS === 'web' && url.includes('/join/')) {
         const parts = url.split('/join/');
         code = parts[parts.length - 1];
@@ -300,21 +312,17 @@ function DeepLinkHandler() {
       }
 
       if (code) {
-        // Normalize: strip trailing slash/query params, uppercase for case-insensitive match
         code = code.split('?')[0].split('/')[0].toUpperCase();
-        // Consume the initial web URL so we don't re-trigger it endlessly
         initialWebUrl = null;
         processedRef.current = true;
 
         try {
           const groupToJoin = await backend.getGroupByCode(code);
-          // Read latest groups from ref (may have loaded while the API call was in-flight)
           const currentGroups = groupsRef.current;
-          const alreadyJoined = currentGroups.some(g => g.id === groupToJoin.id);
+          const alreadyJoined = currentGroups.some((g) => g.id === groupToJoin.id);
 
           if (alreadyJoined) {
-            // Already in the squad — jump straight to standings
-            const existingGroup = currentGroups.find(g => g.id === groupToJoin.id);
+            const existingGroup = currentGroups.find((g) => g.id === groupToJoin.id);
             if (existingGroup) setActiveGroup(existingGroup);
 
             navigation.navigate('MainTabs', {
@@ -324,11 +332,10 @@ function DeepLinkHandler() {
               },
             });
           } else {
-            // Not a member yet — prompt to join
-            showAlert('Join Squad? 🤝', `Do you want to join "${groupToJoin.name}"?`, [
+            showAlert('Join Squad', `Would you like to join "${groupToJoin.name}"?`, [
               { text: 'Cancel', style: 'cancel' },
               {
-                text: 'JOIN',
+                text: 'Join',
                 onPress: () => {
                   navigation.navigate('MainTabs', {
                     screen: 'SquadsTab',
@@ -342,15 +349,14 @@ function DeepLinkHandler() {
             ]);
           }
         } catch (e: any) {
-          showAlert('Invite Failed', `Couldn't find an active squad for code: ${code}.`);
+          showAlert('Invite Failed', `Could not find an active squad for code: ${code}.`);
           console.log('[DeepLinkHandler] Join error:', e.message);
         }
       }
     };
 
-    // Delay processing slightly to ensure MainTabs has mounted after login
     const processInitialUrl = () => {
-      if (processedRef.current) return; // Already handled — don't fire again
+      if (processedRef.current) return;
       setTimeout(() => {
         if (processedRef.current) return;
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -365,10 +371,8 @@ function DeepLinkHandler() {
       processInitialUrl();
     }
 
-    // Standard listener (handles links opened while app is already running)
-    const sub = Linking.addEventListener('url', event => handleUrl(event.url));
+    const sub = Linking.addEventListener('url', (event) => handleUrl(event.url));
 
-    // Web: catch browser back/forward navigation
     let webSub: any;
     if (Platform.OS === 'web') {
       const handlePopState = () => handleUrl(window.location.href);
@@ -391,7 +395,7 @@ export default function AppNavigator() {
   return (
     <>
       <StatusBar barStyle="light-content" />
-      <NavigationContainer theme={VibeTheme}>
+      <NavigationContainer theme={KaizenTheme}>
         <DeepLinkHandler />
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {!user ? (

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { colors, radii, spacing } from '../theme';
 
 interface Props {
   missing: string[];
@@ -10,26 +11,29 @@ export default function HabitGateOverlay({ missing, onFix }: Props) {
   return (
     <View style={styles.overlay}>
       <View style={styles.card}>
-        <Text style={styles.icon}>🔐</Text>
-        <Text style={styles.title}>Loadout Incomplete</Text>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>SETUP REQUIRED</Text>
+        </View>
+
+        <Text style={styles.title}>Squad Requirements Pending</Text>
         <Text style={styles.desc}>
-          Your squad has requirements you haven't met yet. Lock in your habits to unlock the group.
+          This squad has habit criteria that are not yet configured. Complete your habit loadout to unlock this group.
         </Text>
 
         <View style={styles.missingList}>
-          {missing.map(m => (
+          {missing.map((m) => (
             <View key={m} style={styles.missingRow}>
-              <Text style={styles.missingDot}>✗</Text>
+              <View style={styles.missingIndicator} />
               <Text style={styles.missingText}>{m}</Text>
             </View>
           ))}
         </View>
 
         <TouchableOpacity style={styles.btn} onPress={onFix} activeOpacity={0.85}>
-          <Text style={styles.btnText}>SET UP HABITS 🔒</Text>
+          <Text style={styles.btnText}>Configure Habits</Text>
         </TouchableOpacity>
 
-        <Text style={styles.hint}>You can still switch squads or go to your profile</Text>
+        <Text style={styles.hint}>You can still switch squads or navigate to your profile.</Text>
       </View>
     </View>
   );
@@ -40,92 +44,101 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-    paddingBottom: 120, // Keep it above the bottom navbar
-    backgroundColor: '#0E0E11',
+    padding: spacing.xl,
+    paddingBottom: 120,
+    backgroundColor: colors.background,
   },
   card: {
     width: '100%',
-    backgroundColor: '#1A1A24',
-    borderRadius: 28,
-    padding: 28,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
     borderWidth: 1,
-    borderColor: '#FF3366',
+    borderColor: colors.border,
     alignItems: 'center',
-    shadowColor: '#FF3366',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
     shadowRadius: 20,
   },
-  icon: {
-    fontSize: 52,
-    marginBottom: 14,
+  badge: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.lavenderBorder,
+    marginBottom: spacing.md,
+  },
+  badgeText: {
+    color: colors.lavender,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#FFF',
-    letterSpacing: -0.5,
-    marginBottom: 10,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.silver,
+    letterSpacing: -0.3,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   desc: {
     fontSize: 14,
-    color: '#A0A0B0',
-    fontWeight: '500',
+    color: colors.textSecondary,
+    fontWeight: '400',
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 22,
+    marginBottom: spacing.xl,
   },
   missingList: {
     width: '100%',
-    backgroundColor: '#0E0E11',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    gap: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    gap: spacing.md,
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.borderSubtle,
   },
   missingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: spacing.md,
   },
-  missingDot: {
-    color: '#FF3366',
-    fontSize: 14,
-    fontWeight: '900',
-    width: 16,
+  missingIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.mochaLight,
   },
   missingText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '700',
+    color: colors.silver,
+    fontSize: 14,
+    fontWeight: '500',
   },
   btn: {
-    backgroundColor: '#FF3366',
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-    borderRadius: 16,
+    backgroundColor: colors.mocha,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xxl,
+    borderRadius: radii.md,
     width: '100%',
     alignItems: 'center',
-    shadowColor: '#FF3366',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.mochaLight,
+    marginBottom: spacing.md,
   },
   btnText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '900',
-    letterSpacing: 1,
+    color: colors.silver,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   hint: {
-    color: '#555',
+    color: colors.textMuted,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '400',
     textAlign: 'center',
   },
 });

@@ -15,12 +15,14 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
 import { Habit, DailyLog } from '../types';
 import Loader from '../components/Loader';
 import HabitGateOverlay from '../components/HabitGateOverlay';
+import { colors, radii, spacing } from '../theme';
 
 function getMissingRequirements(habits: Habit[], group: any): string[] {
   const settings = group?.settings;
@@ -28,14 +30,14 @@ function getMissingRequirements(habits: Habit[], group: any): string[] {
   const missing: string[] = [];
   for (const cat of settings.allowedCategories) {
     const required = Number(settings.habitsPerCategory?.[cat] ?? 1);
-    const current = habits.filter(h => h.category === cat).length;
+    const current = habits.filter((h) => h.category === cat).length;
     if (current < required) missing.push(`${cat} (${current}/${required})`);
   }
   return missing;
 }
 
 export default function DashboardScreen({ navigation }: any) {
-  const { user, group, logout } = useAuth();
+  const { user, group } = useAuth();
   const { showAlert } = useGlobalAlert();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [logs, setLogs] = useState<DailyLog[]>([]);
@@ -61,7 +63,7 @@ export default function DashboardScreen({ navigation }: any) {
       setLogs(uLogs);
 
       const board = await backend.getLeaderboard(group.id);
-      const me = board.find(b => b.userId === user.id);
+      const me = board.find((b) => b.userId === user.id);
       setRank(me?.rank || '-');
       setVibeScore(me?.totalPoints || 0);
     } catch (e) {}
@@ -77,9 +79,9 @@ export default function DashboardScreen({ navigation }: any) {
 
   const toggle = async (habitId: string) => {
     if (!user || !group) return;
-    const existingLog = logs.find(l => l.habitId === habitId);
+    const existingLog = logs.find((l) => l.habitId === habitId);
     const isCompleted = !!existingLog;
-    const habit = habits.find(h => h.id === habitId);
+    const habit = habits.find((h) => h.id === habitId);
     const points =
       habit && group?.settings?.pointsPerCategory?.[habit.category]
         ? group.settings.pointsPerCategory[habit.category]
@@ -88,7 +90,7 @@ export default function DashboardScreen({ navigation }: any) {
     if (!isCompleted) {
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       if (!permissionResult.granted) {
-        showAlert('Permission needed', 'You need camera permissions to upload proof of your habit.');
+        showAlert('Permission Required', 'Camera access is required to record photo verification.');
         return;
       }
 
@@ -99,26 +101,25 @@ export default function DashboardScreen({ navigation }: any) {
 
       if (result.canceled) return;
 
-      // Show caption modal instead of submitting immediately
       setPendingImage(result.assets[0].uri);
       setPendingHabitId(habitId);
       setCaptionText('');
     } else {
       showAlert(
-        'Undo Completion?',
-        `Are you sure? This will delete your photo proof and subtract ${points} points from your vibe score.`,
+        'Revoke Completion',
+        `Reverting this habit will remove the logged proof and deduct ${points} points.`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Undo',
+            text: 'Confirm Revocation',
             style: 'destructive',
             onPress: async () => {
               setLoading(true);
               const newLogs = await backend.toggleHabitCompletion(user.id, group.id, habitId, undefined);
               setLogs(newLogs);
               if (group) {
-                backend.getLeaderboard(group.id).then(board => {
-                  const me = board.find(b => b.userId === user?.id);
+                backend.getLeaderboard(group.id).then((board) => {
+                  const me = board.find((b) => b.userId === user?.id);
                   setRank(me?.rank || '-');
                   setVibeScore(me?.totalPoints || 0);
                 });
@@ -146,8 +147,8 @@ export default function DashboardScreen({ navigation }: any) {
     setLogs(newLogs);
     setCaptionText('');
     if (group) {
-      backend.getLeaderboard(group.id).then(board => {
-        const me = board.find(b => b.userId === user?.id);
+      backend.getLeaderboard(group.id).then((board) => {
+        const me = board.find((b) => b.userId === user?.id);
         setRank(me?.rank || '-');
         setVibeScore(me?.totalPoints || 0);
       });
@@ -158,35 +159,36 @@ export default function DashboardScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       {loading && initialLoad && <Loader fullScreen />}
-      {/* ── Blocking gate ──────────────────────────────── */}
+
       {!initialLoad && missingHabits.length > 0 && (
         <HabitGateOverlay missing={missingHabits} onFix={() => navigation.navigate('HabitSetup')} />
       )}
-      {/* ────────────────────────────────────────── */}
+
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>← BACK</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
+          <Text style={styles.backBtnText}>Back</Text>
         </TouchableOpacity>
       </View>
+
       <ScrollView
         style={styles.container}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} tintColor="#C2FF05" />}
-        contentContainerStyle={{ paddingBottom: 40 }}>
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchData} tintColor={colors.lavender} />}
+        contentContainerStyle={{ paddingBottom: 60 }}>
+        {/* Header */}
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Image
               source={{
                 uri:
                   user?.avatarUrl ||
-                  `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=C2FF05&radius=50`,
+                  `https://api.dicebear.com/9.x/micah/png?seed=${user?.username}&backgroundColor=6F4E37&radius=50`,
               }}
               style={styles.headerAvatar}
             />
             <View>
-              <Text style={styles.greeting}>Sup, {user?.username} 👋</Text>
-              <Text style={styles.title}>
-                Your <Text style={{ color: '#C2FF05' }}>Grind</Text>
-              </Text>
+              <Text style={styles.greeting}>{user?.username}</Text>
+              <Text style={styles.title}>Daily Performance</Text>
             </View>
           </View>
           {group && (
@@ -197,40 +199,35 @@ export default function DashboardScreen({ navigation }: any) {
           )}
         </View>
 
+        {/* Metrics Row */}
         <View style={styles.statsContainer}>
-          <View style={[styles.statBox, { backgroundColor: '#B388FF' }]}>
-            <Text style={styles.statLabel}>VIBE SCORE</Text>
-            <Text style={styles.statValue}>{vibeScore}</Text>
+          <View style={styles.statBoxPrimary}>
+            <Text style={styles.statLabelPrimary}>DISCIPLINE SCORE</Text>
+            <Text style={styles.statValuePrimary}>{vibeScore}</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.statBox, { backgroundColor: '#1A1A24', borderWidth: 1, borderColor: '#333' }]}
-            onPress={() => navigation.goBack()}>
-            <Text style={[styles.statLabel, { color: '#888' }]}>SQUAD RANK</Text>
-            <Text style={[styles.statValue, { color: '#FFF' }]}>#{rank}</Text>
+          <TouchableOpacity style={styles.statBoxSecondary} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+            <Text style={styles.statLabelSecondary}>SQUAD RANK</Text>
+            <Text style={styles.statValueSecondary}>#{rank}</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Habits Section */}
         <View style={styles.habitsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              TODAY'S MISSION{' '}
-              {logs.length > 0
-                ? `(${new Date(logs[0].date).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })})`
-                : ''}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('HabitSetup')}>
-              <Text style={styles.editLink}>Edit ⚙️</Text>
+            <Text style={styles.sectionTitle}>TODAY'S OBJECTIVES</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('HabitSetup')} activeOpacity={0.7}>
+              <Text style={styles.editLink}>Edit Loadout</Text>
             </TouchableOpacity>
           </View>
 
           {habits.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Crickets... 🦗</Text>
-              <Text style={styles.emptySubtext}>Set up your habits to start winning.</Text>
+              <Text style={styles.emptyText}>No Active Habits</Text>
+              <Text style={styles.emptySubtext}>Configure your squad loadout to start recording progress.</Text>
             </View>
           ) : (
-            habits.map(h => {
-              const habitLog = logs.find(l => l.habitId === h.id);
+            habits.map((h) => {
+              const habitLog = logs.find((l) => l.habitId === h.id);
               const isCompleted = !!habitLog;
               const imageUrl = habitLog?.imageUrl;
               return (
@@ -246,7 +243,7 @@ export default function DashboardScreen({ navigation }: any) {
                   )}
                   <TouchableOpacity onPress={() => toggle(h.id)} activeOpacity={0.8}>
                     <View style={[styles.checkbox, isCompleted && styles.checkboxDone]}>
-                      <Text style={styles.checkIcon}>{isCompleted ? '🔥' : ''}</Text>
+                      {isCompleted && <Ionicons name="checkmark" size={18} color={colors.silver} />}
                     </View>
                   </TouchableOpacity>
                 </View>
@@ -256,17 +253,14 @@ export default function DashboardScreen({ navigation }: any) {
         </View>
 
         <View style={styles.actionSection}>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.primaryBtnText}>VIEW LEADERBOARD 🏆</Text>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.goBack()} activeOpacity={0.85}>
+            <Text style={styles.primaryBtnText}>View Leaderboard Standings</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      <Modal
-        visible={!!selectedImage}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setSelectedImage(null)}>
+      {/* Image Preview Modal */}
+      <Modal visible={!!selectedImage} transparent={true} animationType="fade" onRequestClose={() => setSelectedImage(null)}>
         <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setSelectedImage(null)}>
           {selectedImage && (
             <Image source={{ uri: selectedImage }} style={styles.fullScreenImage} resizeMode="contain" />
@@ -288,13 +282,13 @@ export default function DashboardScreen({ navigation }: any) {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.captionModalContent}>
             <View style={styles.captionModalHeader}>
-              <Text style={styles.captionModalTitle}>Add a Caption</Text>
+              <Text style={styles.captionModalTitle}>Attach Note</Text>
               <TouchableOpacity
                 onPress={() => {
                   setPendingImage(null);
                   setPendingHabitId(null);
                 }}>
-                <Text style={styles.captionModalCancel}>✕</Text>
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -304,8 +298,8 @@ export default function DashboardScreen({ navigation }: any) {
 
             <TextInput
               style={styles.captionInput}
-              placeholder="Write a caption... (optional)"
-              placeholderTextColor="#666"
+              placeholder="Add verification notes (optional)..."
+              placeholderTextColor={colors.textMuted}
               value={captionText}
               onChangeText={setCaptionText}
               multiline
@@ -323,7 +317,7 @@ export default function DashboardScreen({ navigation }: any) {
                 <Text style={styles.captionSkipText}>Skip</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.captionPostBtn} onPress={submitWithCaption}>
-                <Text style={styles.captionPostText}>Post 🔥</Text>
+                <Text style={styles.captionPostText}>Log Proof</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -334,109 +328,237 @@ export default function DashboardScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E0E11' },
-  container: { flex: 1, paddingHorizontal: 20 },
-  topBar: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
-  backBtn: { alignSelf: 'flex-start', padding: 5, marginLeft: -5 },
-  backBtnText: { color: '#888', fontWeight: '800', letterSpacing: 1 },
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, paddingHorizontal: spacing.lg },
+  topBar: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 30,
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+    marginTop: spacing.xs,
   },
-  greeting: { fontSize: 16, color: '#A0A0B0', fontWeight: '600', marginBottom: 2 },
+  greeting: {
+    fontSize: 13,
+    color: colors.textMuted,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
   headerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: '#C2FF05',
-    marginRight: 12,
-  },
-  title: { fontSize: 32, fontWeight: '900', color: '#FFF', letterSpacing: -1 },
-  groupBadge: {
-    backgroundColor: '#1A1A24',
-    padding: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2A2A35',
-  },
-  groupCodeLabel: { fontSize: 10, color: '#888', fontWeight: '800', marginBottom: 2 },
-  groupCode: { fontSize: 16, color: '#FF3366', fontWeight: '900', letterSpacing: 2 },
-  statsContainer: { flexDirection: 'row', gap: 15, marginBottom: 35 },
-  statBox: { flex: 1, padding: 20, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  statLabel: { fontSize: 12, fontWeight: '800', color: '#000', marginBottom: 8, letterSpacing: 1 },
-  statValue: { fontSize: 40, fontWeight: '900', color: '#000', letterSpacing: -2 },
-  habitsSection: { marginBottom: 30 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#666', letterSpacing: 1.5 },
-  editLink: { color: '#C2FF05', fontWeight: '700', fontSize: 14 },
-  emptyState: {
-    backgroundColor: '#1A1A24',
-    padding: 40,
-    borderRadius: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderStyle: 'dashed',
-  },
-  emptyText: { fontSize: 24, fontWeight: '800', color: '#FFF', marginBottom: 8 },
-  emptySubtext: { fontSize: 14, color: '#888', fontWeight: '500' },
-  habitCard: {
-    backgroundColor: '#1A1A24',
-    padding: 20,
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    marginRight: spacing.md,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.silver,
+    letterSpacing: -0.3,
+  },
+  groupBadge: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  groupCodeLabel: {
+    fontSize: 9,
+    color: colors.textMuted,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  groupCode: {
+    fontSize: 13,
+    color: colors.lavender,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginTop: 1,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.xxl,
+  },
+  statBoxPrimary: {
+    flex: 1,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
+    backgroundColor: colors.mocha,
+    borderWidth: 1,
+    borderColor: colors.mochaLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statLabelPrimary: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.lavenderLight,
+    marginBottom: spacing.xs,
+    letterSpacing: 1,
+  },
+  statValuePrimary: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.silverLight,
+    letterSpacing: -1,
+  },
+  statBoxSecondary: {
+    flex: 1,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statLabelSecondary: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+    letterSpacing: 1,
+  },
+  statValueSecondary: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.silver,
+    letterSpacing: -1,
+  },
+  habitsSection: {
+    marginBottom: spacing.xxl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1.5,
+  },
+  editLink: {
+    color: colors.lavender,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  emptyState: {
+    backgroundColor: colors.surface,
+    padding: spacing.xxxl,
+    borderRadius: radii.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.silver,
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  habitCard: {
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
+    marginBottom: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.border,
   },
-  habitCardDone: { borderColor: '#C2FF05', backgroundColor: '#121A0F' },
+  habitCardDone: {
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surfaceElevated,
+  },
   habitInfo: { flex: 1 },
-  habitCategory: { fontSize: 10, color: '#A0A0B0', fontWeight: '800', marginBottom: 4, letterSpacing: 1 },
-  habitName: { fontSize: 18, color: '#FFF', fontWeight: '700' },
-  habitNameDone: { textDecorationLine: 'line-through', color: '#666' },
+  habitCategory: {
+    fontSize: 10,
+    color: colors.lavenderMuted,
+    fontWeight: '700',
+    marginBottom: 3,
+    letterSpacing: 1,
+  },
+  habitName: {
+    fontSize: 15,
+    color: colors.silver,
+    fontWeight: '600',
+  },
+  habitNameDone: {
+    color: colors.textMuted,
+  },
   habitThumbnail: {
     width: 36,
     height: 36,
-    borderRadius: 8,
-    marginRight: 10,
-    backgroundColor: '#0E0E11',
+    borderRadius: radii.sm,
+    marginRight: spacing.md,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   checkbox: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: '#0E0E11',
-    borderWidth: 2,
-    borderColor: '#333',
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkboxDone: { backgroundColor: '#C2FF05', borderColor: '#C2FF05' },
-  checkIcon: { fontSize: 16 },
-  actionSection: { marginTop: 10, paddingBottom: 85 },
-  primaryBtn: {
-    backgroundColor: '#C2FF05',
-    padding: 18,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginBottom: 15,
-    shadowColor: '#C2FF05',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+  checkboxDone: {
+    backgroundColor: colors.mocha,
+    borderColor: colors.mochaLight,
   },
-  primaryBtnText: { color: '#000', fontSize: 16, fontWeight: '900', letterSpacing: 1 },
+  actionSection: {
+    marginTop: spacing.sm,
+    paddingBottom: 40,
+  },
+  primaryBtn: {
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  primaryBtnText: {
+    color: colors.silver,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    backgroundColor: 'rgba(19, 14, 11, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -446,81 +568,71 @@ const styles = StyleSheet.create({
   },
   captionModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(19, 14, 11, 0.82)',
     justifyContent: 'flex-end',
   },
   captionModalContent: {
-    backgroundColor: '#1A1A24',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 40,
+    backgroundColor: colors.surfaceElevated,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   captionModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   captionModalTitle: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  captionModalCancel: {
-    color: '#888',
-    fontSize: 22,
-    fontWeight: '700',
-    padding: 4,
+    color: colors.silver,
+    fontSize: 16,
+    fontWeight: '600',
   },
   captionPreviewImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 16,
-    marginBottom: 16,
-    backgroundColor: '#0E0E11',
+    height: 180,
+    borderRadius: radii.md,
+    marginBottom: spacing.lg,
   },
   captionInput: {
-    backgroundColor: '#0E0E11',
-    borderRadius: 14,
-    padding: 16,
-    color: '#FFF',
-    fontSize: 16,
-    minHeight: 60,
-    maxHeight: 120,
-    borderWidth: 1,
-    borderColor: '#2A2A35',
-    marginBottom: 16,
+    color: colors.silver,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    minHeight: 80,
     textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.lg,
+    fontSize: 14,
   },
   captionActions: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'flex-end',
+    gap: spacing.md,
   },
   captionSkipBtn: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: '#2A2A35',
-    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   captionSkipText: {
-    color: '#888',
-    fontWeight: '800',
-    fontSize: 15,
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: '500',
   },
   captionPostBtn: {
-    flex: 2,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: '#C2FF05',
-    alignItems: 'center',
+    backgroundColor: colors.mocha,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.mochaLight,
   },
   captionPostText: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 15,
-    letterSpacing: 0.5,
+    color: colors.silver,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

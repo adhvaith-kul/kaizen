@@ -3,13 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
+  ScrollView,
   RefreshControl,
-  Dimensions,
+  ActivityIndicator,
   Image,
-  Alert,
   Modal,
   TextInput,
   KeyboardAvoidingView,
@@ -17,21 +15,24 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
+import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
 import { Challenge, UserChallenge, Habit, DailyLog } from '../types';
-
-const { width } = Dimensions.get('window');
+import { colors, radii, spacing } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ChallengesScreen() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { showAlert } = useGlobalAlert();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [userChallenge, setUserChallenge] = useState<UserChallenge | null>(null);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [todayLogs, setTodayLogs] = useState<DailyLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // Photo / Caption State
+  // Modals
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [pendingHabitId, setPendingHabitId] = useState<string | null>(null);
@@ -40,28 +41,25 @@ export default function ChallengesScreen() {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      setLoading(true);
       const allChallenges = await backend.getChallenges();
       setChallenges(allChallenges);
 
-      // Find 75 Hard or first challenge
-      const seventyFiveHard = allChallenges.find(c => c.name.includes('75 Hard')) || allChallenges[0];
-      
+      const seventyFiveHard = allChallenges.find((c) => c.name === '75 Hard');
       if (seventyFiveHard) {
         const uc = await backend.syncChallengeStreak(user.id, seventyFiveHard.id);
         setUserChallenge(uc);
 
         if (uc) {
-          const [h, l] = await Promise.all([
+          const [challengeHabits, logs] = await Promise.all([
             backend.getChallengeHabits(user.id, seventyFiveHard.id),
             backend.getChallengeLogs(user.id, seventyFiveHard.id, new Date().toISOString().split('T')[0]),
           ]);
-          setHabits(h);
-          setTodayLogs(l);
+          setHabits(challengeHabits);
+          setTodayLogs(logs);
         }
       }
-    } catch (error) {
-      console.error('Error loading challenges:', error);
+    } catch (e: any) {
+      console.error('[ChallengesScreen] load error:', e.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -79,93 +77,114 @@ export default function ChallengesScreen() {
 
   const joinChallenge = async (challengeId: string) => {
     if (!user) return;
+    setActionLoading(true);
     try {
-      setLoading(true);
       await backend.joinChallenge(user.id, challengeId);
       await loadData();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to join challenge');
+    } catch (e: any) {
+      showAlert('Error', e.message);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
   const toggleHabit = async (habitId: string) => {
     if (!user || !userChallenge) return;
-    const existingLog = todayLogs.find(l => l.habitId === habitId);
 
-    if (!existingLog) {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permissionResult.granted) {
-        Alert.alert('Permission needed', 'You need camera permissions to upload proof of your habit.');
-        return;
-      }
+    const habitLog = todayLogs.find((l) => l.habitId === habitId);
+    const isDone = !!habitLog;
 
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        quality: 0.5,
-      });
-
-      if (result.canceled) return;
-
-      setPendingImage(result.assets[0].uri);
-      setPendingHabitId(habitId);
-      setCaptionText('');
-    } else {
-      Alert.alert(
-        'Undo Completion?',
-        'Are you sure you want to delete this proof?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Undo',
-            style: 'destructive',
-            onPress: async () => {
-              setLoading(true);
+    if (!isDone) {
+      showAlert('Record Proof', 'Would you like to attach an image verification to this completion?', [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Check In Without Photo',
+          onPress: async () => {
+            setActionLoading(true);
+            try {
               const newLogs = await backend.toggleHabitCompletion(user.id, null, habitId);
               setTodayLogs(newLogs);
               await backend.syncChallengeStreak(user.id, userChallenge.challengeId);
               const uc = await backend.getUserChallenge(user.id, userChallenge.challengeId);
               setUserChallenge(uc);
-              setLoading(false);
-            },
+            } catch (e: any) {
+              showAlert('Error', e.message);
+            } finally {
+              setActionLoading(false);
+            }
           },
-        ]
-      );
+        },
+        {
+          text: 'Take Photo',
+          onPress: async () => {
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) {
+              showAlert('Permission Required', 'Camera access is required to take photo proof.');
+              return;
+            }
+            const res = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.5 });
+            if (!res.canceled) {
+              setPendingImage(res.assets[0].uri);
+              setPendingHabitId(habitId);
+              setCaptionText('');
+            }
+          },
+        },
+      ]);
+    } else {
+      showAlert('Undo Completion', 'Reverting this task will remove the check-in and associated proof.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm Revocation',
+          style: 'destructive',
+          onPress: async () => {
+            setActionLoading(true);
+            try {
+              const newLogs = await backend.toggleHabitCompletion(user.id, null, habitId);
+              setTodayLogs(newLogs);
+              await backend.syncChallengeStreak(user.id, userChallenge.challengeId);
+              const uc = await backend.getUserChallenge(user.id, userChallenge.challengeId);
+              setUserChallenge(uc);
+            } catch (e: any) {
+              showAlert('Error', e.message);
+            } finally {
+              setActionLoading(false);
+            }
+          },
+        },
+      ]);
     }
   };
 
   const submitWithCaption = async () => {
     if (!user || !userChallenge || !pendingHabitId || !pendingImage) return;
-    const habitId = pendingHabitId;
     const image = pendingImage;
     const caption = captionText.trim() || undefined;
-
     setPendingImage(null);
     setPendingHabitId(null);
     setCaptionText('');
-    setLoading(true);
+    setActionLoading(true);
 
     try {
-      const newLogs = await backend.toggleHabitCompletion(user.id, null, habitId, image, caption);
+      const newLogs = await backend.toggleHabitCompletion(user.id, null, pendingHabitId, image, caption);
       setTodayLogs(newLogs);
-      
-      if (newLogs.length === habits.length) {
-        await backend.syncChallengeStreak(user.id, userChallenge.challengeId);
-        const uc = await backend.getUserChallenge(user.id, userChallenge.challengeId);
-        setUserChallenge(uc);
-      }
-    } catch (error) {
-      console.error('Error submitting habit:', error);
+      await backend.syncChallengeStreak(user.id, userChallenge.challengeId);
+      const uc = await backend.getUserChallenge(user.id, userChallenge.challengeId);
+      setUserChallenge(uc);
+    } catch (e: any) {
+      showAlert('Error', e.message);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
-  if (loading && !refreshing && todayLogs.length === 0) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#C2FF05" />
+        <ActivityIndicator size="small" color={colors.lavender} />
       </View>
     );
   }
@@ -173,10 +192,9 @@ export default function ChallengesScreen() {
   if (!userChallenge && challenges.length > 0) {
     const mainChallenge = challenges[0];
     return (
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C2FF05" />}
-      >
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.lavender} />}>
         <Text style={styles.title}>CHALLENGES</Text>
         <View style={styles.challengeCard}>
           <Text style={styles.challengeName}>{mainChallenge.name}</Text>
@@ -188,11 +206,8 @@ export default function ChallengesScreen() {
               </View>
             ))}
           </View>
-          <TouchableOpacity 
-            style={styles.joinButton}
-            onPress={() => joinChallenge(mainChallenge.id)}
-          >
-            <Text style={styles.joinButtonText}>START CHALLENGE</Text>
+          <TouchableOpacity style={styles.joinButton} onPress={() => joinChallenge(mainChallenge.id)}>
+            <Text style={styles.joinButtonText}>Enroll in Challenge</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -202,7 +217,7 @@ export default function ChallengesScreen() {
   if (!userChallenge) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: '#888' }}>No challenges available yet.</Text>
+        <Text style={{ color: colors.textMuted }}>No challenges available yet.</Text>
       </View>
     );
   }
@@ -210,11 +225,10 @@ export default function ChallengesScreen() {
   const progress = (userChallenge.currentStreak / 75) * 100;
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView 
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView
         contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#C2FF05" />}
-      >
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.lavender} />}>
         <View style={styles.header}>
           <Text style={styles.title}>75 HARD</Text>
           <View style={styles.streakBadge}>
@@ -224,29 +238,25 @@ export default function ChallengesScreen() {
 
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${Math.max(5, progress)}%` }]} />
+            <View style={[styles.progressFill, { width: `${Math.max(4, progress)}%` }]} />
           </View>
           <View style={styles.progressLabels}>
-            <Text style={styles.progressLabel}>Day 1</Text>
+            <Text style={styles.progressLabel}>Day 01</Text>
             <Text style={styles.progressLabel}>Day 75</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>TODAY'S TASKS</Text>
+        <Text style={styles.sectionTitle}>DAILY MANDATES</Text>
         <View style={styles.habitList}>
           {habits.map((habit) => {
-            const habitLog = todayLogs.find(l => l.habitId === habit.id);
+            const habitLog = todayLogs.find((l) => l.habitId === habit.id);
             const isDone = !!habitLog;
             const imageUrl = habitLog?.imageUrl;
             return (
               <View key={habit.id} style={[styles.habitItem, isDone && styles.habitItemDone]}>
-                <TouchableOpacity 
-                  style={styles.habitInfo}
-                  onPress={() => toggleHabit(habit.id)}
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity style={styles.habitInfo} onPress={() => toggleHabit(habit.id)} activeOpacity={0.7}>
                   <Text style={[styles.habitNameText, isDone && styles.textStrikethrough]}>{habit.name}</Text>
-                  <Text style={styles.habitCategory}>{habit.category}</Text>
+                  <Text style={styles.habitCategory}>{habit.category.toUpperCase()}</Text>
                 </TouchableOpacity>
 
                 {isDone && imageUrl && (
@@ -257,7 +267,7 @@ export default function ChallengesScreen() {
 
                 <TouchableOpacity onPress={() => toggleHabit(habit.id)} activeOpacity={0.7}>
                   <View style={[styles.checkbox, isDone && styles.checkboxChecked]}>
-                    {isDone && <Text style={{ color: '#000', fontSize: 12 }}>✓</Text>}
+                    {isDone && <Ionicons name="checkmark" size={16} color={colors.silver} />}
                   </View>
                 </TouchableOpacity>
               </View>
@@ -268,16 +278,16 @@ export default function ChallengesScreen() {
         {userChallenge.currentStreak === 0 && (
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>
-              Streak reset! In 75 Hard, if you miss even one task, you start back at Day 1.
+              Streak reset. In 75 Hard, missing any single requirement resets progress to Day 1.
             </Text>
           </View>
         )}
 
         <View style={styles.rulesCard}>
-          <Text style={styles.rulesTitle}>THE RULES</Text>
-          <Text style={styles.ruleItem}>• Complete all 6 tasks every single day.</Text>
-          <Text style={styles.ruleItem}>• If you miss one, your streak resets to 0.</Text>
-          <Text style={styles.ruleItem}>• Reach Day 75 to complete the challenge.</Text>
+          <Text style={styles.rulesTitle}>PROTOCOL RULES</Text>
+          <Text style={styles.ruleItem}>• Complete all mandated tasks every consecutive day.</Text>
+          <Text style={styles.ruleItem}>• Missed items trigger an immediate streak reset.</Text>
+          <Text style={styles.ruleItem}>• Reach Day 75 continuously to complete the protocol.</Text>
         </View>
       </ScrollView>
 
@@ -308,13 +318,13 @@ export default function ChallengesScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.captionModalContent}>
             <View style={styles.captionModalHeader}>
-              <Text style={styles.captionModalTitle}>Add a Caption</Text>
+              <Text style={styles.captionModalTitle}>Add Caption</Text>
               <TouchableOpacity
                 onPress={() => {
                   setPendingImage(null);
                   setPendingHabitId(null);
                 }}>
-                <Text style={styles.captionModalCancel}>✕</Text>
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -324,8 +334,8 @@ export default function ChallengesScreen() {
 
             <TextInput
               style={styles.captionInput}
-              placeholder="Write a caption... (optional)"
-              placeholderTextColor="#666"
+              placeholder="Add observation notes (optional)..."
+              placeholderTextColor={colors.textMuted}
               value={captionText}
               onChangeText={setCaptionText}
               multiline
@@ -343,16 +353,16 @@ export default function ChallengesScreen() {
                 <Text style={styles.captionSkipText}>Skip</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.captionPostBtn} onPress={submitWithCaption}>
-                <Text style={styles.captionPostText}>Post 🔥</Text>
+                <Text style={styles.captionPostText}>Log Proof</Text>
               </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {loading && todayLogs.length > 0 && (
+      {actionLoading && (
         <View style={styles.overlayLoader}>
-          <ActivityIndicator size="large" color="#C2FF05" />
+          <ActivityIndicator size="large" color={colors.lavender} />
         </View>
       )}
     </View>
@@ -361,21 +371,21 @@ export default function ChallengesScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 100,
-    backgroundColor: '#0E0E11',
+    padding: spacing.lg,
+    paddingTop: 56,
+    paddingBottom: 110,
+    backgroundColor: colors.background,
     minHeight: '100%',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0E0E11',
+    backgroundColor: colors.background,
   },
   overlayLoader: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(14, 14, 17, 0.7)',
+    backgroundColor: 'rgba(19, 14, 11, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 100,
@@ -384,198 +394,211 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: -1,
+    fontSize: 26,
+    fontWeight: '700',
+    color: colors.silver,
+    letterSpacing: -0.3,
   },
   streakBadge: {
-    backgroundColor: '#C2FF05',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    backgroundColor: colors.surfaceElevated,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.lavenderBorder,
   },
   streakText: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 14,
+    color: colors.lavender,
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 1,
   },
   challengeCard: {
-    backgroundColor: '#1A1A23',
-    borderRadius: 20,
-    padding: 24,
-    marginTop: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
+    marginTop: spacing.md,
     borderWidth: 1,
-    borderColor: '#2A2A35',
+    borderColor: colors.border,
   },
   challengeName: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#C2FF05',
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.silver,
+    marginBottom: spacing.xs,
   },
   challengeDesc: {
-    fontSize: 16,
-    color: '#AAA',
-    lineHeight: 22,
-    marginBottom: 20,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: spacing.lg,
   },
   habitStackPreview: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   habitBadge: {
-    backgroundColor: '#2A2A35',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginRight: 8,
-    marginBottom: 8,
+    backgroundColor: colors.surfaceElevated,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   habitBadgeText: {
-    color: '#EEE',
+    color: colors.textSecondary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   joinButton: {
-    backgroundColor: '#C2FF05',
-    height: 56,
-    borderRadius: 16,
+    backgroundColor: colors.mocha,
+    height: 50,
+    borderRadius: radii.md,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.mochaLight,
   },
   joinButtonText: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 16,
-    letterSpacing: 1,
+    color: colors.silver,
+    fontWeight: '600',
+    fontSize: 14,
+    letterSpacing: 0.5,
   },
   progressContainer: {
-    marginBottom: 30,
+    marginBottom: spacing.xxl,
   },
   progressBar: {
-    height: 12,
-    backgroundColor: '#1A1A23',
-    borderRadius: 6,
+    height: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 4,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#C2FF05',
+    backgroundColor: colors.mocha,
   },
   progressLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: spacing.xs,
   },
   progressLabel: {
-    color: '#666',
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '500',
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#666',
-    letterSpacing: 2,
-    marginBottom: 16,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: spacing.md,
   },
   habitList: {
-    gap: 12,
+    gap: spacing.sm,
   },
   habitItem: {
-    backgroundColor: '#1A1A23',
-    padding: 16,
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: radii.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: colors.border,
   },
   habitItemDone: {
-    borderColor: '#C2FF0522',
-    backgroundColor: '#14141A',
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surfaceElevated,
   },
   habitInfo: {
     flex: 1,
   },
   habitNameText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
+    color: colors.silver,
+    fontSize: 14,
+    fontWeight: '600',
   },
   textStrikethrough: {
     textDecorationLine: 'line-through',
-    color: '#666',
+    color: colors.textMuted,
   },
   habitCategory: {
-    color: '#666',
-    fontSize: 12,
+    color: colors.lavenderMuted,
+    fontSize: 10,
+    fontWeight: '600',
     marginTop: 2,
+    letterSpacing: 0.5,
   },
   habitThumbnail: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#0E0E11',
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    marginRight: spacing.md,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#333',
+    width: 28,
+    height: 28,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#C2FF05',
-    borderColor: '#C2FF05',
+    backgroundColor: colors.mocha,
+    borderColor: colors.mochaLight,
   },
   warningBox: {
-    backgroundColor: '#FF3B3022',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 24,
+    backgroundColor: colors.dangerSubtle,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    marginTop: spacing.xl,
     borderWidth: 1,
-    borderColor: '#FF3B3044',
+    borderColor: colors.danger,
   },
   warningText: {
-    color: '#FF3B30',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 18,
   },
   rulesCard: {
-    marginTop: 40,
-    backgroundColor: '#1A1A23',
-    padding: 20,
-    borderRadius: 20,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    marginTop: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   rulesTitle: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '900',
-    marginBottom: 12,
-    letterSpacing: 1,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: spacing.sm,
   },
   ruleItem: {
-    color: '#888',
-    fontSize: 13,
-    marginBottom: 6,
+    color: colors.textSecondary,
+    fontSize: 12,
     lineHeight: 18,
+    marginBottom: 4,
   },
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    backgroundColor: 'rgba(19, 14, 11, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -585,81 +608,71 @@ const styles = StyleSheet.create({
   },
   captionModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(19, 14, 11, 0.82)',
     justifyContent: 'flex-end',
   },
   captionModalContent: {
-    backgroundColor: '#1A1A24',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 40,
+    backgroundColor: colors.surfaceElevated,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   captionModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   captionModalTitle: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  captionModalCancel: {
-    color: '#888',
-    fontSize: 22,
-    fontWeight: '700',
-    padding: 4,
+    color: colors.silver,
+    fontSize: 16,
+    fontWeight: '600',
   },
   captionPreviewImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 16,
-    marginBottom: 16,
-    backgroundColor: '#0E0E11',
+    height: 180,
+    borderRadius: radii.md,
+    marginBottom: spacing.lg,
   },
   captionInput: {
-    backgroundColor: '#0E0E11',
-    borderRadius: 14,
-    padding: 16,
-    color: '#FFF',
-    fontSize: 16,
-    minHeight: 60,
-    maxHeight: 120,
-    borderWidth: 1,
-    borderColor: '#2A2A35',
-    marginBottom: 16,
+    color: colors.silver,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.md,
+    minHeight: 80,
     textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.lg,
+    fontSize: 14,
   },
   captionActions: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'flex-end',
+    gap: spacing.md,
   },
   captionSkipBtn: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: '#2A2A35',
-    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   captionSkipText: {
-    color: '#888',
-    fontWeight: '800',
-    fontSize: 15,
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: '500',
   },
   captionPostBtn: {
-    flex: 2,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: '#C2FF05',
-    alignItems: 'center',
+    backgroundColor: colors.mocha,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.mochaLight,
   },
   captionPostText: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 15,
-    letterSpacing: 0.5,
+    color: colors.silver,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

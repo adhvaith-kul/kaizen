@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   SafeAreaView,
   TouchableOpacity,
   Image,
@@ -17,7 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import PostCard from '../components/PostCard';
-import { HabitComment as Comment } from '../types';
+import { colors, radii, spacing } from '../theme';
 
 export default function UserDetailScreen({ route, navigation }: any) {
   const { userId, username } = route.params;
@@ -32,7 +31,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
   const scrollY = React.useRef(new Animated.Value(0)).current;
 
   const headerOpacity = scrollY.interpolate({
-    inputRange: [50, 100],
+    inputRange: [40, 90],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
@@ -98,8 +97,8 @@ export default function UserDetailScreen({ route, navigation }: any) {
       } else {
         await backend.likeLog(user.id, post.id);
       }
-      setFeed(prev =>
-        prev.map(p =>
+      setFeed((prev) =>
+        prev.map((p) =>
           p.id === post.id
             ? { ...p, isLiked: !post.isLiked, likesCount: post.isLiked ? p.likesCount - 1 : p.likesCount + 1 }
             : p
@@ -120,7 +119,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
       }
       const updatedPost = await backend.getPostDetail(user.id, post.id);
       if (updatedPost) {
-        setFeed(prev => prev.map(p => (p.id === post.id ? { ...p, ...updatedPost } : p)));
+        setFeed((prev) => prev.map((p) => (p.id === post.id ? { ...p, ...updatedPost } : p)));
       }
     } catch (e) {
       console.error('Suspect failed:', e);
@@ -130,25 +129,24 @@ export default function UserDetailScreen({ route, navigation }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color="#FFF" />
-          <Text style={styles.backBtnText}>BACK</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
+          <Text style={styles.backBtnText}>Back</Text>
         </TouchableOpacity>
 
         <Animated.View style={[styles.stickyHeaderContent, { opacity: headerOpacity }]}>
           <Text style={styles.stickyUsername}>@{username}</Text>
           <Text style={styles.stickyStat}>
-            {stats.totalHabits} {stats.totalHabits === 1 ? 'HABIT' : 'HABITS'} • {stats.totalDaysLogged}{' '}
-            {stats.totalDaysLogged === 1 ? 'DAY' : 'DAYS'} • {stats.totalSquads}{' '}
-            {stats.totalSquads === 1 ? 'SQUAD' : 'SQUADS'}
+            {stats.totalHabits} habits • {stats.totalDaysLogged} days
           </Text>
         </Animated.View>
 
-        <View style={{ width: 80 }} />
+        <View style={{ width: 60 }} />
       </View>
+
       <View style={styles.container}>
         {loading ? (
-          <Loader style={{ marginTop: 50 }} />
+          <Loader style={{ marginTop: 40 }} />
         ) : (
           <Animated.FlatList
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
@@ -156,22 +154,23 @@ export default function UserDetailScreen({ route, navigation }: any) {
             })}
             scrollEventThrottle={16}
             data={feed}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             ListHeaderComponent={() => (
               <View>
                 <View style={styles.header}>
                   <TouchableOpacity
+                    activeOpacity={0.8}
                     onPress={() =>
                       setSelectedImage(
                         avatarUrl ||
-                          `https://api.dicebear.com/9.x/micah/png?seed=${username}&backgroundColor=C2FF05&radius=50`
+                          `https://api.dicebear.com/9.x/micah/png?seed=${username}&backgroundColor=6F4E37&radius=50`
                       )
                     }>
                     <Image
                       source={{
                         uri:
                           avatarUrl ||
-                          `https://api.dicebear.com/9.x/micah/png?seed=${username}&backgroundColor=C2FF05&radius=50`,
+                          `https://api.dicebear.com/9.x/micah/png?seed=${username}&backgroundColor=6F4E37&radius=50`,
                       }}
                       style={styles.headerAvatar}
                     />
@@ -183,12 +182,13 @@ export default function UserDetailScreen({ route, navigation }: any) {
                         <TouchableOpacity
                           style={[styles.followBtn, isFollowing && styles.followingBtn]}
                           onPress={handleFollowToggle}
-                          disabled={followingLoading}>
+                          disabled={followingLoading}
+                          activeOpacity={0.8}>
                           {followingLoading ? (
-                            <ActivityIndicator size="small" color={isFollowing ? '#888' : '#000'} />
+                            <ActivityIndicator size="small" color={colors.silver} />
                           ) : (
                             <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
-                              {isFollowing ? 'FOLLOWING' : 'FOLLOW'}
+                              {isFollowing ? 'Following' : 'Follow'}
                             </Text>
                           )}
                         </TouchableOpacity>
@@ -197,23 +197,23 @@ export default function UserDetailScreen({ route, navigation }: any) {
                     <View style={styles.miniStats}>
                       <View style={styles.miniStatItem}>
                         <Text style={styles.miniStatValue}>{stats.totalHabits}</Text>
-                        <Text style={styles.miniStatLabel}>{stats.totalHabits === 1 ? 'HABIT' : 'HABITS'}</Text>
+                        <Text style={styles.miniStatLabel}>HABITS</Text>
                       </View>
                       <View style={styles.miniStatDivider} />
                       <View style={styles.miniStatItem}>
                         <Text style={styles.miniStatValue}>{stats.totalDaysLogged}</Text>
-                        <Text style={styles.miniStatLabel}>{stats.totalDaysLogged === 1 ? 'DAY' : 'DAYS'}</Text>
+                        <Text style={styles.miniStatLabel}>DAYS</Text>
                       </View>
                       <View style={styles.miniStatDivider} />
                       <View style={styles.miniStatItem}>
                         <Text style={styles.miniStatValue}>{stats.totalSquads}</Text>
-                        <Text style={styles.miniStatLabel}>{stats.totalSquads === 1 ? 'SQUAD' : 'SQUADS'}</Text>
+                        <Text style={styles.miniStatLabel}>SQUADS</Text>
                       </View>
                     </View>
                   </View>
                 </View>
 
-                {feed.length > 0 && <Text style={styles.sectionTitle}>ACTIVITY</Text>}
+                {feed.length > 0 && <Text style={styles.sectionTitle}>ACTIVITY LOG</Text>}
               </View>
             )}
             renderItem={({ item }) => (
@@ -226,10 +226,10 @@ export default function UserDetailScreen({ route, navigation }: any) {
             )}
             ListEmptyComponent={() => (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No activity yet 🍃</Text>
+                <Text style={styles.emptyText}>No activity recorded yet</Text>
               </View>
             )}
-            contentContainerStyle={{ paddingBottom: 100 }}
+            contentContainerStyle={{ padding: spacing.lg, paddingBottom: 110 }}
           />
         )}
       </View>
@@ -250,77 +250,96 @@ export default function UserDetailScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0E0E11' },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1 },
   topBar: {
-    height: 60,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A24',
+    borderBottomColor: colors.border,
     zIndex: 10,
+    backgroundColor: colors.surface,
   },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 80,
+    gap: 4,
+    width: 60,
   },
-  backBtnText: { color: '#FFF', fontWeight: '800', fontSize: 12, letterSpacing: 1, marginLeft: -4 },
+  backBtnText: {
+    color: colors.textSecondary,
+    fontWeight: '500',
+    fontSize: 13,
+  },
   stickyHeaderContent: {
     alignItems: 'center',
     flex: 1,
   },
   stickyUsername: {
-    color: '#FFF',
+    color: colors.silver,
     fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: -0.5,
+    fontWeight: '600',
   },
   stickyStat: {
-    color: '#C2FF05',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 1,
+    color: colors.lavenderMuted,
+    fontSize: 11,
+    fontWeight: '500',
     marginTop: 1,
   },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 30, marginTop: 10, paddingHorizontal: 20 },
-  headerAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: '#C2FF05',
-    marginRight: 15,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+    marginTop: spacing.sm,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  title: { fontSize: 24, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
+  headerAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    marginRight: spacing.lg,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.silver,
+    letterSpacing: -0.3,
+  },
   headerInfo: { flex: 1 },
   usernameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   followBtn: {
-    backgroundColor: '#C2FF05',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+    backgroundColor: colors.mocha,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.mochaLight,
   },
   followingBtn: {
-    backgroundColor: '#1A1A24',
-    borderWidth: 1,
-    borderColor: '#2A2A35',
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.border,
   },
   followBtnText: {
-    color: '#000',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+    color: colors.silver,
+    fontSize: 11,
+    fontWeight: '600',
   },
   followingBtnText: {
-    color: '#888',
+    color: colors.textMuted,
   },
   miniStats: {
     flexDirection: 'row',
@@ -328,38 +347,46 @@ const styles = StyleSheet.create({
   },
   miniStatItem: {
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: spacing.md,
   },
   miniStatValue: {
-    color: '#FFF',
+    color: colors.silver,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   miniStatLabel: {
-    color: '#666',
+    color: colors.textMuted,
     fontSize: 8,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   miniStatDivider: {
     width: 1,
-    height: 10,
-    backgroundColor: '#2A2A35',
-    marginRight: 15,
+    height: 12,
+    backgroundColor: colors.borderSubtle,
+    marginRight: spacing.md,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#666',
-    letterSpacing: 2,
-    paddingHorizontal: 20,
-    marginBottom: 16,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1.5,
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
   },
-  emptyState: { alignItems: 'center', marginTop: 50 },
-  emptyText: { color: '#666', fontSize: 18, fontWeight: '700' },
+  emptyState: {
+    alignItems: 'center',
+    marginTop: 40,
+    padding: spacing.xl,
+  },
+  emptyText: {
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: '500',
+  },
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    backgroundColor: 'rgba(19, 14, 11, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
