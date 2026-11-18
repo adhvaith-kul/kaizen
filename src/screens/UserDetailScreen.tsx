@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import PostCard from '../components/PostCard';
 import { SkeletonPostCard } from '../components/Skeleton';
+import GlassView from '../components/GlassView';
 import { colors, radii, spacing } from '../theme';
 
 export default function UserDetailScreen({ route, navigation }: any) {
@@ -129,7 +130,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.topBar}>
+      <GlassView variant="dock" intensity={75} tint="dark" style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
           <Text style={styles.backBtnText}>Back</Text>
@@ -143,7 +144,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
         </Animated.View>
 
         <View style={{ width: 60 }} />
-      </View>
+      </GlassView>
 
       <View style={styles.container}>
         {loading ? (
@@ -198,7 +199,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
                         </TouchableOpacity>
                       )}
                     </View>
-                    <View style={styles.miniStats}>
+                    <GlassView variant="capsule" intensity={50} tint="dark" style={styles.miniStats}>
                       <View style={styles.miniStatItem}>
                         <Text style={styles.miniStatValue}>{stats.totalHabits}</Text>
                         <Text style={styles.miniStatLabel}>HABITS</Text>
@@ -213,7 +214,7 @@ export default function UserDetailScreen({ route, navigation }: any) {
                         <Text style={styles.miniStatValue}>{stats.totalSquads}</Text>
                         <Text style={styles.miniStatLabel}>SQUADS</Text>
                       </View>
-                    </View>
+                    </GlassView>
                   </View>
                 </View>
 

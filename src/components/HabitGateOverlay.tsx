@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import GlassView from './GlassView';
 import { colors, radii, spacing } from '../theme';
 
 interface Props {
@@ -10,10 +11,10 @@ interface Props {
 export default function HabitGateOverlay({ missing, onFix }: Props) {
   return (
     <View style={styles.overlay}>
-      <View style={styles.card}>
-        <View style={styles.badge}>
+      <GlassView variant="card" intensity={75} tint="dark" style={styles.card}>
+        <GlassView variant="capsule" intensity={50} tint="dark" style={styles.badge}>
           <Text style={styles.badgeText}>SETUP REQUIRED</Text>
-        </View>
+        </GlassView>
 
         <Text style={styles.title}>Squad Requirements Pending</Text>
         <Text style={styles.desc}>
@@ -34,7 +35,7 @@ export default function HabitGateOverlay({ missing, onFix }: Props) {
         </TouchableOpacity>
 
         <Text style={styles.hint}>You can still switch squads or navigate to your profile.</Text>
-      </View>
+      </GlassView>
     </View>
   );
 }

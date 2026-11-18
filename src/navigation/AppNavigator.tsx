@@ -12,6 +12,8 @@ import { useGlobalAlert } from '../context/AlertContext';
 import * as Linking from 'expo-linking';
 import { backend } from '../services/backend';
 import { StatusBar, Text, View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import GlassView from '../components/GlassView';
 import { colors, radii, spacing, theme } from '../theme';
 
 import LoginScreen from '../screens/LoginScreen';
@@ -116,6 +118,7 @@ const TABS: TabItemConfig[] = [
 ];
 
 function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
+  const insets = useSafeAreaInsets();
   const getTabKey = (name: string) => {
     return state.routes.find((r: any) => r.name === name)?.key;
   };
@@ -132,23 +135,36 @@ function CustomTabBar({ state, navigation, activeTab, onTabPress }: any) {
     onTabPress(tabName);
   };
 
+  const bottomInset = Math.max(insets.bottom, 12);
+  const barHeight = 56 + bottomInset;
+
   return (
-    <View style={styles.navBar}>
-      {TABS.map((tab) => {
-        const isActive = activeTab === tab.key;
-        return (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.navItem}
-            activeOpacity={0.7}
-            onPress={() => handlePress(tab.key, tab.route)}>
-            <View style={[styles.indicator, isActive && styles.indicatorActive]} />
-            <Text style={[styles.navLabel, isActive ? styles.navLabelActive : styles.navLabelInactive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+    <View style={[styles.navContainer, { height: barHeight }]} pointerEvents="box-none">
+      <GlassView
+        variant="dock"
+        intensity={85}
+        tint="dark"
+        specularBorder={true}
+        specularColor="rgba(255, 255, 255, 0.14)"
+        style={[styles.navBar, { height: barHeight, paddingBottom: bottomInset }]}>
+        <View style={styles.navRow}>
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.navItem, isActive && styles.navItemActive]}
+                activeOpacity={0.7}
+                onPress={() => handlePress(tab.key, tab.route)}>
+                <View style={[styles.indicator, isActive && styles.indicatorActive]} />
+                <Text style={[styles.navLabel, isActive ? styles.navLabelActive : styles.navLabelInactive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </GlassView>
     </View>
   );
 }
@@ -218,45 +234,59 @@ function MainTabs() {
 }
 
 const styles = StyleSheet.create({
-  navBar: {
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    height: 80,
-    paddingBottom: 24,
-    paddingTop: 8,
+  navContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     zIndex: 20,
+  },
+  navBar: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  navRow: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingTop: 4,
   },
   navItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xs,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  navItemActive: {
+    backgroundColor: 'rgba(230, 224, 240, 0.12)',
+    borderColor: 'rgba(230, 224, 240, 0.22)',
   },
   indicator: {
-    width: 16,
+    width: 14,
     height: 2,
     borderRadius: 1,
     backgroundColor: 'transparent',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   indicatorActive: {
     backgroundColor: colors.tabIndicator,
   },
   navLabel: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   navLabelActive: {
     color: colors.tabActive,
+    fontWeight: '700',
   },
   navLabelInactive: {
     color: colors.tabInactive,

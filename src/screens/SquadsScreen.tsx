@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useTabNavigation } from '../context/TabNavigationContext';
 import { SkeletonSquadCard } from '../components/Skeleton';
+import GlassView from '../components/GlassView';
 import { colors, radii, spacing } from '../theme';
 
 export default function SquadsScreen({ navigation }: any) {
@@ -36,7 +37,7 @@ export default function SquadsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.fixedHeader}>
+      <GlassView variant="dock" intensity={75} tint="dark" style={styles.fixedHeader}>
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>KAIZEN</Text>
           <Text style={styles.motto}>SQUAD DIRECTORY</Text>
@@ -51,7 +52,7 @@ export default function SquadsScreen({ navigation }: any) {
             style={styles.avatar}
           />
         </TouchableOpacity>
-      </View>
+      </GlassView>
 
       <ScrollView
         ref={scrollRef}

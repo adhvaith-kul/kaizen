@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Modal, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+import GlassView from './GlassView';
 import { colors, radii, spacing } from '../theme';
 
 interface AlertButton {
@@ -86,10 +88,24 @@ export default function CustomAlert({ visible, title, message, onClose, buttons 
   return (
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
-        <Animated.View style={[styles.alertBox, { transform: [{ scale: scaleAnim }] }]}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
-          {renderButtons()}
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          intensity={40}
+          tint="dark"
+          experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurViewSdk31Plus' : undefined}
+        />
+        <Animated.View style={[{ transform: [{ scale: scaleAnim }], width: '100%', maxWidth: 360 }]}>
+          <GlassView
+            variant="modal"
+            intensity={90}
+            tint="dark"
+            specularBorder={true}
+            specularColor="rgba(255, 255, 255, 0.18)"
+            style={styles.alertBox}>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.message}>{message}</Text>
+            {renderButtons()}
+          </GlassView>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -99,25 +115,16 @@ export default function CustomAlert({ visible, title, message, onClose, buttons 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(19, 14, 11, 0.82)',
+    backgroundColor: 'rgba(15, 10, 8, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
   },
   alertBox: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     padding: spacing.xl,
     width: '100%',
-    maxWidth: 360,
-    borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.45,
-    shadowRadius: 28,
-    elevation: 20,
   },
   title: {
     fontSize: 18,

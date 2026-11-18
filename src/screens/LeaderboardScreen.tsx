@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import HabitGateOverlay from '../components/HabitGateOverlay';
 import { SkeletonLeaderboardRow } from '../components/Skeleton';
+import GlassView from '../components/GlassView';
 import { Habit } from '../types';
 import { colors, radii, spacing } from '../theme';
 
@@ -62,26 +63,30 @@ export default function LeaderboardScreen({ navigation }: any) {
     <SafeAreaView style={styles.safeArea}>
       {initialLoad && <Loader fullScreen />}
 
-      <View style={styles.topBar}>
+      <GlassView variant="dock" intensity={70} tint="dark" style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
           <Text style={styles.backBtnText}>Squads</Text>
         </TouchableOpacity>
         <View style={styles.topBarActions}>
           {group && (
-            <TouchableOpacity style={styles.actionPill} onPress={() => backend.shareSquadInvite(group)}>
-              <Text style={styles.actionPillText}>Share Invite</Text>
-            </TouchableOpacity>
+            <GlassView variant="capsule" intensity={50} tint="dark">
+              <TouchableOpacity style={styles.actionPill} onPress={() => backend.shareSquadInvite(group)}>
+                <Text style={styles.actionPillText}>Share Invite</Text>
+              </TouchableOpacity>
+            </GlassView>
           )}
           {group?.createdBy === user?.id && (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('EditGroup', { group })}
-              style={[styles.actionPill, styles.actionPillAccent]}>
-              <Text style={[styles.actionPillText, { color: colors.lavender }]}>Settings</Text>
-            </TouchableOpacity>
+            <GlassView variant="capsule" intensity={50} tint="dark" style={{ marginLeft: spacing.xs }}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('EditGroup', { group })}
+                style={[styles.actionPill, styles.actionPillAccent]}>
+                <Text style={[styles.actionPillText, { color: colors.lavender }]}>Settings</Text>
+              </TouchableOpacity>
+            </GlassView>
           )}
         </View>
-      </View>
+      </GlassView>
 
       <View style={styles.header}>
         <Text style={styles.title}>{group?.name}</Text>
@@ -146,14 +151,14 @@ export default function LeaderboardScreen({ navigation }: any) {
             />
           </View>
 
-          <View style={styles.bottomBar}>
+          <GlassView variant="capsule" intensity={70} tint="dark" style={styles.bottomBar}>
             <TouchableOpacity
               style={styles.trackBtn}
               onPress={() => navigation.navigate('Dashboard')}
               activeOpacity={0.85}>
               <Text style={styles.trackBtnText}>Record Daily Habits</Text>
             </TouchableOpacity>
-          </View>
+          </GlassView>
         </>
       )}
     </SafeAreaView>

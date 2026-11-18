@@ -16,6 +16,7 @@ import { User } from '../types';
 import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import { SkeletonUserRow } from '../components/Skeleton';
+import GlassView from '../components/GlassView';
 import { useTabNavigation } from '../context/TabNavigationContext';
 import { colors, radii, spacing } from '../theme';
 
@@ -136,7 +137,7 @@ export default function FriendsScreen({ navigation, route }: any) {
   return (
     <SafeAreaView style={styles.safeArea}>
       {isTabBarPage ? (
-        <View style={styles.mainHeader}>
+        <GlassView variant="dock" intensity={75} tint="dark" style={styles.mainHeader}>
           <View style={styles.logoContainer}>
             <Text style={styles.logo}>KAIZEN</Text>
             <Text style={styles.motto}>DISCIPLINE NETWORK</Text>
@@ -151,20 +152,20 @@ export default function FriendsScreen({ navigation, route }: any) {
               style={styles.headerAvatar}
             />
           </TouchableOpacity>
-        </View>
+        </GlassView>
       ) : (
-        <View style={styles.header}>
+        <GlassView variant="dock" intensity={75} tint="dark" style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
             <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
             <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Network</Text>
           <View style={{ width: 40 }} />
-        </View>
+        </GlassView>
       )}
 
       <View style={styles.container}>
-        <View style={styles.searchContainer}>
+        <GlassView variant="card" intensity={50} tint="dark" style={styles.searchContainer}>
           <Ionicons name="search" size={16} color={colors.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
@@ -179,10 +180,10 @@ export default function FriendsScreen({ navigation, route }: any) {
               <Ionicons name="close-circle" size={16} color={colors.textMuted} />
             </TouchableOpacity>
           )}
-        </View>
+        </GlassView>
 
         {!isTabBarPage && (
-          <View style={styles.tabContainer}>
+          <GlassView variant="capsule" intensity={50} tint="dark" style={styles.tabContainer}>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'following' && styles.activeTab]}
               onPress={() => {
@@ -203,7 +204,7 @@ export default function FriendsScreen({ navigation, route }: any) {
                 Followers ({followers.length})
               </Text>
             </TouchableOpacity>
-          </View>
+          </GlassView>
         )}
 
         {loading && currentData.length === 0 ? (

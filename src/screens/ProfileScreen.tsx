@@ -24,6 +24,7 @@ import { HabitComment as Comment } from '../types';
 import Loader from '../components/Loader';
 import PostCard from '../components/PostCard';
 import { Skeleton } from '../components/Skeleton';
+import GlassView from '../components/GlassView';
 import { colors, radii, spacing } from '../theme';
 
 const SQUAD_COLORS = [colors.mocha, colors.lavender, colors.silver, colors.mochaLight, colors.lavenderMuted];
@@ -237,7 +238,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.fixedHeader}>
+      <GlassView variant="dock" intensity={75} tint="dark" style={styles.fixedHeader}>
         <View style={styles.headerLeftContainer}>
           <Animated.View style={[styles.stickyLeft, { opacity: stickyOpacity, position: 'absolute', left: 0 }]}>
             <Text style={styles.stickyUsername} numberOfLines={1}>
@@ -262,7 +263,7 @@ export default function ProfileScreen({ navigation }: any) {
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </GlassView>
 
       <Animated.ScrollView
         style={styles.container}
@@ -304,7 +305,7 @@ export default function ProfileScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.statsCard}>
+          <GlassView variant="card" intensity={50} tint="dark" style={styles.statsCard}>
             <Text style={styles.sectionTitle}>LIFETIME METRICS</Text>
 
             {loading ? (
@@ -338,10 +339,10 @@ export default function ProfileScreen({ navigation }: any) {
                 </View>
               </View>
             )}
-          </View>
+          </GlassView>
 
           {/* Habit Consistency Graph */}
-          <View style={styles.graphSection}>
+          <GlassView variant="card" intensity={50} tint="dark" style={styles.graphSection}>
             <Text style={styles.sectionTitle}>7-DAY CONSISTENCY</Text>
             {loading ? (
               <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingVertical: spacing.lg, height: 130, alignItems: 'flex-end' }}>
@@ -396,7 +397,7 @@ export default function ProfileScreen({ navigation }: any) {
                 )}
               </>
             )}
-          </View>
+          </GlassView>
         </View>
 
         {feed.length > 0 && (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import GlassView from './GlassView';
 import { colors, radii, spacing } from '../theme';
 
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
@@ -44,12 +45,17 @@ export default function PostCard({ post, onLike, onSuspect, onOpenComments, onPr
       {/* Main Proof Asset */}
       <View style={styles.imageContainer}>
         {post.imageUrl ? (
-          <Image source={{ uri: post.imageUrl }} style={styles.postImage} resizeMode="cover" />
+          <View style={styles.imageWrapper}>
+            <Image source={{ uri: post.imageUrl }} style={styles.postImage} resizeMode="cover" />
+            <GlassView variant="capsule" intensity={65} tint="dark" style={styles.floatingBadge}>
+              <Text style={styles.floatingBadgeText}>{post.habitName}</Text>
+            </GlassView>
+          </View>
         ) : (
           <View style={styles.textProofContainer}>
-            <View style={styles.categoryPill}>
+            <GlassView variant="capsule" intensity={50} tint="dark" style={styles.categoryPill}>
               <Text style={styles.categoryPillText}>{post.category.toUpperCase()}</Text>
-            </View>
+            </GlassView>
             <Text style={styles.textProofHabit}>{post.habitName}</Text>
             <Text style={styles.textProofNote}>Verified Completion</Text>
           </View>
@@ -181,10 +187,30 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  imageWrapper: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
   },
   postImage: {
     width: '100%',
     height: '100%',
+  },
+  floatingBadge: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  floatingBadgeText: {
+    color: colors.silver,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   textProofContainer: {
     alignItems: 'center',

@@ -23,6 +23,8 @@ import { useTabNavigation } from '../context/TabNavigationContext';
 import { HabitComment as Comment } from '../types';
 import PostCard from '../components/PostCard';
 import { SkeletonPostCard } from '../components/Skeleton';
+import GlassView from '../components/GlassView';
+import { BlurView } from 'expo-blur';
 import { colors, radii, spacing } from '../theme';
 
 export default function HomeScreen({ navigation }: any) {
@@ -142,7 +144,7 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+      <GlassView variant="dock" intensity={75} tint="dark" style={styles.header}>
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>KAIZEN</Text>
           <Text style={styles.motto}>DISCIPLINE & HABIT MASTERY</Text>
@@ -157,7 +159,7 @@ export default function HomeScreen({ navigation }: any) {
             style={styles.headerAvatar}
           />
         </TouchableOpacity>
-      </View>
+      </GlassView>
 
       <ScrollView
         ref={scrollRef}
@@ -208,61 +210,70 @@ export default function HomeScreen({ navigation }: any) {
         animationType="slide"
         transparent={true}
         onRequestClose={() => setCommentsVisible(false)}>
-        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setCommentsVisible(false)}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>Comments</Text>
-              <TouchableOpacity onPress={() => setCommentsVisible(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
+        <View style={styles.modalBg}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            intensity={35}
+            tint="dark"
+            experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurViewSdk31Plus' : undefined}
+          />
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setCommentsVisible(false)} />
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ width: '100%', height: '70%' }}>
+            <GlassView variant="modal" intensity={85} tint="dark" style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHandle} />
+                <Text style={styles.modalTitle}>Comments</Text>
+                <TouchableOpacity onPress={() => setCommentsVisible(false)} style={styles.closeBtn}>
+                  <Ionicons name="close" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
 
-            <FlatList
-              data={comments}
-              keyExtractor={(c) => c.id}
-              contentContainerStyle={{ paddingVertical: spacing.lg, paddingHorizontal: spacing.lg }}
-              renderItem={({ item }) => (
-                <View style={styles.commentItem}>
-                  <Image
-                    source={{
-                      uri:
-                        item.avatarUrl ||
-                        `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=6F4E37&radius=50`,
-                    }}
-                    style={styles.commentAvatar}
-                  />
-                  <View style={styles.commentInfo}>
-                    <Text style={styles.commentUser}>{item.username}</Text>
-                    <Text style={styles.commentText}>{item.text}</Text>
+              <FlatList
+                data={comments}
+                keyExtractor={(c) => c.id}
+                contentContainerStyle={{ paddingVertical: spacing.lg, paddingHorizontal: spacing.lg }}
+                renderItem={({ item }) => (
+                  <View style={styles.commentItem}>
+                    <Image
+                      source={{
+                        uri:
+                          item.avatarUrl ||
+                          `https://api.dicebear.com/9.x/micah/png?seed=${item.username}&backgroundColor=6F4E37&radius=50`,
+                      }}
+                      style={styles.commentAvatar}
+                    />
+                    <View style={styles.commentInfo}>
+                      <Text style={styles.commentUser}>{item.username}</Text>
+                      <Text style={styles.commentText}>{item.text}</Text>
+                    </View>
                   </View>
-                </View>
-              )}
-              ListEmptyComponent={() => (
-                <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 13 }}>
-                  No comments yet.
-                </Text>
-              )}
-            />
-
-            <View style={styles.commentInputRow}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Add a comment..."
-                placeholderTextColor={colors.textMuted}
-                value={newComment}
-                onChangeText={setNewComment}
-                multiline
+                )}
+                ListEmptyComponent={() => (
+                  <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 13 }}>
+                    No comments yet.
+                  </Text>
+                )}
               />
-              <TouchableOpacity
-                onPress={postComment}
-                disabled={commenting || !newComment.trim()}
-                style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.4 }]}>
-                <Text style={styles.postCommentBtnText}>{commenting ? '...' : 'Post'}</Text>
-              </TouchableOpacity>
-            </View>
+
+              <View style={styles.commentInputRow}>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder="Add a comment..."
+                  placeholderTextColor={colors.textMuted}
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  multiline
+                />
+                <TouchableOpacity
+                  onPress={postComment}
+                  disabled={commenting || !newComment.trim()}
+                  style={[styles.postCommentBtn, !newComment.trim() && { opacity: 0.4 }]}>
+                  <Text style={styles.postCommentBtnText}>{commenting ? '...' : 'Post'}</Text>
+                </TouchableOpacity>
+              </View>
+            </GlassView>
           </KeyboardAvoidingView>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </SafeAreaView>
   );

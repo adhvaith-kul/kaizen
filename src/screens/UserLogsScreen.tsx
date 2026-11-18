@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Loader from '../components/Loader';
 import PostCard from '../components/PostCard';
 import { SkeletonPostCard } from '../components/Skeleton';
+import GlassView from '../components/GlassView';
 import { useTabNavigation } from '../context/TabNavigationContext';
 import { colors, radii, spacing } from '../theme';
 
@@ -113,7 +114,7 @@ export default function UserLogsScreen({ route, navigation }: any) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.topBar}>
+      <GlassView variant="dock" intensity={75} tint="dark" style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
           <Text style={styles.backBtnText}>Back</Text>
@@ -128,7 +129,7 @@ export default function UserLogsScreen({ route, navigation }: any) {
         </View>
 
         <View style={{ width: 60 }} />
-      </View>
+      </GlassView>
 
       <View style={styles.container}>
         {loading ? (

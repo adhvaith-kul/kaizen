@@ -19,6 +19,7 @@ import { useGlobalAlert } from '../context/AlertContext';
 import { backend } from '../services/backend';
 import { Challenge, UserChallenge, Habit, DailyLog } from '../types';
 import { SkeletonChallengeCard } from '../components/Skeleton';
+import GlassView from '../components/GlassView';
 import { colors, radii, spacing } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -234,12 +235,12 @@ export default function ChallengesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.lavender} />}>
         <View style={styles.header}>
           <Text style={styles.title}>75 HARD</Text>
-          <View style={styles.streakBadge}>
+          <GlassView variant="capsule" intensity={70} tint="dark" style={styles.streakBadge}>
             <Text style={styles.streakText}>DAY {userChallenge.currentStreak}</Text>
-          </View>
+          </GlassView>
         </View>
 
-        <View style={styles.progressContainer}>
+        <GlassView variant="card" intensity={60} tint="dark" style={styles.progressContainer}>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${Math.max(4, progress)}%` }]} />
           </View>
@@ -247,7 +248,7 @@ export default function ChallengesScreen() {
             <Text style={styles.progressLabel}>Day 01</Text>
             <Text style={styles.progressLabel}>Day 75</Text>
           </View>
-        </View>
+        </GlassView>
 
         <Text style={styles.sectionTitle}>DAILY MANDATES</Text>
         <View style={styles.habitList}>
