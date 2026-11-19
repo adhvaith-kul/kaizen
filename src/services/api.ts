@@ -3,7 +3,8 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 const resolveBaseUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  const rawUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  const envUrl = rawUrl ? rawUrl.replace(/\/+$/, '') : undefined;
 
   // If envUrl is explicitly provided and is a specific remote/LAN host (not localhost), use it
   if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
